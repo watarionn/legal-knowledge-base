@@ -6,7 +6,7 @@
       "role": "articleless-main-provision",
       "archive": "all_xml_01.zip",
       "archive_sha256": "97963a154c9e22c371028acf48cd8b5721bb37c56648c36f41d25141f16d3a8e",
-      "member_path": "503AC0000000004_20210203_000000000000000/503AC0000000000004_20210203_000000000000000.xml",
+      "member_path": "503AC0000000004_20210203_000000000000000/503AC0000000004_20210203_000000000000000.xml",
       "member_ordinal": 1800,
       "compressed_size": 608,
       "uncompressed_size": 1233,
@@ -18,7 +18,7 @@
     {
       "role": "attachment-src",
       "archive": "all_xml_01.zip",
-      "archive_sha256": "97963a154c9e22c371028acf48cd8b5721bb37c56648c36f41d25141f16d3a8e",
+      "archive_sha256": "97963a154c9e22c371028acf48cd8b5721bb37c56648c36f41f16d3a8e",
       "member_path": "503M60000F42001_20211022_000000000000000/503M60000F42001_20211022_000000000000000.xml",
       "member_ordinal": 2052,
       "compressed_size": 891,
