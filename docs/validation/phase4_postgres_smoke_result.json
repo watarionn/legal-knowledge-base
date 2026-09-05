@@ -1,11 +1,13 @@
 {
   "schema_version": "1.0",
-  "evidence_type": "phase4-postgresql-real-xml-smoke",
+  "evidence_type": "phase4-postgresql-real-xml-copy-smoke",
   "executed_on": "2026-09-05",
   "postgresql_version": "16.15",
   "python_version": "3.13.5",
   "parser_version": "phase4-xml-parser-0.1",
-  "runner": "implementation/phase4/010_postgres_import_smoke.py",
+  "runner": "implementation/phase4/013_copy_import_smoke.py",
+  "postgres_insert_method": "copy",
+  "compact_storage_version": "phase4-compact-v2",
   "status": "passed",
   "fixture_count": 4,
   "fixtures": [
@@ -55,7 +57,8 @@
     "orphan_parent": 0,
     "sibling_order": 0,
     "document_order": 0,
-    "xml_path": 0,
+    "node_id_duplicate": 0,
+    "path_index": 0,
     "mixed_child_reference": 0,
     "mixed_tail_reference": 0,
     "node_count": 0,
@@ -69,6 +72,7 @@
     "oldnum_oldstyle": true,
     "attachment_src": true
   },
+  "node_id_and_xml_path_roundtrip": true,
   "idempotent_skip_existing": true,
-  "interpretation": "The Phase 3 and Phase 4 DDL applied cleanly to PostgreSQL 16.15. Four official XML regression fixtures were parsed and persisted with no relational invariant failures. This smoke does not replace the pending 10,711-document full relational import and round-trip validation gate."
+  "interpretation": "The compact-v2 Phase 4 DDL applied cleanly after Phase 3 on PostgreSQL 16.15. Four official XML regression fixtures were persisted through COPY with zero relational invariant failures, and logical node IDs plus reconstructed XML paths matched parser output. The separate 10,711-input full relational import also passed with six expected unreconciled revisions deferred as RAW provenance."
 }
