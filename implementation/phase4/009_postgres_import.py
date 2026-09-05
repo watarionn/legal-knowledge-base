@@ -114,6 +114,10 @@ def _insert_sql(table: str, columns: Sequence[str]) -> str:
     )
 
 
+def _copy_sql(table: str, columns: Sequence[str]) -> str:
+    return f"COPY legal_kb.{table} ({', '.join(columns)}) FROM STDIN"
+
+
 def _adapt_row(
     row: dict[str, Any],
     columns: Sequence[str],
@@ -133,6 +137,14 @@ def _batched(rows: Sequence[dict[str, Any]], batch_size: int) -> Iterable[Sequen
         raise ValueError("batch_size must be >= 1")
     for start in range(0, len(rows), batch_size):
         yield rows[start : start + batch_size]
+
+
+def _copy_rows(cur, table: str, columns: Sequence[str], rows: Sequence[dict[str, Any]], Jsonb) -> None:
+    if not rows:
+        return
+    with cur.copy(_copy_sql(table, columns)) as copy:
+        for row in rows:
+            copy.write_row(_adapt_row(row, columns, Jsonb))
 
 
 def document_exists(conn, document_id: str) -> bool:
@@ -168,14 +180,20 @@ def insert_parsed_document(
     *,
     batch_size: int = 1000,
     skip_existing: bool = True,
+    method: str = "executemany",
 ) -> bool:
     """Persist one ParsedXmlDocument into the Phase 4 relational model.
 
     The document is inserted before its nodes, then attachments and parse issues.
     Parent-node FKs are DEFERRABLE, but the parser already emits parents before descendants.
-    Returns True when inserted. When skip_existing=True, an existing document_id is left intact
-    and False is returned.
+    ``method='copy'`` uses PostgreSQL COPY FROM STDIN for the high-volume child tables and is
+    intended for full-corpus ingestion. ``executemany`` remains available for small tests and
+    compatibility. Returns True when inserted. When skip_existing=True, an existing document_id
+    is left intact and False is returned.
     """
+
+    if method not in {"executemany", "copy"}:
+        raise ValueError("method must be 'executemany' or 'copy'")
 
     _, Jsonb = _load_psycopg()
 
@@ -195,22 +213,27 @@ def insert_parsed_document(
                 _adapt_row(parsed.law_document, DOCUMENT_COLUMNS, Jsonb),
             )
 
-            for batch in _batched(parsed.nodes, batch_size):
-                cur.executemany(
-                    node_sql,
-                    [_adapt_row(row, NODE_COLUMNS, Jsonb) for row in batch],
-                )
+            if method == "copy":
+                _copy_rows(cur, "provision_node", NODE_COLUMNS, parsed.nodes, Jsonb)
+                _copy_rows(cur, "attachment", ATTACHMENT_COLUMNS, parsed.attachments, Jsonb)
+                _copy_rows(cur, "xml_parse_issue", ISSUE_COLUMNS, parsed.issues, Jsonb)
+            else:
+                for batch in _batched(parsed.nodes, batch_size):
+                    cur.executemany(
+                        node_sql,
+                        [_adapt_row(row, NODE_COLUMNS, Jsonb) for row in batch],
+                    )
 
-            for batch in _batched(parsed.attachments, batch_size):
-                cur.executemany(
-                    attachment_sql,
-                    [_adapt_row(row, ATTACHMENT_COLUMNS, Jsonb) for row in batch],
-                )
+                for batch in _batched(parsed.attachments, batch_size):
+                    cur.executemany(
+                        attachment_sql,
+                        [_adapt_row(row, ATTACHMENT_COLUMNS, Jsonb) for row in batch],
+                    )
 
-            for batch in _batched(parsed.issues, batch_size):
-                cur.executemany(
-                    issue_sql,
-                    [_adapt_row(row, ISSUE_COLUMNS, Jsonb) for row in batch],
-                )
+                for batch in _batched(parsed.issues, batch_size):
+                    cur.executemany(
+                        issue_sql,
+                        [_adapt_row(row, ISSUE_COLUMNS, Jsonb) for row in batch],
+                    )
 
     return True
