@@ -1,6 +1,6 @@
 schema_version: '1.0'
 contract: legal-kb-phase5-temporal-resolution
-status: proposed
+status: validated
 
 scope:
   phase: '5.1'
@@ -82,7 +82,16 @@ known_phase3_snapshot_metrics:
   same_day_revision_count: 7345
   baseline_unknown_count: 3109
 
+validation_evidence:
+  file: ../../docs/validation/phase5_temporal_resolution_smoke_result.json
+  executed_on: '2026-09-05'
+  postgresql_version: '16.15'
+  synthetic_test_count: 8
+  synthetic_test_failures: 0
+  postgres_smoke_status: passed
+
 phase5_1_exit_gate:
+  current_status: passed
   required:
   - SQL candidate function preserves all same-day candidates
   - strict resolver returns resolved only for one confirmed candidate
