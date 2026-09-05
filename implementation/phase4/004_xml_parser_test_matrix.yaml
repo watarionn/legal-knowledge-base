@@ -169,4 +169,4 @@ phase4_design_gate:
   - schema and ingestion contract cover every fixture above
   - validation queries exist for relational integrity and corpus inventories
   - implementation can proceed without assuming Article is universal
-  current_status: full-corpus-scan-passed-postgresql-import-smoke-pending
+  current_status: full-corpus-scan-and-postgresql-real-xml-smoke-passed
