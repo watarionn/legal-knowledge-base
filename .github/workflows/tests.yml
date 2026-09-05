@@ -47,7 +47,9 @@ jobs:
             implementation/phase5/013_full_search_benchmark_v2.py \
             implementation/phase5/014_search_hardening_smoke.py \
             implementation/phase5/015_full_search_pipeline_hardened.py \
-            implementation/phase5/016_full_search_benchmark_v2_test.py
+            implementation/phase5/016_full_search_benchmark_v2_test.py \
+            implementation/phase5/017_full_search_execution_preflight.py \
+            implementation/phase5/019_full_search_execution_preflight_test.py
 
       - name: Run Phase 3 tests
         run: |
@@ -68,6 +70,7 @@ jobs:
           python implementation/phase5/009_full_search_benchmark_test.py -v
           python implementation/phase5/011_full_search_pipeline_test.py -v
           python implementation/phase5/016_full_search_benchmark_v2_test.py -v
+          python implementation/phase5/019_full_search_execution_preflight_test.py -v
 
       - name: Check public-safety boundaries
         shell: python
