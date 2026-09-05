@@ -23,6 +23,13 @@ PG_IMPORT = importlib.util.module_from_spec(PG_SPEC)
 sys.modules[PG_SPEC.name] = PG_IMPORT
 PG_SPEC.loader.exec_module(PG_IMPORT)
 
+PARSER_SPEC = importlib.util.spec_from_file_location(
+    "phase4_xml_parser_for_full_import_test", PHASE4_DIR / "005_xml_parser.py"
+)
+PARSER = importlib.util.module_from_spec(PARSER_SPEC)
+sys.modules[PARSER_SPEC.name] = PARSER
+PARSER_SPEC.loader.exec_module(PARSER)
+
 RID1 = "503AC0000000004_20210203_000000000000000"
 RID2 = "428AC1000000067_20160603_000000000000000"
 
@@ -43,6 +50,22 @@ class FullRelationalImportTest(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             PG_IMPORT.insert_parsed_document(None, None, method="invalid")
+
+    def test_compact_storage_rows_keep_logical_identity_and_local_links(self):
+        parsed = PARSER.parse_xml_bytes(
+            b"<Law><A/><A/></Law>",
+            law_revision_id=RID1,
+            source_file_id="source",
+            ingestion_run_id="run",
+        )
+        nodes, attachments, issues = PG_IMPORT._storage_rows(parsed, 42)
+        self.assertEqual([row["document_pk"] for row in nodes], [42, 42, 42])
+        self.assertEqual([row["document_order"] for row in nodes], [1, 2, 3])
+        self.assertEqual([row["parent_document_order"] for row in nodes], [None, 1, 1])
+        self.assertEqual([row["path_index"] for row in nodes], [1, 1, 2])
+        self.assertEqual(nodes[0]["node_id"], bytes.fromhex(parsed.nodes[0]["node_id"]))
+        self.assertEqual(attachments, [])
+        self.assertEqual(issues, [])
 
     def test_member_source_id_is_deterministic_and_path_sensitive(self):
         a = MODULE.member_source_file_id("a" * 64, "x/a.xml")
