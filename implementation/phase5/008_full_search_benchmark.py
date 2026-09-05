@@ -30,6 +30,11 @@ def _scalar(conn, sql: str, params=()):
         return None if row is None else row[0]
 
 
+def _execute(conn, sql: str, params=()) -> None:
+    with conn.cursor() as cur:
+        cur.execute(sql, params)
+
+
 def _row(conn, sql: str, params=()) -> dict[str, Any]:
     with conn.cursor() as cur:
         cur.execute(sql, params)
@@ -81,6 +86,8 @@ def _timed(call: Callable[[], Any]) -> tuple[Any, float]:
 
 
 def _latency_stats(samples_ms: list[float]) -> dict[str, float]:
+    if not samples_ms:
+        raise ValueError("samples_ms must not be empty")
     ordered = sorted(samples_ms)
     p95_index = max(0, min(len(ordered) - 1, int(round((len(ordered) - 1) * 0.95))))
     return {
@@ -136,10 +143,9 @@ def run(database_url: str, queries: tuple[str, ...], repeats: int) -> dict[str, 
         inserted, rebuild_seconds = _timed(
             lambda: int(_scalar(conn, "SELECT legal_kb.rebuild_search_units(NULL)"))
         )
-        analyze_result, analyze_seconds = _timed(
-            lambda: _scalar(conn, "ANALYZE legal_kb.search_unit; SELECT 1")
+        _, analyze_seconds = _timed(
+            lambda: _execute(conn, "ANALYZE legal_kb.search_unit")
         )
-        del analyze_result
 
         after_size = _size_snapshot(conn)
         after_counts = _counts(conn)
