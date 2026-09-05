@@ -55,3 +55,23 @@ jobs:
           python implementation/phase4/013_copy_import_smoke.py \
             --result "$RUNNER_TEMP/phase4-postgres-copy-smoke.json"
           cat "$RUNNER_TEMP/phase4-postgres-copy-smoke.json"
+
+      - name: Export temporary PostgreSQL 16 rootfs
+        run: |
+          set -euo pipefail
+          cid="$(docker create postgres:16)"
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          docker export "$cid" | gzip -1 > "$RUNNER_TEMP/postgres16-rootfs.tar.gz"
+          sha256sum "$RUNNER_TEMP/postgres16-rootfs.tar.gz" > "$RUNNER_TEMP/postgres16-rootfs.sha256"
+          ls -lh "$RUNNER_TEMP/postgres16-rootfs.tar.gz"
+
+      - name: Upload temporary PostgreSQL rootfs
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-postgres16-rootfs
+          path: |
+            ${{ runner.temp }}/postgres16-rootfs.tar.gz
+            ${{ runner.temp }}/postgres16-rootfs.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
