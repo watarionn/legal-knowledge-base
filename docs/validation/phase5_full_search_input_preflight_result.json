@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "checked_on": "2026-09-06",
+  "status": "input-preflight-passed",
+  "source_role": "official-xml-raw-snapshot",
+  "parts": [
+    {
+      "name": "all_xml_01.zip",
+      "size_bytes": 13519406,
+      "sha256": "97963a154c9e22c371028acf48cd8b5721bb37c56648c36f41d25141f16d3a8e",
+      "xml_count": 1714,
+      "zip_integrity": "passed"
+    },
+    {
+      "name": "all_xml_02.zip",
+      "size_bytes": 41443157,
+      "sha256": "f13a767583c3f8382383f18488a22d16aeaef2304d77a43ac681cc22b269ac51",
+      "xml_count": 3090,
+      "zip_integrity": "passed"
+    },
+    {
+      "name": "all_xml_03.zip",
+      "size_bytes": 86846266,
+      "sha256": "0966585fec0937a380a80323c47f1cd2dc762365e33428a20b7cc6136f9da47e",
+      "xml_count": 3174,
+      "zip_integrity": "passed"
+    },
+    {
+      "name": "all_xml_04.zip",
+      "size_bytes": 188842578,
+      "sha256": "8d85fbeefbf66cced7e197a5ecf33370c882500e576408b1f2dfbbb66d6592d3",
+      "xml_count": 2733,
+      "zip_integrity": "passed"
+    }
+  ],
+  "totals": {
+    "zip_part_count": 4,
+    "size_bytes": 330651407,
+    "xml_count": 10711,
+    "duplicate_member_name_count": 0,
+    "uncompressed_bytes": 3670540134,
+    "uncompressed_gib": 3.418
+  },
+  "manifest_match": {
+    "file": "docs/validation/xml_snapshot_manifest.public.json",
+    "sizes": true,
+    "sha256": true,
+    "xml_counts": true,
+    "overall": true
+  },
+  "execution_environment": {
+    "input_files_materialized": true,
+    "postgresql_available": false,
+    "external_network_available": false,
+    "full_relational_rebuild_executed": false,
+    "phase5_benchmark_executed": false
+  },
+  "next_required_step": "Run implementation/phase4/011_full_relational_import.py against PostgreSQL 16+ using these four verified ZIPs, then run implementation/phase5/008_full_search_benchmark.py and commit its JSON result."
+}
