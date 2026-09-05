@@ -102,13 +102,28 @@ Phase 3には53,711 revisionがありますが、現在のPhase 4 snapshotは10,
 - `law_title`だけをidentityとして使用しない
 - 現行版検索結果を過去時点回答へ無条件で混ぜない
 
+## Phase 5.1 validation
+
+2026-09-05にPostgreSQL 16.15でPhase 3 → Phase 4 → Phase 5.1 DDLを連続適用し、strict resolverの実DBsmokeを通過しました。
+
+確認済み:
+- 最初のrevision以前の日付は`not-found`
+- confirmedな過去revisionは、本文未収録でもrevision自体は`resolved`
+- `valid_to_exclusive`境界当日は新revisionだけを選択
+- confirmedな単一候補＋成功済み本文は`resolved + available`
+- same-day複数候補は`ambiguous`で、`selected_revision_id`を返さない
+- 低品質な単一候補は`unresolved`で、`selected_revision_id`を返さない
+- 8件のsynthetic resolver testsはfailure 0
+
+機械可読証跡は [`../validation/phase5_temporal_resolution_smoke_result.json`](../validation/phase5_temporal_resolution_smoke_result.json) に保存しています。
+
 ## Phase 5.1 exit gate
 
-- PostgreSQL関数がas-of候補をinterval条件で返す
-- same-day複数候補を保持する
-- strict resolverが曖昧候補を自動選択しない
-- temporal statusとcontent availabilityを分離する
-- 本文missing時にfallbackしない
-- synthetic testsとPostgreSQL smokeが通る
+- PostgreSQL関数がas-of候補をinterval条件で返す: **passed**
+- same-day複数候補を保持する: **passed**
+- strict resolverが曖昧候補を自動選択しない: **passed**
+- temporal statusとcontent availabilityを分離する: **passed**
+- 本文missing時にfallbackしない: **passed**
+- synthetic testsとPostgreSQL smokeが通る: **passed**
 
-Phase 5.1完了後にPhase 5.2の検索unit/chunk設計へ進みます。
+**Phase 5.1の技術ゲートは完了です。次工程はPhase 5.2 Lexical / Structural Searchです。**
