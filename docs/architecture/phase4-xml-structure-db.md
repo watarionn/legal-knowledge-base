@@ -90,9 +90,18 @@ namespace URIもpath identityへ含めます。
 - 10,711 XML全量structural scan
 - PostgreSQL importer実装
 - 実XML regression fixtures準備
+- Public repo CIでPostgreSQL 16.15 real XML smoke成功
+  - 4 `law_document`
+  - 86 `provision_node`
+  - 1 `attachment`
+  - 4 `source_file_member`
+  - relational invariant failure 0
+  - Articleなし / nonblank tail / OldNum+OldStyle / attachment src のfeature check成功
+  - `skip_existing` idempotence成功
 
 未完了:
-- Public repo CIでのPostgreSQL 16 real XML smoke
 - 10,711 XML full relational import
-- relational validation SQL
+- relational validation SQLの全量適用
 - normalized infoset round-trip検査
+
+PostgreSQL smokeの機械可読証跡は [`../validation/phase4_postgres_smoke_result.json`](../validation/phase4_postgres_smoke_result.json) に記録しています。
