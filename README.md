@@ -22,12 +22,12 @@
 | 2 | 原本・全量データ検証 | 完了 |
 | 3 | 法令・履歴DB実装 | 完了 |
 | 4 | XML構造DB | **完了** |
-| 5 | 時点検索＋検索/RAG | **次工程** |
+| 5 | 時点検索＋検索/RAG | **進行中（Phase 5.1 Temporal Resolution）** |
 | 6 | 官報・議会資料連携 | 未着手 |
 
-Phase 4では、`law_document` / `provision_node` / `attachment` を中心に、法令XMLを一般化した順序付きツリーとして保持します。32Mノードを実用的な容量で扱うため、外向けの決定的node identityとDB内部のcompactなdocument-local参照を分離しています。
+Phase 5.1では、`law_id + as_of_date`からrevision候補を解決します。Phase 3の実データにはsame-day複数revisionとtemporal ambiguityがあるため、**一意に確認できない候補を勝手に1 revisionへ丸めない**strict resolverを採用します。また、時点revisionの確定とPhase 4本文のavailabilityを分離し、本文未収録時に別revisionへfallbackしません。
 
-詳細は [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) と [`docs/architecture/phase4-xml-structure-db.md`](docs/architecture/phase4-xml-structure-db.md) を参照してください。
+詳細は [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) と [`docs/architecture/phase5-temporal-search-rag.md`](docs/architecture/phase5-temporal-search-rag.md) を参照してください。
 
 ## 実測済みデータ
 
@@ -59,7 +59,7 @@ Phase 4 full relational importでは:
 
 同一snapshotの公式v3 XSD検証は9,932件適合、779件非適合です。公式RAW XMLはXSD非適合だけを理由に拒否・自動修正しません。なおPhase 4 relational importでは個別XSD statusを再実行・backfillしていません。
 
-Phase 3の全量bootstrapでは、e-Gov法令API Version 2から9,551法令・53,711履歴をPostgreSQLへ取り込み、最終取得失敗0を確認しています。
+Phase 3の全量bootstrapでは、e-Gov法令API Version 2から9,551法令・53,711履歴をPostgreSQLへ取り込み、最終取得失敗0を確認しています。temporal metricsとして、`confirmed-api` 43,301件、ambiguous 10,410件、same-day group 3,064 group / 7,345 revisionを観測しています。
 
 ## ディレクトリ
 
@@ -70,7 +70,8 @@ Phase 3の全量bootstrapでは、e-Gov法令API Version 2から9,551法令・53
 │   └── validation/         # 公開可能な検証証跡・集計値
 ├── implementation/
 │   ├── phase3/             # law / law_revision、API bootstrap
-│   └── phase4/             # XML parser、構造DB、full importer
+│   ├── phase4/             # XML parser、構造DB、full importer
+│   └── phase5/             # temporal resolver、検索/RAG（進行中）
 └── .github/workflows/      # 自動テスト・PostgreSQL smoke
 ```
 
@@ -81,9 +82,10 @@ python implementation/phase3/005_bootstrap_import_test.py -v
 python implementation/phase3/008_resumable_full_bootstrap_test.py -v
 python implementation/phase4/006_xml_parser_test.py -v
 python implementation/phase4/012_full_relational_import_test.py -v
+python implementation/phase5/004_temporal_resolver_test.py -v
 ```
 
-PostgreSQL COPY smokeは `.github/workflows/postgres-smoke.yml` と `implementation/phase4/013_copy_import_smoke.py` を参照してください。
+PostgreSQL smokeは `.github/workflows/postgres-smoke.yml` を参照してください。
 
 ## データの扱い
 
@@ -99,7 +101,8 @@ PostgreSQL COPY smokeは `.github/workflows/postgres-smoke.yml` と `implementat
 - CSV・XML・APIの競合値を上書きせず、来歴として残す
 - 原文と検索用正規化文を分離する
 - normalized dataから必ずRAW原本とSHA-256へ戻れるようにする
-- 不明なものを推測して確定値にしない
+- ambiguousな時点境界を推測で確定値にしない
+- 本文未収録revisionを別revisionの本文で代用しない
 
 ## ライセンス
 
