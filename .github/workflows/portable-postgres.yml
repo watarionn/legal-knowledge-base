@@ -1,0 +1,34 @@
+name: Portable PostgreSQL Artifact
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/portable-postgres.yml
+
+permissions:
+  contents: read
+
+jobs:
+  package-postgres:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Export PostgreSQL 16 container rootfs
+        run: |
+          set -euo pipefail
+          docker pull postgres:16
+          cid="$(docker create postgres:16)"
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          docker export "$cid" | gzip -1 > postgres16-rootfs.tar.gz
+          sha256sum postgres16-rootfs.tar.gz > postgres16-rootfs.sha256
+          ls -lh postgres16-rootfs.tar.gz
+
+      - name: Upload portable PostgreSQL artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-postgres16-rootfs
+          path: |
+            postgres16-rootfs.tar.gz
+            postgres16-rootfs.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
