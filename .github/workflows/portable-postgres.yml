@@ -22,6 +22,28 @@ jobs:
           sha256sum postgres16-rootfs.tar.gz > postgres16-rootfs.sha256
           ls -lh postgres16-rootfs.tar.gz
 
+      - name: Recheck six snapshot/API revision exceptions
+        shell: python
+        run: |
+          import urllib.request
+
+          checks = {
+              "211AC0000000070": ["211AC0000000070_20270518_505AC0000000031"],
+              "314AC0000000073": ["314AC0000000073_20270518_505AC0000000031"],
+              "342AC0000000035": [
+                  "342AC0000000035_21171231_507AC0000000013",
+                  "342AC0000000035_21171231_507AC0000000032",
+              ],
+              "342AC0000000081": ["342AC0000000081_20270518_505AC0000000031"],
+              "411AC0000000097": ["411AC0000000097_20270620_506AC0000000060"],
+          }
+          for law_id, targets in checks.items():
+              url = f"https://laws.e-gov.go.jp/api/2/law_revisions/{law_id}"
+              with urllib.request.urlopen(url, timeout=60) as response:
+                  body = response.read().decode("utf-8")
+              for target in targets:
+                  print(f"{target}\tpresent={str(target in body).lower()}\tresponse_bytes={len(body)}")
+
       - name: Upload portable PostgreSQL artifact
         uses: actions/upload-artifact@v4
         with:
