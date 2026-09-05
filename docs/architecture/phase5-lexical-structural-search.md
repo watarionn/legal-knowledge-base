@@ -48,4 +48,21 @@ PostgreSQL smokeではPhase 4の公式real XML fixtureを投入後に検索unit�
 - structural hitがrevision / node / XML path / RAW SHAを返す
 - 空のnormalized search rowが存在しない
 
-全量10,705 documentに対するindex build時間・DB増分・検索性能測定はPhase 5.2の次の実測工程で確定する。
+## 全量benchmark protocol
+
+`implementation/phase5/008_full_search_benchmark.py`は、Phase 4 full relational import済みDBへPhase 5.2 DDLを適用した状態で実行する。検索indexは再生成可能な派生層なので、全量測定では`rebuild_search_units(NULL)`を実行し直して測る。
+
+記録する項目は次のとおり。
+
+- succeeded document件数
+- search unit対象となる非空text-bearing node件数
+- rebuild後のsearch unit件数・document件数・revision件数
+- search unit rebuild時間とANALYZE時間
+- database全体、search_unit heap、search_unit indexのbyte数と前後差分
+- 全revision横断lexical queryの複数回latency
+- 最大search unit数を持つrevisionに固定したlexical queryの複数回latency
+- 同revisionのArticle structural queryの複数回latency
+
+既定lexical queryは`国民`、`法律`、`政令`、`附則`とし、`--query`で追加・置換できる。latencyはmin / median / p95 / max / meanをJSONへ保存する。
+
+全量測定時にはsearch unit件数がeligible node件数と完全一致しない限り成功扱いにしない。測定結果JSONは実測環境・PostgreSQL version・測定日時を含め、後続のstorage/performance契約の証跡とする。
