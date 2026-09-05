@@ -75,13 +75,15 @@
 - 本文availabilityをtemporal resolutionと分離する
 - 本文未収録時に別revisionへfallbackしない
 
-状態: **進行中**
+2026-09-05にPostgreSQL 16.15でPhase 3→4→5.1 DDLを連続適用し、8件のsynthetic testsとtemporal resolution smokeを通過しました。same-day複数候補、exclusive境界、本文missing、低品質単一候補を含め、strict resolverがrevisionを推測選択しないことを確認しています。
+
+状態: **完了**
 
 ### Phase 5.2 Lexical / Structural Search
 
 revision-awareな検索unitを構築し、検索hitから`law_revision_id`、XML構造path、RAW SHAへ戻れるようにします。
 
-状態: 未着手
+状態: **次工程**
 
 ### Phase 5.3 Vector / RAG Retrieval
 
