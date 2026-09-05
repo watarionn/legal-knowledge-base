@@ -1,6 +1,6 @@
-schema_version: '1.0'
+schema_version: '1.1'
 contract: legal-kb-phase4-xml-ingestion
-status: proposed
+status: implemented-full-import-validated
 source_of_truth:
 - docs/architecture/system-architecture.md
 - docs/architecture/roadmap.md
@@ -15,219 +15,167 @@ scope:
     expected_xml_count: 10711
     expected_unique_revision_id_count: 10711
   target_schema: legal_kb
-  primary_entities:
-  - law_document
-  - provision_node
-  - attachment
-  support_entities:
-  - source_file_member
-  - xml_parse_issue
+  primary_entities: [law_document, provision_node, attachment]
+  support_entities: [source_file_member, xml_parse_issue, reconciliation_issue]
 
 identity:
   document_id:
     algorithm: sha256
     input: law_revision_id + U+001F + lower(source_xml_sha256)
-    output: lowercase-hex-64
-    stability: identical revision and identical XML bytes must reproduce the same document_id
+    external_format: lowercase-hex-64
   node_id:
     algorithm: sha256
     input: document_id + U+001F + node_kind + U+001F + xml_path
-    output: lowercase-hex-64
-    stability: identical document and identical path contract must reproduce the same node_id
+    external_format: lowercase-hex-64
+    postgres_storage: bytea-32
   attachment_id:
     algorithm: sha256
     input: document_id + U+001F + ref_node_id + U+001F + source_attribute_name + U+001F + source_src
-    output: lowercase-hex-64
+    external_format: lowercase-hex-64
 
 raw_provenance:
   rules:
   - ZIP4本はimmutable source_fileとして登録する。
-  - ZIP内部の各XMLも個別source_fileとして登録し、source_file_memberでcontainer ZIPとmember_pathを結ぶ。
-  - member_path、CRC32、圧縮/非圧縮サイズは取得できる場合に原値保存する。
-  - 個別XMLのSHA-256を展開後バイト列から計算し、law_document.source_xml_sha256と一致させる。
-  - RAW XML本文をDBの正規化値で置換しない。
-  - 大容量ZIP・XML本文そのものをGitへコミットしない。
+  - ZIP内部XMLも個別source_fileとして登録し、source_file_memberでcontainerとmember_pathを結ぶ。
+  - member_path、CRC32、圧縮/非圧縮サイズを原値保存する。
+  - 個別XMLのSHA-256は展開後RAWバイトから計算する。
+  - normalized DB値でRAW XMLを置換しない。
+  - 大容量ZIP・XML本文・DB dumpをGitへコミットしない。
 
 revision_binding:
-  filename_rule:
-    expected_pattern: '^[0-9A-Z]{15}_[0-9]{8}_[0-9A-Z]{15}\\.xml$'
-  behavior:
-  - ファイル名からlaw_revision_id候補を得る。
-  - law_revisionに存在するIDへ結合する。
-  - XML内部のLawId等の観測値が取得できる場合は別途照合し、不一致を上書きせずissue化する。
-  - ファイル名の日付だけを法的効力判定には使用しない。
+  filename_rule: '^[0-9A-Z]{15}_[0-9]{8}_[0-9A-Z]{15}\.xml$'
+  rules:
+  - filenameからlaw_revision_id候補を取得する。
+  - 既存Phase 3 law_revisionへだけ結合する。
+  - XMLからlaw_revisionをseedしない。
+  - Phase 3に存在しないrevisionはRAW source_file/source_file_memberを保持し、LAW_REVISION_NOT_RECONCILEDをreconciliation_issueへ記録する。
+  - 未照合revisionにはlaw_document/provision_nodeを作らない。
+  - filenameの日付だけを法的効力判定に使用しない。
+  observed_full_snapshot_2026_09_05:
+    reconciled: 10705
+    deferred_unreconciled: 6
+    normal_failures: 0
 
 xml_parser:
-  required_capabilities:
+  parser_version: phase4-xml-parser-0.1
+  capabilities:
   - namespace-tolerant
   - mixed-content-aware
   - tail-text-preserving
-  - unknown-element-preserving
-  - unknown-attribute-preserving
+  - unknown-element-and-attribute-preserving
   - document-order-preserving
   - comments-and-processing-instructions-tolerant
-  - large-document-streaming-capable
+  memory_model:
+    rule: one XML document is materialized at a time; the whole corpus is never materialized together
+    measured_max_nodes_per_document: 201013
   well_formedness:
-    on_success: continue
-    on_failure:
-      law_document_parse_status: failed
-      persist_raw_source: true
-      create_issue: true
-      reject_normalized_nodes: true
+    failure_behavior: persist RAW, create issue, create no normalized nodes
   xsd_validation:
     reference: XMLSchemaForJapaneseLaw_v3.xsd
     gate_ingestion: false
-    statuses:
-    - not-checked
-    - valid
-    - invalid
-    - error
-    rule: official RAW XML must not be rejected or auto-fixed solely because XSD validation is invalid
+    statuses: [not-checked, valid, invalid, error]
+    rule: XSD invalid official XML is never rejected or auto-fixed solely for schema invalidity
+    full_import_note: per-document XSD status was not reloaded into the relational run; the independently pinned snapshot baseline remains 9932 valid / 779 invalid
+
+compact_node_storage:
+  rationale: 32,189,514-node corpus made repeated 64-char document/node hashes and full xml_path in composite indexes operationally excessive
+  physical_key: [document_pk, document_order]
+  parent_reference: [document_pk, parent_document_order]
+  logical_node_id:
+    retained: true
+    postgres_type: bytea
+    bytes: 32
+  ordering:
+    ordinal: 1-based position among all direct children
+    document_order: 1-based depth-first order within document
+    path_index: 1-based position among same expanded-name/node-kind siblings
+  xml_path:
+    stored_per_row: false
+    reconstructable: true
+    function: legal_kb.provision_node_xml_path(document_pk, document_order)
+    element_segment: '{expanded-name}[path_index]'
+    comment_segment: comment()[path_index]
+    processing_instruction_segment: processing-instruction()[path_index]
+    invariant: reconstructed path plus document_id reproduces the parser node_id contract
 
 node_model:
-  coverage: every XML element is represented, not only Article/Paragraph/Item
-  node_kinds:
-  - element
-  - comment
-  - processing-instruction
-  ordering:
-    ordinal: 1-based position among all child nodes of the parent
-    document_order: 1-based depth-first document order across the document
-  namespace:
-    tag_name: local name
-    namespace_uri: namespace URI when present
-    qname_original: lexical QName when parser can preserve it, otherwise null; RAW XML remains lexical authority
+  coverage: every XML element; Article is never assumed universal
+  node_kinds: [element, comment, processing-instruction]
   attributes:
-    canonical_storage: attributes_jsonb
-    rules:
-    - store all attributes, including attributes not known to the XSD
-    - do not drop OldNum or OldStyle
-    - old_num and old_style columns are query projections only; attributes_jsonb remains authoritative normalized observation
+    authoritative_normalized_observation: attributes_jsonb
+    projections: [structural_num, old_num, old_style]
   numbering:
     structural_num: machine structural number such as Num
-    display_label: rendered legal label such as ArticleTitle-derived text
-    rule: structural_num and display_label must never overwrite each other
-
-xml_path:
-  purpose: deterministic backlink from normalized nodes to the immutable XML structure
-  element_segment: '{expanded-name}[index-among-same-expanded-name-siblings]'
-  example: /Law[1]/LawBody[1]/MainProvision[1]/Article[2]/Paragraph[1]
-  comment_segment: comment()[index-among-comment-siblings]
-  processing_instruction_segment: processing-instruction()[index-among-pi-siblings]
-  rules:
-  - index is 1-based
-  - namespace URI participates in expanded-name identity
-  - unknown elements use the same rule
-  - path generation must not depend on Article being present
-  - document_id + xml_path must be unique
+    display_label: rendered title/label observation
+    rule: never overwrite one with the other
 
 mixed_content:
-  authoritative_fields:
-  - text_original
-  - mixed_content_jsonb
+  authoritative_order_source: mixed_content_jsonb plus recursive child nodes and immutable RAW
   text_original:
-    definition: concatenation of descendant character data in XML document order
-    normalization: none
-    allowed_changes: none
-  mixed_content_jsonb:
-    type: ordered-array
-    segment_types:
-    - kind: text
-      fields: [value]
-      meaning: element leading text before the first child or text between parser events
-    - kind: child
-      fields: [node_id]
-      meaning: child node position in content order
-    - kind: tail
-      fields: [after_node_id, value]
-      meaning: character data after a specific child and before the next child/end tag
-    rules:
-    - preserve whitespace and punctuation exactly as parsed
-    - preserve nonblank and blank tail text if present in the XML infoset
-    - do not normalize Unicode, old glyphs, spaces, ruby, or punctuation in Phase 4
+    role: optional denormalized string-value cache for text-bearing nodes
+    rule: structural containers may store null to avoid recursively duplicating descendant text
+  segments:
+  - kind: text
+    fields: [value]
+  - kind: child
+    fields: [document_order]
+  - kind: tail
+    fields: [after_document_order, value]
+  rules:
+  - preserve whitespace/punctuation exactly as parsed
+  - never trim or Unicode-normalize Phase 4 source text
+  - child/tail references are document-local
   search_text:
     field: text_search_normalized
-    phase4_behavior: keep null unless a test explicitly needs a derived value
+    phase4_behavior: null
     authoritative: false
-    citation_allowed: false
-
-structural_exceptions:
-  articleless_main_provision:
-    allowed: true
-    rule: MainProvision children are stored generically in source order; parser must not synthesize Article nodes
-  column_vs_table_column:
-    rule: tag_name preserves the exact local name and must not collapse Column and TableColumn
-  old_law_attributes:
-    preserve:
-    - OldNum
-    - OldStyle
-  unknown_elements_and_attributes:
-    behavior: preserve
-    schema_validation_effect: may make the document invalid, but does not justify dropping the content
-  top_level_children:
-    known_examples:
-    - LawTitle
-    - EnactStatement
-    - TOC
-    - Preamble
-    - MainProvision
-    - SupplProvision
-    - AppdxTable
-    - AppdxNote
-    - AppdxStyle
-    - Appdx
-    - AppdxFig
-    - AppdxFormat
-    rule: this list is not a parser whitelist
 
 attachments:
-  discovery:
-    rule: any XML attribute interpreted as a binary/external resource reference must create an attachment reference without changing the source attribute value
-    minimum_attribute: src
+  discovery: any attribute whose local name is src
   source_src:
     authoritative: true
-    behavior: store exact XML attribute value
+    exact_source_value: true
+    empty_string_allowed: true
+    note: the official snapshot contains src="" observations; they are retained instead of invented or dropped
   resolution:
     separate_from_source: true
-    statuses:
-    - unresolved
-    - resolved
-    - missing
-    - fetch-failed
-    - external
-    rules:
-    - unresolved references remain rows
-    - resolved_locator never overwrites source_src
-    - successful binary retrieval registers a source_file and links attachment.source_file_id
-    - sha256 and byte_size describe retrieved binary bytes, not the XML reference string
+    statuses: [unresolved, resolved, missing, fetch-failed, external]
+    rule: resolved_locator never overwrites source_src
 
 transactionality:
-  unit: one XML document
-  behavior:
-  - register/update law_document before node insertion
-  - insert the whole node tree and attachment references in one transaction per document
-  - on node/attachment transaction failure, roll back normalized children for that document and mark parse_status failed in a recovery transaction
-  - successful documents remain committed when another document fails
-  - rerun of identical document_id is idempotent
+  unit: one reconciled XML document
+  bulk_method: PostgreSQL COPY FROM STDIN
+  rules:
+  - law_document and its node/attachment/parse-issue rows commit atomically per document
+  - successful documents remain committed if another document fails
+  - identical reruns skip an existing deterministic document_id
+  - full runner may resume by preloading already imported revision IDs before opening XML members
 
-rebuild_and_delete_policy:
-  raw_source_delete: forbidden by Phase 4 parser
-  normalized_rebuild:
-    allowed: true
-    rule: a document tree may be rebuilt only from the same immutable source_xml_sha256 under an explicit ingestion_run
-  api_absence_delete: forbidden
+full_import_evidence_2026_09_05:
+  attempted_inputs: 10711
+  normalized_documents: 10705
+  deferred_unreconciled: 6
+  failed_documents: 0
+  normalized_nodes: 32116330
+  deferred_nodes_accounted_by_parser: 73184
+  corpus_nodes_accounted: 32189514
+  attachment_rows: 42571
+  source_file_members: 10711
+  xml_parse_issues: 0
+  raw_xml_sha_mismatches: 0
+  database_size_bytes: 17354128407
 
 phase4_exit_evidence:
-  required:
-  - DDL applies cleanly on PostgreSQL used by Phase 3
-  - synthetic parser fixtures pass
-  - all 10711 snapshot XML files are attempted
-  - well-formed snapshot produces no unexplained parse failures
-  - XSD result distribution is retained rather than used as a rejection gate
-  - Article-less structures are accepted
-  - OldNum and OldStyle observations survive round-trip checks
-  - Column and TableColumn remain distinct
-  - mixed content and tail text round-trip invariants pass
-  - unknown element and attribute fixtures survive normalization
-  - attachment src references remain traceable even when unresolved
-  - every normalized node can be resolved to document_id + xml_path + source_xml_sha256
+  passed:
+  - DDL and COPY smoke on PostgreSQL 16
+  - synthetic parser fixtures
+  - 10711/10711 input attempt
+  - 10705 API-reconciled relational documents + 6 explicit deferred RAW revisions
+  - zero unexplained parse/import failures
+  - exact node total reconciliation with pre-import corpus scan
+  - exact attachment total reconciliation with pre-import corpus scan
+  - Article-less, tail, OldNum/OldStyle, Column/TableColumn observations reconcile with corpus scan after adding deferred six
+  - sibling/document ordering and per-document node/attachment counts validate
+  - deterministic node_id and reconstructed xml_path round-trip on real regression fixtures
+  remaining_observation:
+  - per-document XSD valid/invalid status backfill is separate from the relational import run; aggregate Phase 2 evidence remains authoritative until backfilled
