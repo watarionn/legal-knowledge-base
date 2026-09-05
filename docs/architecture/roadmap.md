@@ -63,13 +63,33 @@
 
 目的は、指定日時点の適用法令版を解決し、全文・構造・ベクトル検索から原文・履歴・出典へ戻れる検索回答基盤を構築することです。
 
-想定成果:
-- as-of dateによる`law_revision_id`解決
-- provision path付き検索
-- 未施行・廃止・過去版・境界曖昧性の扱い
-- 回答根拠に`law_id` / `law_revision_id` / `source_sha256`を保持
+### Phase 5.1 Temporal Resolution
 
-状態: 次工程
+`law_id + as_of_date`からrevision候補を解決します。Phase 3ではsame-day複数revisionやtemporal ambiguityが実在するため、一意に確定できない場合は候補を保持し、`revision_sequence`やAPI配列順で勝手に1件へ丸めません。
+
+完了条件:
+- interval条件で全候補を返す
+- confirmedな単一候補だけを`resolved`とする
+- same-day複数候補を`ambiguous`とする
+- 単一でも低品質境界は`unresolved`とする
+- 本文availabilityをtemporal resolutionと分離する
+- 本文未収録時に別revisionへfallbackしない
+
+2026-09-05にPostgreSQL 16.15でPhase 3→4→5.1 DDLを連続適用し、8件のsynthetic testsとtemporal resolution smokeを通過しました。same-day複数候補、exclusive境界、本文missing、低品質単一候補を含め、strict resolverがrevisionを推測選択しないことを確認しています。
+
+状態: **完了**
+
+### Phase 5.2 Lexical / Structural Search
+
+revision-awareな検索unitを構築し、検索hitから`law_revision_id`、XML構造path、RAW SHAへ戻れるようにします。
+
+状態: **次工程**
+
+### Phase 5.3 Vector / RAG Retrieval
+
+embedding/chunkを交換可能な派生層として追加し、RAG回答の根拠をPhase 3/4へbacklinkします。
+
+状態: 未着手
 
 ## Phase 6 官報・議会資料連携
 

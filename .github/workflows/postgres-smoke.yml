@@ -45,13 +45,17 @@ jobs:
       - name: Show PostgreSQL version
         run: psql "$DATABASE_URL" -Atc "select version();"
 
-      - name: Apply Phase 3 and Phase 4 DDL
+      - name: Apply Phase 3, Phase 4, and Phase 5.1 DDL
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase3/001_law_history_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase4/001_xml_structure_schema.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase5/001_temporal_resolution_schema.sql
 
       - name: Run real XML PostgreSQL COPY smoke
         run: |
           python implementation/phase4/013_copy_import_smoke.py \
             --result "$RUNNER_TEMP/phase4-postgres-copy-smoke.json"
           cat "$RUNNER_TEMP/phase4-postgres-copy-smoke.json"
+
+      - name: Run Phase 5.1 temporal resolution smoke
+        run: python implementation/phase5/005_temporal_resolution_smoke.py

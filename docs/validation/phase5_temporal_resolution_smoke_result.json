@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "phase5-temporal-resolution-smoke",
+  "executed_on": "2026-09-05",
+  "status": "passed",
+  "environment": {
+    "postgresql_version": "16.15",
+    "python_version": "3.13.5",
+    "github_actions_run_id": 33952133845,
+    "github_actions_job_id": 101268794594,
+    "runner_image": "ubuntu-24.04"
+  },
+  "ddl_chain": [
+    "implementation/phase3/001_law_history_schema.sql",
+    "implementation/phase4/001_xml_structure_schema.sql",
+    "implementation/phase5/001_temporal_resolution_schema.sql"
+  ],
+  "runner": "implementation/phase5/005_temporal_resolution_smoke.py",
+  "checks": {
+    "before_first_is_not_found": true,
+    "old_revision_resolves_without_content_fallback": true,
+    "exclusive_boundary_selects_new_revision": true,
+    "current_revision_has_content": true,
+    "same_day_candidates_are_ambiguous": true,
+    "low_quality_single_candidate_is_unresolved": true
+  },
+  "resolution_examples": {
+    "not_found": {
+      "status": "not-found",
+      "selected_revision_id": null,
+      "content_status": "none",
+      "warning": "NO_TEMPORAL_CANDIDATE"
+    },
+    "resolved_missing_content": {
+      "status": "resolved",
+      "selected_revision_id": "900AC0000000001_20200101_000000000000001",
+      "content_status": "missing",
+      "selected_document_id": null,
+      "warning": "CONTENT_NOT_AVAILABLE"
+    },
+    "exclusive_boundary": {
+      "as_of_date": "2021-01-01",
+      "status": "resolved",
+      "selected_revision_id": "900AC0000000001_20210101_000000000000002",
+      "content_status": "available"
+    },
+    "same_day_ambiguous": {
+      "status": "ambiguous",
+      "candidate_count": 2,
+      "selected_revision_id": null,
+      "content_status": "candidate-dependent",
+      "warning": "TEMPORAL_MULTIPLE_CANDIDATES"
+    },
+    "single_low_quality": {
+      "status": "unresolved",
+      "candidate_count": 1,
+      "selected_revision_id": null,
+      "content_status": "candidate-dependent",
+      "warning": "TEMPORAL_QUALITY_NOT_STRICT"
+    }
+  },
+  "offline_validation": {
+    "temporal_resolver_test_count": 8,
+    "failures": 0,
+    "errors": 0,
+    "public_safety_scan": "passed"
+  },
+  "interpretation": "Phase 5.1 strict temporal resolution preserves ambiguity instead of selecting a revision by sequence or API ordinal. Temporal resolution and normalized-content availability are independent: a confirmed revision may resolve even when Phase 4 content is missing, and no neighboring revision is substituted."
+}

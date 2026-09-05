@@ -1,0 +1,103 @@
+schema_version: '1.0'
+contract: legal-kb-phase5-temporal-resolution
+status: validated
+
+scope:
+  phase: '5.1'
+  input:
+    required:
+    - law_id
+    - as_of_date
+  source_tables:
+    - law_revision
+    - law_document
+  candidate_function: legal_kb.law_revision_as_of_candidates
+
+interval_semantics:
+  predicate: valid_from <= as_of_date AND (valid_to_exclusive IS NULL OR as_of_date < valid_to_exclusive)
+  valid_to_exclusive: exclusive
+  null_valid_from:
+    eligible: false
+    reason: no defensible lower temporal boundary
+  fallback_to_nearest_revision: forbidden
+
+resolution_status:
+  resolved:
+    condition:
+    - exactly one temporal candidate
+    - temporal_resolution_quality in [confirmed-api, confirmed-revision-id]
+    selected_revision_id: candidate law_revision_id
+  ambiguous:
+    condition: two or more temporal candidates
+    selected_revision_id: null
+    rule: never use revision_sequence or API ordinal to collapse same-day candidates
+  unresolved:
+    condition:
+    - exactly one temporal candidate
+    - temporal_resolution_quality not in [confirmed-api, confirmed-revision-id]
+    selected_revision_id: null
+  not-found:
+    condition: zero temporal candidates
+    selected_revision_id: null
+
+content_status:
+  available:
+    condition: resolved revision has exactly one succeeded law_document
+  missing:
+    condition: resolved revision has zero succeeded law_document
+    fallback_to_other_revision: forbidden
+  multiple:
+    condition: resolved revision has two or more succeeded law_document rows
+    selected_document_id: null
+  candidate-dependent:
+    condition: temporal status is ambiguous or unresolved
+
+strictness:
+  default: strict
+  rules:
+  - ambiguous or unresolved results must not expose a selected_revision_id
+  - content missing must not change the temporal resolution result
+  - current_revision_status must not override an explicit as_of_date
+  - api_revision_ordinal is provenance only and must not break temporal ties
+  - revision_sequence may order output but must not establish legal precedence inside an ambiguous date group
+
+provenance:
+  resolved_content_minimum:
+  - law_id
+  - law_revision_id
+  - as_of_date
+  - temporal_resolution_quality
+  - document_pk
+  - document_id
+  - source_xml_sha256
+  provision_level_extension:
+  - document_order
+  - reconstructed_xml_path
+
+known_phase3_snapshot_metrics:
+  law_revision_count: 53711
+  confirmed_api_count: 43301
+  ambiguous_count: 10410
+  same_day_group_count: 3064
+  same_day_revision_count: 7345
+  baseline_unknown_count: 3109
+
+validation_evidence:
+  file: ../../docs/validation/phase5_temporal_resolution_smoke_result.json
+  executed_on: '2026-09-05'
+  postgresql_version: '16.15'
+  synthetic_test_count: 8
+  synthetic_test_failures: 0
+  postgres_smoke_status: passed
+
+phase5_1_exit_gate:
+  current_status: passed
+  required:
+  - SQL candidate function preserves all same-day candidates
+  - strict resolver returns resolved only for one confirmed candidate
+  - single low-quality candidate returns unresolved
+  - no candidate returns not-found without nearest-revision fallback
+  - content availability is reported separately
+  - missing content does not substitute another revision
+  - synthetic tests pass
+  - PostgreSQL smoke passes
