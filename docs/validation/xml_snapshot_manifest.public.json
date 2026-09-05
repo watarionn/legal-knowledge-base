@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "snapshot_role": "official-xml-raw-snapshot",
+  "captured_on": "2026-09-04",
+  "interpretation": {
+    "raw_role": "authoritative XML body snapshot preserved as RAW evidence",
+    "api_role": "e-Gov Law API Version 2 remains the complementary source for complete revision-history metadata and reconciliation",
+    "snapshot_warning": "This 10,711-XML snapshot must not be assumed identical to a later/current e-Gov bulk snapshot."
+  },
+  "parts": [
+    {
+      "name": "all_xml_01.zip",
+      "size_bytes": 13519406,
+      "sha256": "97963a154c9e22c371028acf48cd8b5721bb37c56648c36f41d25141f16d3a8e",
+      "xml_count": 1714,
+      "parsed_revision_id_count": 1714,
+      "unique_revision_id_count": 1714,
+      "unique_law_id_count": 1571,
+      "unparsed_xml_name_count": 0
+    },
+    {
+      "name": "all_xml_02.zip",
+      "size_bytes": 41443157,
+      "sha256": "f13a767583c3f8382383f18488a22d16aeaef2304d77a43ac681cc22b269ac51",
+      "xml_count": 3090,
+      "parsed_revision_id_count": 3090,
+      "unique_revision_id_count": 3090,
+      "unique_law_id_count": 2699,
+      "unparsed_xml_name_count": 0
+    },
+    {
+      "name": "all_xml_03.zip",
+      "size_bytes": 86846266,
+      "sha256": "0966585fec0937a380a80323c47f1cd2dc762365e33428a20b7cc6136f9da47e",
+      "xml_count": 3174,
+      "parsed_revision_id_count": 3174,
+      "unique_revision_id_count": 3174,
+      "unique_law_id_count": 2624,
+      "unparsed_xml_name_count": 0
+    },
+    {
+      "name": "all_xml_04.zip",
+      "size_bytes": 188842578,
+      "sha256": "8d85fbeefbf66cced7e197a5ecf33370c882500e576408b1f2dfbbb66d6592d3",
+      "xml_count": 2733,
+      "parsed_revision_id_count": 2733,
+      "unique_revision_id_count": 2733,
+      "unique_law_id_count": 2088,
+      "unparsed_xml_name_count": 0
+    }
+  ],
+  "totals": {
+    "zip_part_count": 4,
+    "size_bytes": 330651407,
+    "xml_count": 10711,
+    "parsed_revision_id_count": 10711,
+    "unique_revision_id_count": 10711,
+    "unique_law_id_count": 8981,
+    "duplicate_revision_id_count": 0,
+    "duplicate_member_name_count": 0,
+    "unparsed_xml_name_count": 0
+  },
+  "filename_contract": {
+    "regex": "^([0-9A-Z]{15})_([0-9]{8})_([0-9A-Z]{15})\\.xml$",
+    "meaning": "law_id + revision effective-date token + amending-law-id token"
+  },
+  "verification": {
+    "method": "Hashed all four ZIP objects with SHA-256, enumerated ZIP members, parsed XML basenames with the revision-ID filename contract, and checked set cardinalities across all parts.",
+    "result": "passed"
+  }
+}

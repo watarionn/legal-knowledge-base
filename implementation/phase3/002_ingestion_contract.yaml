@@ -1,0 +1,240 @@
+schema_version: '1.0'
+phase: 3
+title: 法令・履歴DB取り込み契約
+status: proposed
+target_database: PostgreSQL
+source_of_truth:
+  roadmap: DEC-20260904-001
+  architecture: KNW-20260903-001
+  api_reconciliation: KNW-20260904-001
+  api_source: https://laws.e-gov.go.jp/api/2/swagger-ui
+
+scope:
+  core_entities:
+  - law
+  - law_revision
+  support_entities:
+  - ingestion_run
+  - source_file
+  - source_assertion
+  - reconciliation_issue
+  excluded_until_later_phases:
+  - law_document
+  - provision_node
+  - attachment
+  - search_document
+  - external_document
+  - source_relation
+
+canonical_selection:
+  law:
+    law_id: law_info.law_id
+    law_num: law_info.law_num
+    law_type: law_info.law_type
+    law_num_era: law_info.law_num_era
+    law_num_year: law_info.law_num_year
+    law_num_type: law_info.law_num_type
+    law_num_num: law_info.law_num_num
+    promulgation_date: law_info.promulgation_date
+  law_revision:
+    source: revision_info from API Version 2
+    fields:
+    - law_revision_id
+    - law_type
+    - law_title
+    - law_title_kana
+    - abbrev
+    - category
+    - updated
+    - amendment_promulgate_date
+    - amendment_enforcement_date
+    - amendment_enforcement_comment
+    - amendment_scheduled_enforcement_date
+    - amendment_law_id
+    - amendment_law_title
+    - amendment_law_title_kana
+    - amendment_law_num
+    - amendment_type
+    - repeal_status
+    - repeal_date
+    - remain_in_force
+    - mission
+    - current_revision_status
+  priority:
+  - official-api-v2-structured-value
+  - official-bulk-xml-structured-value
+  - official-bulk-csv-value
+  - derived-value
+  rule: 競合する値はsource_assertionへ全て保存し、優先順位でcanonical値を選ぶ。競合自体はreconciliation_issueへ残す。
+
+identity_contract:
+  law_id:
+    type: string
+    length: 15
+    pattern: '^[0-9A-Z]{15}$'
+    note: 法令番号・法令名を主キーにしない。
+  law_revision_id:
+    type: string
+    pattern: '^[0-9A-Z]{15}_[0-9]{8}_[0-9A-Z]{15}$'
+    parse:
+      law_id: underscore-part-1
+      revision_id_effective_date: underscore-part-2-as-YYYYMMDD
+      revision_id_amending_law_id: underscore-part-3
+    invariant: parsed law_id must equal law_revision.law_id
+  baseline_suffix: '000000000000000'
+
+revision_date_kind:
+  allowed_values:
+  - amendment-enforcement
+  - original-enforcement
+  - data-baseline
+  - unknown
+  rules:
+  - when: revision_id_amending_law_id != '000000000000000'
+    set: amendment-enforcement
+    reason: 公式法令履歴ID仕様では中央YYYYMMDDは改正規定の施行期日。
+  - when: revision_id_amending_law_id == '000000000000000' and explicit evidence identifies original revision
+    set: original-enforcement
+  - when: revision_id_amending_law_id == '000000000000000' and explicit evidence identifies data-preparation baseline
+    set: data-baseline
+  - otherwise: unknown
+  prohibitions:
+  - 公布日と一致するだけでoriginal-enforcementと断定しない。
+  - 最初の配列要素という理由だけでoriginal-enforcementと断定しない。
+  - suffixが000000000000000という理由だけでdata-baselineと断定しない。
+
+upsert_contract:
+  law:
+    key: law_id
+    behavior:
+    - APIの最新観測値でcanonical列を更新する。
+    - 前回値はsource_assertionに残す。
+    - 観測されなくなったlawを自動DELETEしない。
+    - first_seen_run_idは初回のみ設定し、last_seen_run_idは観測ごとに更新する。
+  law_revision:
+    key: law_revision_id
+    behavior:
+    - APIの最新観測値でsource fieldsを更新する。
+    - derived fieldsはsource fieldsとは別工程で再計算する。
+    - 過去履歴を自動DELETEしない。
+    - future / UnEnforced履歴も保存する。
+    - first_seen_run_idは初回のみ設定し、last_seen_run_idは観測ごとに更新する。
+  amendment_law_id:
+    behavior: nullable logical reference
+    physical_fk: false
+    reason: 未取得・外部・データ範囲外の改正法令参照が取り込みを停止させないようにする。
+
+api_bootstrap:
+  steps:
+  - order: 1
+    action: create ingestion_run
+    result_status: running
+  - order: 2
+    action: enumerate /laws until next_offset is null
+    preserve:
+    - request parameters
+    - response retrieval timestamp
+    - source response hash or immutable raw locator
+  - order: 3
+    action: upsert every law_info into law
+  - order: 4
+    action: call /law_revisions/{law_id} for each law_id
+    preserve:
+    - API response order as api_revision_ordinal
+    note: api_revision_ordinal is observation metadata, not legal ordering.
+  - order: 5
+    action: upsert every revision_info into law_revision
+  - order: 6
+    action: parse law_revision_id and validate identity invariants
+  - order: 7
+    action: reconcile source fields and create source_assertion / reconciliation_issue
+  - order: 8
+    action: derive revision_date_kind and temporal intervals
+  - order: 9
+    action: run validation gates
+  - order: 10
+    action: complete ingestion_run as succeeded, partial, or failed
+
+retry_policy:
+  principles:
+  - API一時失敗を即時の恒久欠落と扱わない。
+  - HTTP 429および一時的5xxは待機して再試行する。
+  - 並列取得後に残った失敗law_idは低速または逐次で再試行する。
+  - 最終失敗は件数とlaw_idをmanifestへ記録する。
+  reference_evidence:
+    first_pass_failures_on_2026_09_04: 62
+    final_failures_after_sequential_retries: 0
+    note: この件数は過去実行の観測値であり将来の固定閾値ではない。
+
+reconciliation_rules:
+  law_type:
+  - compare law.law_type with revision_info.law_type for each revision
+  - mismatch creates warning or error; do not overwrite the observation history
+  law_revision_id:
+  - XML filename revision ID must exist in API history when the snapshots are intended to be comparable
+  - CSV本文URLは恒久的なrevision ID抽出根拠にしない
+  amendment_law_id:
+  - compare revision_info.amendment_law_id with revision_id_amending_law_id when suffix is nonbaseline
+  - mismatch creates error
+  dates:
+  - compare revision_id_effective_date with amendment_enforcement_date for nonbaseline revisions when API value is present
+  - mismatch creates error and temporal_resolution_quality becomes ambiguous
+  snapshot_time:
+  - bulk and API acquired at different times are never assumed identical without recorded timestamps
+
+interval_derivation:
+  valid_from:
+    rules:
+    - nonbaseline revision with matching amendment_enforcement_date: use amendment_enforcement_date and quality confirmed-api
+    - nonbaseline revision with API enforcement date null: use revision_id_effective_date and quality confirmed-revision-id
+    - baseline revision classified original-enforcement: use revision_id_effective_date and quality confirmed-revision-id
+    - baseline revision classified data-baseline: use revision_id_effective_date and quality baseline-boundary
+    - baseline revision with unknown kind: use revision_id_effective_date and quality ambiguous
+    - any date conflict: do not silently choose a winner; quality ambiguous and create reconciliation_issue
+  valid_to_exclusive:
+    rule: next strictly greater valid_from date within the same law_id
+    same_day_rule: 複数revisionが同一valid_fromを持つ場合、同日の行同士をゼロ長区間にせず、同じnext strictly greater dateを共有する。
+  revision_sequence:
+    rule: stable storage order only
+    sort_key:
+    - valid_from ascending nulls last
+    - law_revision_id ascending
+    prohibition: same-day tie resolution or legal priority must not rely on revision_sequence alone
+  temporal_resolution_quality:
+    allowed_values:
+    - confirmed-api
+    - confirmed-revision-id
+    - baseline-boundary
+    - ambiguous
+    - unknown
+
+validation_gates:
+  schema:
+  - every law_id matches the 15-character pattern
+  - every law_revision_id matches the revision pattern
+  - parsed revision law_id equals law_revision.law_id
+  - no duplicate law_id
+  - no duplicate law_revision_id
+  - no duplicate non-null revision_sequence within one law_id
+  temporal:
+  - valid_to_exclusive is null or not earlier than valid_from
+  - same-day revision groups are reported
+  - date conflicts are zero before quality can be called confirmed
+  provenance:
+  - every ingestion has ingestion_run
+  - every conflict has source_assertion values and reconciliation_issue
+  - no raw source value is silently normalized over another source value
+  api_reconciliation_reference:
+    snapshot_date: '2026-09-04'
+    current_bulk_law_ids: 6975
+    current_bulk_revision_ids: 10681
+    api_history_revision_ids_for_those_laws: 28793
+    missing_current_bulk_revision_ids_in_api: 0
+    rule: these counts are a historical regression fixture, not permanent production constants
+
+phase3_exit_criteria:
+- PostgreSQL schema can represent law and every API revision without overwriting source values with derived values.
+- Bootstrap importer follows the API pagination and retry contract.
+- Current bulk revision IDs can be rechecked as a subset of API history for the same acquisition window.
+- Temporal interval derivation is reproducible and marks ambiguity instead of guessing.
+- Validation reports duplicate IDs, date conflicts, unresolved amendment-law references, and same-day revision groups.

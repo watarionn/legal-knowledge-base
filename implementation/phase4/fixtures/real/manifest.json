@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "source_snapshot_manifest": "../../../../docs/validation/xml_snapshot_manifest.public.json",
+  "fixtures": [
+    {
+      "role": "articleless-main-provision",
+      "archive": "all_xml_01.zip",
+      "archive_sha256": "97963a154c9e22c371028acf48cd8b5721bb37c56648c36f41d25141f16d3a8e",
+      "member_path": "503AC0000000004_20210203_000000000000000/503AC0000000004_20210203_000000000000000.xml",
+      "member_ordinal": 1800,
+      "compressed_size": 608,
+      "uncompressed_size": 1233,
+      "crc32": "c45414f9",
+      "revision_id": "503AC0000000004_20210203_000000000000000",
+      "xml_sha256": "0924a41e2a5d9da98fd8e1c136183ddd3e5d0d666db4b57ffa1b153872ce3944",
+      "fixture_file": "503AC0000000004_20210203_000000000000000.xml"
+    },
+    {
+      "role": "attachment-src",
+      "archive": "all_xml_01.zip",
+      "archive_sha256": "97963a154c9e22c371028acf48cd8b5721bb37c56648c36f41d25141f16d3a8e",
+      "member_path": "503M60000F42001_20211022_000000000000000/503M60000F42001_20211022_000000000000000.xml",
+      "member_ordinal": 2052,
+      "compressed_size": 891,
+      "uncompressed_size": 1964,
+      "crc32": "646490a2",
+      "revision_id": "503M60000F42001_20211022_000000000000000",
+      "xml_sha256": "4528618d3e821d5907f8ee065e8b4065542bd29178f93d4f0658b76ce4e29773",
+      "fixture_file": "503M60000F42001_20211022_000000000000000.xml"
+    },
+    {
+      "role": "mixed-content-tail",
+      "archive": "all_xml_01.zip",
+      "archive_sha256": "97963a154c9e22c371028acf48cd8b5721bb37c56648c36f41d25141f16d3a8e",
+      "member_path": "428AC1000000067_20160603_000000000000000/428AC1000000067_20160603_000000000000000.xml",
+      "member_ordinal": 636,
+      "compressed_size": 1004,
+      "uncompressed_size": 2828,
+      "crc32": "22d7a3e7",
+      "revision_id": "428AC1000000067_20160603_000000000000000",
+      "xml_sha256": "b5c060241731d30761cbc71eeb5fcbee42178820d9449afbff29ee4a417299af",
+      "fixture_file": "428AC1000000067_20160603_000000000000000.xml"
+    },
+    {
+      "role": "oldnum-oldstyle",
+      "archive": "all_xml_04.zip",
+      "archive_sha256": "8d85fbeefbf66cced7e197a5ecf33370c882500e576408b1f2dfbbb66d6592d3",
+      "member_path": "143AC1000000056_19100416_000000000000000/143AC1000000056_19100416_000000000000000.xml",
+      "member_ordinal": 222,
+      "compressed_size": 776,
+      "uncompressed_size": 1740,
+      "crc32": "30f74108",
+      "revision_id": "143AC1000000056_19100416_000000000000000",
+      "xml_sha256": "bf33f0b41c9f2aac717bdcbf46179d5551912223db04dbae82ea118fdc709f1a",
+      "fixture_file": "143AC1000000056_19100416_000000000000000.xml"
+    }
+  ]
+}

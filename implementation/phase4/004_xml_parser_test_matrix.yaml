@@ -1,0 +1,172 @@
+schema_version: '1.0'
+name: legal-kb-phase4-xml-parser-test-matrix
+status: proposed
+
+fixture_tests:
+- id: articleless-main-provision
+  purpose: MainProvision直下にArticleがない法令を許容する
+  assertions:
+  - parser does not synthesize Article
+  - child order is preserved
+  - xml_path resolves every child
+
+- id: mixed-content-and-tail
+  purpose: inline childの前後にある文字列を落とさない
+  fixture_shape: '<Sentence>前<Ruby>中</Ruby>後</Sentence>'
+  assertions:
+  - text_original is exactly '前中後'
+  - mixed_content segments preserve text, child, tail order
+  - tail value '後' is retained
+
+- id: whitespace-tail
+  purpose: 空白のみのtailもXML infoset観測として保持する
+  assertions:
+  - mixed_content retains whitespace value without trimming
+
+- id: unknown-element-and-attribute
+  purpose: XSDにない要素・属性でもwell-formedなら内容を落とさない
+  assertions:
+  - unknown element becomes provision_node
+  - unknown attribute remains in attributes_jsonb
+  - schema validation may be invalid without parse rejection
+
+- id: oldnum-oldstyle
+  purpose: 古法令属性を保持する
+  assertions:
+  - OldNum remains in attributes_jsonb
+  - OldStyle remains in attributes_jsonb
+  - old_num and old_style projections equal source values
+
+- id: column-vs-tablecolumn
+  purpose: ColumnとTableColumnを同一化しない
+  assertions:
+  - tag_name values remain distinct
+  - document order remains source order
+
+- id: namespace-tolerant
+  purpose: namespace付きXMLをlocal-nameだけで衝突させない
+  assertions:
+  - namespace_uri is retained
+  - xml_path expanded-name identity includes namespace URI
+  - same local name in different namespaces receives distinct path identity
+
+- id: comments-and-processing-instructions
+  purpose: コメント・PIが存在してもパースを壊さない
+  assertions:
+  - parser tolerates both node kinds
+  - when configured to retain them, node_kind and document order are preserved
+  - RAW XML remains lexical authority
+
+- id: unresolved-attachment
+  purpose: src参照先が取得できなくても参照を失わない
+  assertions:
+  - attachment row exists
+  - source_src equals XML source value
+  - availability_status is unresolved or missing
+  - source_file_id may remain null
+
+- id: resolved-attachment
+  purpose: 取得済み添付をsource_fileへ結合する
+  assertions:
+  - source_src remains unchanged
+  - source_file_id is populated
+  - sha256 and byte_size describe retrieved bytes
+
+- id: xsd-invalid-but-wellformed
+  purpose: 公式XSD非適合をRAW拒否条件にしない
+  assertions:
+  - schema_validation_status is invalid
+  - parse_status may still be succeeded or succeeded-with-warnings
+  - normalized nodes remain available
+
+- id: deterministic-identities
+  purpose: 同一原本の再取り込みでIDが揺れない
+  assertions:
+  - document_id repeats exactly
+  - node_id repeats exactly
+  - attachment_id repeats exactly
+
+- id: source-file-member
+  purpose: ZIP内部XMLの原本来歴を切らさない
+  assertions:
+  - member source_file links to container source_file
+  - member_path is exact source ZIP entry name
+  - duplicate member path within the same container is rejected
+
+corpus_scan:
+  snapshot_manifest: ../../docs/validation/xml_snapshot_manifest.public.json
+  expected_xml_files: 10711
+  known_phase2_baseline:
+    well_formed_xml: 10711
+    xsd_valid: 9932
+    xsd_invalid: 779
+  mandatory_metrics:
+  - attempted_document_count
+  - parsed_document_count
+  - failed_document_count
+  - xsd_valid_count
+  - xsd_invalid_count
+  - total_node_count
+  - max_nodes_per_document
+  - max_tree_depth
+  - distinct_tag_name_count
+  - distinct_attribute_name_count
+  - document_count_with_articleless_main_provision
+  - document_count_with_nonblank_tail_text
+  - document_count_with_oldnum
+  - document_count_with_oldstyle
+  - document_count_with_src_reference
+  - tag_inventory_by_document_count
+  - attribute_inventory_by_document_count
+  - top_level_child_inventory
+  - attachment_reference_count
+  - unresolved_attachment_reference_count
+  - parse_issue_count_by_severity_and_code
+
+corpus_invariants:
+- id: all-inputs-attempted
+  expected: attempted_document_count == 10711
+- id: no-unexplained-wellformed-failures
+  expected: failed_document_count == 0 unless every failure is explicitly reconciled against the Phase 2 well-formed baseline
+- id: xsd-is-not-gate
+  expected: xsd_invalid documents are represented in law_document and normalized when well-formed
+- id: one-root
+  expected: exactly one parentless node for every succeeded document
+- id: contiguous-sibling-order
+  expected: sibling ordinal is 1..N with no gaps for each parent
+- id: contiguous-document-order
+  expected: document_order is 1..N with no gaps for each document
+- id: unique-path
+  expected: document_id + xml_path is unique
+- id: mixed-content-reference-integrity
+  expected: every child/tail node reference in mixed_content_jsonb resolves inside the same document
+- id: raw-backlink
+  expected: every law_document has immutable source_file and matching source_xml_sha256
+- id: revision-backlink
+  expected: every law_document resolves to an existing law_revision
+- id: attachment-backlink
+  expected: every attachment resolves to its document and reference node
+
+round_trip_definition:
+  byte_identical_xml_required: false
+  reason: immutable RAW source_file is the byte-level authority; namespace prefixes, attribute lexical ordering, and formatting may differ after normalized serialization
+  normalized_infoset_equivalence_required: true
+  compare:
+  - expanded element names
+  - all attribute names and values
+  - element/child ordering
+  - character data ordering including tail text
+  - comments and processing instructions when retention is enabled
+  - attachment reference attributes
+  - structural Num, OldNum, OldStyle observations
+  prohibitions:
+  - do not use normalized reserialization as a replacement RAW original
+  - do not silently repair XSD-invalid official XML
+  - do not trim or Unicode-normalize text for round-trip comparison
+
+phase4_design_gate:
+  pass_when:
+  - schema and ingestion contract cover every fixture above
+  - validation queries exist for relational integrity and corpus inventories
+  - implementation can proceed without assuming Article is universal
+  current_status: full-corpus-scan-and-postgresql-real-xml-smoke-passed

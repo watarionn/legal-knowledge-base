@@ -1,0 +1,68 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.13.5"
+
+      - name: Compile Python
+        run: |
+          python -m py_compile \
+            implementation/phase3/004_bootstrap_import.py \
+            implementation/phase3/005_bootstrap_import_test.py \
+            implementation/phase3/007_parallel_full_bootstrap.py \
+            implementation/phase3/008_resumable_full_bootstrap_test.py \
+            implementation/phase4/005_xml_parser.py \
+            implementation/phase4/006_xml_parser_test.py \
+            implementation/phase4/007_full_corpus_scan.py \
+            implementation/phase4/009_postgres_import.py \
+            implementation/phase4/010_postgres_import_smoke.py
+
+      - name: Run Phase 3 tests
+        run: |
+          python implementation/phase3/005_bootstrap_import_test.py -v
+          python implementation/phase3/008_resumable_full_bootstrap_test.py -v
+
+      - name: Run Phase 4 parser tests
+        run: python implementation/phase4/006_xml_parser_test.py -v
+
+      - name: Check public-safety boundaries
+        shell: python
+        run: |
+          from pathlib import Path
+          forbidden = {
+              "private-drive-url": "drive.google.com" + "/drive/folders/",
+              "old-private-repo-api": "api.github.com/repos/" + "watarionn/ai-memory-vault",
+              "old-private-actions-url": "github.com/" + "watarionn/ai-memory-vault/actions/runs/",
+              "github-classic-token": "gh" + "p_",
+              "github-fine-grained-token": "github" + "_pat_",
+              "authorization-header": "Author" + "ization:",
+          }
+          suffixes = {".md", ".yaml", ".yml", ".json", ".py", ".sql", ".txt", ".xml"}
+          hits = []
+          for path in Path(".").rglob("*"):
+              if not path.is_file() or ".git" in path.parts or path.suffix.lower() not in suffixes:
+                  continue
+              text = path.read_text(encoding="utf-8", errors="replace")
+              for label, needle in forbidden.items():
+                  if needle in text:
+                      hits.append(f"{label}: {path}")
+          if hits:
+              raise SystemExit("Forbidden public content found:\n" + "\n".join(hits))
+          print("public-safety scan passed")

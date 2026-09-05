@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.sql.gz
+pgdata/
+
+# Large/raw legal data
+raw/
+data/raw/
+corpus/
+*.zip
+*.7z
+*.tar
+*.tar.gz
+
+# Generated reports / temporary outputs
+reports/
+out/
+tmp/
+*.log
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

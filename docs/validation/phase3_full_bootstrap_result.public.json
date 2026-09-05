@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "recorded_at": "2026-09-05T00:56:00+09:00",
+  "purpose": "Public-safe persistent evidence for the successful Phase 3 full PostgreSQL + e-Gov API Version 2 bootstrap.",
+  "execution": {
+    "runner": "phase3-resumable-full-bootstrap-1.1",
+    "parser_version": "phase3-bootstrap-1.0",
+    "postgresql_version": "16.15",
+    "workers": 1,
+    "history_request_interval_seconds": 0.6,
+    "started_at": "2026-09-04T09:18:03.217576+00:00",
+    "completed_at": "2026-09-04T11:35:01.546594+00:00",
+    "result_status": "succeeded"
+  },
+  "coverage": {
+    "requested_law_count": 9551,
+    "processed_law_count": 9551,
+    "failed_law_count": 0,
+    "law_count_in_database": 9551,
+    "law_revision_count": 53711,
+    "revision_observations_processed_this_run": 53711,
+    "resume_skipped_law_count": 0
+  },
+  "temporal_metrics": {
+    "same_day_group_count": 3064,
+    "same_day_revision_count": 7345,
+    "baseline_suffix_count": 3109,
+    "baseline_unknown_count": 3109,
+    "confirmed_api_count": 43301,
+    "confirmed_revision_id_count": 0,
+    "ambiguous_count": 10410
+  },
+  "reconciliation_metrics": {
+    "unresolved_amendment_law_id_distinct": 16975,
+    "unresolved_amendment_reference_rows": 46598,
+    "unresolved_issue_warning_count": 47771,
+    "unresolved_issue_error_count": 0,
+    "revision_effective_date_mismatch_count": 0,
+    "amendment_law_id_mismatch_count": 0,
+    "law_type_mismatch_count": 0,
+    "revision_not_observed_count": 0
+  },
+  "validation": {
+    "ddl_applied": true,
+    "offline_temporal_tests": {"tests": 8, "failures": 0, "errors": 0},
+    "resume_and_storage_normalization_tests": {"tests": 5, "failures": 0, "errors": 0},
+    "validation_sql_completed": true,
+    "id_format_error_rows": 0,
+    "revision_law_id_mismatch_rows": 0,
+    "revision_amendment_id_mismatch_rows": 0,
+    "revision_effective_date_mismatch_rows": 0,
+    "interpretation": "same-day groups and unresolved amendment-law logical references remain warning-class observations by contract; no error-class reconciliation issue remained."
+  },
+  "evidence": {
+    "artifact_name": "legal-kb-phase3-full-bootstrap",
+    "artifact_sha256": "b6af06bff42f3a32ce6e54183d6ada37c5fa4fb7f24aeb294084db8f97419bfb",
+    "input_manifest_sha256": "ca9283db379991c36d68a48f9b27f7bab866d4fdf9e050e42dac6b3390ab699a",
+    "xml_snapshot_manifest": "docs/validation/xml_snapshot_manifest.public.json"
+  },
+  "snapshot_note": "The API /laws universe of 9,551 laws, the preserved 10,711-XML snapshot covering 8,981 law IDs, and earlier current-bulk regression fixtures are distinct snapshot/filter universes and must not be treated as identical populations solely by count."
+}

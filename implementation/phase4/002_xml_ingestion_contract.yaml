@@ -1,0 +1,233 @@
+schema_version: '1.0'
+contract: legal-kb-phase4-xml-ingestion
+status: proposed
+source_of_truth:
+- docs/architecture/system-architecture.md
+- docs/architecture/roadmap.md
+- docs/validation/xsd-validation.md
+- docs/validation/phase3_full_bootstrap_result.public.json
+
+scope:
+  phase: 4
+  phase_name: XML構造DB
+  input_snapshot:
+    manifest: ../../docs/validation/xml_snapshot_manifest.public.json
+    expected_xml_count: 10711
+    expected_unique_revision_id_count: 10711
+  target_schema: legal_kb
+  primary_entities:
+  - law_document
+  - provision_node
+  - attachment
+  support_entities:
+  - source_file_member
+  - xml_parse_issue
+
+identity:
+  document_id:
+    algorithm: sha256
+    input: law_revision_id + U+001F + lower(source_xml_sha256)
+    output: lowercase-hex-64
+    stability: identical revision and identical XML bytes must reproduce the same document_id
+  node_id:
+    algorithm: sha256
+    input: document_id + U+001F + node_kind + U+001F + xml_path
+    output: lowercase-hex-64
+    stability: identical document and identical path contract must reproduce the same node_id
+  attachment_id:
+    algorithm: sha256
+    input: document_id + U+001F + ref_node_id + U+001F + source_attribute_name + U+001F + source_src
+    output: lowercase-hex-64
+
+raw_provenance:
+  rules:
+  - ZIP4本はimmutable source_fileとして登録する。
+  - ZIP内部の各XMLも個別source_fileとして登録し、source_file_memberでcontainer ZIPとmember_pathを結ぶ。
+  - member_path、CRC32、圧縮/非圧縮サイズは取得できる場合に原値保存する。
+  - 個別XMLのSHA-256を展開後バイト列から計算し、law_document.source_xml_sha256と一致させる。
+  - RAW XML本文をDBの正規化値で置換しない。
+  - 大容量ZIP・XML本文そのものをGitへコミットしない。
+
+revision_binding:
+  filename_rule:
+    expected_pattern: '^[0-9A-Z]{15}_[0-9]{8}_[0-9A-Z]{15}\\.xml$'
+  behavior:
+  - ファイル名からlaw_revision_id候補を得る。
+  - law_revisionに存在するIDへ結合する。
+  - XML内部のLawId等の観測値が取得できる場合は別途照合し、不一致を上書きせずissue化する。
+  - ファイル名の日付だけを法的効力判定には使用しない。
+
+xml_parser:
+  required_capabilities:
+  - namespace-tolerant
+  - mixed-content-aware
+  - tail-text-preserving
+  - unknown-element-preserving
+  - unknown-attribute-preserving
+  - document-order-preserving
+  - comments-and-processing-instructions-tolerant
+  - large-document-streaming-capable
+  well_formedness:
+    on_success: continue
+    on_failure:
+      law_document_parse_status: failed
+      persist_raw_source: true
+      create_issue: true
+      reject_normalized_nodes: true
+  xsd_validation:
+    reference: XMLSchemaForJapaneseLaw_v3.xsd
+    gate_ingestion: false
+    statuses:
+    - not-checked
+    - valid
+    - invalid
+    - error
+    rule: official RAW XML must not be rejected or auto-fixed solely because XSD validation is invalid
+
+node_model:
+  coverage: every XML element is represented, not only Article/Paragraph/Item
+  node_kinds:
+  - element
+  - comment
+  - processing-instruction
+  ordering:
+    ordinal: 1-based position among all child nodes of the parent
+    document_order: 1-based depth-first document order across the document
+  namespace:
+    tag_name: local name
+    namespace_uri: namespace URI when present
+    qname_original: lexical QName when parser can preserve it, otherwise null; RAW XML remains lexical authority
+  attributes:
+    canonical_storage: attributes_jsonb
+    rules:
+    - store all attributes, including attributes not known to the XSD
+    - do not drop OldNum or OldStyle
+    - old_num and old_style columns are query projections only; attributes_jsonb remains authoritative normalized observation
+  numbering:
+    structural_num: machine structural number such as Num
+    display_label: rendered legal label such as ArticleTitle-derived text
+    rule: structural_num and display_label must never overwrite each other
+
+xml_path:
+  purpose: deterministic backlink from normalized nodes to the immutable XML structure
+  element_segment: '{expanded-name}[index-among-same-expanded-name-siblings]'
+  example: /Law[1]/LawBody[1]/MainProvision[1]/Article[2]/Paragraph[1]
+  comment_segment: comment()[index-among-comment-siblings]
+  processing_instruction_segment: processing-instruction()[index-among-pi-siblings]
+  rules:
+  - index is 1-based
+  - namespace URI participates in expanded-name identity
+  - unknown elements use the same rule
+  - path generation must not depend on Article being present
+  - document_id + xml_path must be unique
+
+mixed_content:
+  authoritative_fields:
+  - text_original
+  - mixed_content_jsonb
+  text_original:
+    definition: concatenation of descendant character data in XML document order
+    normalization: none
+    allowed_changes: none
+  mixed_content_jsonb:
+    type: ordered-array
+    segment_types:
+    - kind: text
+      fields: [value]
+      meaning: element leading text before the first child or text between parser events
+    - kind: child
+      fields: [node_id]
+      meaning: child node position in content order
+    - kind: tail
+      fields: [after_node_id, value]
+      meaning: character data after a specific child and before the next child/end tag
+    rules:
+    - preserve whitespace and punctuation exactly as parsed
+    - preserve nonblank and blank tail text if present in the XML infoset
+    - do not normalize Unicode, old glyphs, spaces, ruby, or punctuation in Phase 4
+  search_text:
+    field: text_search_normalized
+    phase4_behavior: keep null unless a test explicitly needs a derived value
+    authoritative: false
+    citation_allowed: false
+
+structural_exceptions:
+  articleless_main_provision:
+    allowed: true
+    rule: MainProvision children are stored generically in source order; parser must not synthesize Article nodes
+  column_vs_table_column:
+    rule: tag_name preserves the exact local name and must not collapse Column and TableColumn
+  old_law_attributes:
+    preserve:
+    - OldNum
+    - OldStyle
+  unknown_elements_and_attributes:
+    behavior: preserve
+    schema_validation_effect: may make the document invalid, but does not justify dropping the content
+  top_level_children:
+    known_examples:
+    - LawTitle
+    - EnactStatement
+    - TOC
+    - Preamble
+    - MainProvision
+    - SupplProvision
+    - AppdxTable
+    - AppdxNote
+    - AppdxStyle
+    - Appdx
+    - AppdxFig
+    - AppdxFormat
+    rule: this list is not a parser whitelist
+
+attachments:
+  discovery:
+    rule: any XML attribute interpreted as a binary/external resource reference must create an attachment reference without changing the source attribute value
+    minimum_attribute: src
+  source_src:
+    authoritative: true
+    behavior: store exact XML attribute value
+  resolution:
+    separate_from_source: true
+    statuses:
+    - unresolved
+    - resolved
+    - missing
+    - fetch-failed
+    - external
+    rules:
+    - unresolved references remain rows
+    - resolved_locator never overwrites source_src
+    - successful binary retrieval registers a source_file and links attachment.source_file_id
+    - sha256 and byte_size describe retrieved binary bytes, not the XML reference string
+
+transactionality:
+  unit: one XML document
+  behavior:
+  - register/update law_document before node insertion
+  - insert the whole node tree and attachment references in one transaction per document
+  - on node/attachment transaction failure, roll back normalized children for that document and mark parse_status failed in a recovery transaction
+  - successful documents remain committed when another document fails
+  - rerun of identical document_id is idempotent
+
+rebuild_and_delete_policy:
+  raw_source_delete: forbidden by Phase 4 parser
+  normalized_rebuild:
+    allowed: true
+    rule: a document tree may be rebuilt only from the same immutable source_xml_sha256 under an explicit ingestion_run
+  api_absence_delete: forbidden
+
+phase4_exit_evidence:
+  required:
+  - DDL applies cleanly on PostgreSQL used by Phase 3
+  - synthetic parser fixtures pass
+  - all 10711 snapshot XML files are attempted
+  - well-formed snapshot produces no unexplained parse failures
+  - XSD result distribution is retained rather than used as a rejection gate
+  - Article-less structures are accepted
+  - OldNum and OldStyle observations survive round-trip checks
+  - Column and TableColumn remain distinct
+  - mixed content and tail text round-trip invariants pass
+  - unknown element and attribute fixtures survive normalization
+  - attachment src references remain traceable even when unresolved
+  - every normalized node can be resolved to document_id + xml_path + source_xml_sha256

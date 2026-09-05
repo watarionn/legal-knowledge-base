@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "phase4-postgresql-real-xml-smoke",
+  "executed_on": "2026-09-05",
+  "postgresql_version": "16.15",
+  "python_version": "3.13.5",
+  "parser_version": "phase4-xml-parser-0.1",
+  "runner": "implementation/phase4/010_postgres_import_smoke.py",
+  "status": "passed",
+  "fixture_count": 4,
+  "fixtures": [
+    {
+      "role": "articleless-main-provision",
+      "revision_id": "503AC0000000004_20210203_000000000000000",
+      "xml_sha256": "0924a41e2a5d9da98fd8e1c136183ddd3e5d0d666db4b57ffa1b153872ce3944",
+      "document_id": "4d3c1229384c0d103f1fb26260f7e4020fa1c0da4dee07d57f2fc960656d9c4e",
+      "node_count": 15,
+      "attachment_reference_count": 0
+    },
+    {
+      "role": "attachment-src",
+      "revision_id": "503M60000F42001_20211022_000000000000000",
+      "xml_sha256": "4528618d3e821d5907f8ee065e8b4065542bd29178f93d4f0658b76ce4e29773",
+      "document_id": "270c5e7a79923ebb1775b509f9dd8d764014988577860de9d4dc73feb90d0ab4",
+      "node_count": 22,
+      "attachment_reference_count": 1
+    },
+    {
+      "role": "mixed-content-tail",
+      "revision_id": "428AC1000000067_20160603_000000000000000",
+      "xml_sha256": "b5c060241731d30761cbc71eeb5fcbee42178820d9449afbff29ee4a417299af",
+      "document_id": "5e55fe0e820fa9d135f237c70dd597fefc38c0d0edcd84c098b84314bce69e8a",
+      "node_count": 30,
+      "attachment_reference_count": 0
+    },
+    {
+      "role": "oldnum-oldstyle",
+      "revision_id": "143AC1000000056_19100416_000000000000000",
+      "xml_sha256": "bf33f0b41c9f2aac717bdcbf46179d5551912223db04dbae82ea118fdc709f1a",
+      "document_id": "66cbbbbce7a270f32dbcba0807af4944d9e36f7889f0a9b1acbd64007044771c",
+      "node_count": 19,
+      "attachment_reference_count": 0
+    }
+  ],
+  "totals": {
+    "law_document_count": 4,
+    "provision_node_count": 86,
+    "attachment_count": 1,
+    "source_file_member_count": 4,
+    "xml_parse_issue_count": 0
+  },
+  "zero_issue_counts": {
+    "raw_backlink": 0,
+    "root_count": 0,
+    "orphan_parent": 0,
+    "sibling_order": 0,
+    "document_order": 0,
+    "xml_path": 0,
+    "mixed_child_reference": 0,
+    "mixed_tail_reference": 0,
+    "node_count": 0,
+    "attachment_count": 0,
+    "attachment_revision": 0,
+    "search_normalized_text": 0
+  },
+  "feature_checks": {
+    "articleless": true,
+    "nonblank_tail": true,
+    "oldnum_oldstyle": true,
+    "attachment_src": true
+  },
+  "idempotent_skip_existing": true,
+  "interpretation": "The Phase 3 and Phase 4 DDL applied cleanly to PostgreSQL 16.15. Four official XML regression fixtures were parsed and persisted with no relational invariant failures. This smoke does not replace the pending 10,711-document full relational import and round-trip validation gate."
+}
