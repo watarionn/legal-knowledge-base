@@ -83,7 +83,11 @@
 
 revision-awareな検索unitを構築し、検索hitから`law_revision_id`、XML構造path、RAW SHAへ戻れるようにします。
 
-状態: **次工程**
+初期実装では、Phase 4のtext-bearing nodeだけを再生成可能な`search_unit`派生層へ投影し、日本語を形態素解析へ依存させずliteral substring + `pg_trgm`で検索できるようにします。構造検索はrevisionを固定したうえで`tag_name` / `structural_num` / `display_label`を検索し、lexical/structuralの両方でlogical `node_id`、再構成XML path、`source_xml_sha256`を返します。
+
+検索indexは引用の正本ではありません。検索hitは必ずPhase 3/4へbacklinkし、派生層を削除・再構築しても原文・履歴・provenanceを失わない構成とします。
+
+状態: **進行中**
 
 ### Phase 5.3 Vector / RAG Retrieval
 
