@@ -50,6 +50,11 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase3/001_law_history_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase4/001_xml_structure_schema.sql
 
+      - name: Diagnose SHA-256 constraint
+        run: |
+          psql "$DATABASE_URL" -Atc "SELECT length('97963a154c9e22c371028acf48cd8b5721bb37c56648c36f41d25141f16d3a8e'), '97963a154c9e22c371028acf48cd8b5721bb37c56648c36f41d25141f16d3a8e' ~ '^[0-9a-fA-F]{64}$';"
+          psql "$DATABASE_URL" -Atc "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='source_file_sha256_check';"
+
       - name: Run real XML PostgreSQL smoke
         run: |
           python implementation/phase4/010_postgres_import_smoke.py \
