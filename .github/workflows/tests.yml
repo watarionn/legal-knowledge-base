@@ -38,7 +38,8 @@ jobs:
             implementation/phase4/013_copy_import_smoke.py \
             implementation/phase5/003_temporal_resolver.py \
             implementation/phase5/004_temporal_resolver_test.py \
-            implementation/phase5/005_temporal_resolution_smoke.py
+            implementation/phase5/005_temporal_resolution_smoke.py \
+            implementation/phase5/007_lexical_structural_search_smoke.py
 
       - name: Run Phase 3 tests
         run: |
