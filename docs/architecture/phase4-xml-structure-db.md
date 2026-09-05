@@ -1,63 +1,43 @@
 # Phase 4: XML Structure Database
 
-Phase 4は、法令XMLを検索しやすくしながら、原文構造を損失なく保持する層です。
+Phase 4は、法令XMLを検索しやすくしながら、原文構造とRAW provenanceを損失なく保持する層です。
 
-## なぜ固定の「条・項・号」階層にしないのか
+## 汎用順序付きツリー
 
-10,711 XML全量scanでは、MainProvision配下のどこにもArticleがない文書が1,219件ありました。また、附則、表、図、Ruby、数式、旧形式属性、mixed contentも実在します。
-
-そのため、Article / Paragraph / Item専用階層ではなく、**全XML要素を一般化した順序付きツリー**として保存します。
+10,711 XML全量scanでは、MainProvision配下のどこにもArticleがない文書が1,219件あり、附則、表、図、Ruby、数式、旧形式属性、mixed contentも実在しました。そのためArticle / Paragraph / Item専用階層ではなく、全XML要素を一般化した順序付きツリーとして扱います。
 
 ## `law_document`
 
-1つの法令XML原本に対応します。
+1つの照合済み法令XML原本に対応し、`law_revision_id`、`source_file_id`、source XML SHA-256、parser version、parse/XSD status、root情報、node/attachment件数を保持します。RAW XMLは置換せず、必ずimmutable `source_file`へ戻れるようにします。
 
-保持するもの:
-- `law_revision_id`
-- `source_file_id`
-- source XML SHA-256
-- parser version
-- parse status
-- XSD validation status/errors
-- root情報
-- node / attachment counts
+## `provision_node`: compact storage v2
 
-well-formedness failure時も、可能な範囲でfailed documentとして来歴を残します。
+32Mノード全量に耐えるため、論理IDと物理参照を分離しています。
 
-## `provision_node`
+- 物理PK: `document_pk + document_order`
+- 親参照: `parent_document_order`
+- sibling順: `ordinal`
+- 同expanded-name兄弟index: `path_index`
+- logical `node_id`: parserが決定的に作るSHA-256を32-byte `bytea`で保持
+- `tag_name` / `namespace_uri` / `attributes_jsonb` / `OldNum` / `OldStyle`等を保持
+- `text_original`: text-bearing node用のdenormalized cache。構造コンテナでは子孫本文の大量重複を避けてNULLを許容
+- `text_search_normalized`: Phase 5用。Phase 4ではNULL
 
-XMLの全要素を表す汎用nodeです。
-
-主な列:
-- `parent_node_id`
-- `ordinal`
-- `document_order`
-- `depth`
-- `tag_name`
-- `namespace_uri`
-- `attributes_jsonb`
-- `structural_num`
-- `display_label`
-- `old_num` / `old_style`
-- `text_original`
-- `mixed_content_jsonb`
-- `xml_path`
-
-`attributes_jsonb`が属性観測の本体で、`old_num`等は検索用投影です。
+初期物理schemaは500 XMLで約1GBまで膨張しました。compact v2では同じ500 XMLが約222MBとなり、10,705 normalized文書を約17.35GBで完走しました。
 
 ## Mixed content
 
-要素本文は単純な`text()`だけでは保持できません。`mixed_content_jsonb`へ次のsegmentを文書順で保存します。
+`mixed_content_jsonb`へ`text` / `child` / `tail`を文書順に保持します。child/tail参照はdocument-local `document_order`を使用します。空白のみのtailもtrimしません。
 
-- `text`
-- `child`
-- `tail`
-
-空白のみのtailもtrimしません。
+全量DBではmixed-content child segment **32,105,625件**が全non-root normalized node **32,105,625件**と一致しました。
 
 ## `xml_path`
 
-normalized nodeからRAW XML構造へ戻るため、expanded nameと同名兄弟indexを使った決定的pathを作ります。
+full pathを32M行へ反復保存せず、親鎖・expanded name・`path_index`から必要時に決定的に再構成します。
+
+```sql
+SELECT legal_kb.provision_node_xml_path(document_pk, document_order);
+```
 
 例:
 
@@ -65,43 +45,43 @@ normalized nodeからRAW XML構造へ戻るため、expanded nameと同名兄弟
 /Law[1]/LawBody[1]/MainProvision[1]/Article[2]/Paragraph[1]
 ```
 
-namespace URIもpath identityへ含めます。
+4件の公式回帰fixtureでは、DBに保存したlogical `node_id`と再構成`xml_path`がparser出力と全ノードで一致しました。
 
 ## `attachment`
 
-`src`等で参照された画像・外部resourceを分離します。
+XMLの`src`観測を参照行として分離し、`source_src`原値、解決後locator、availability status等を保持します。解決しても`source_src`を上書きしません。
 
-- `source_src`: XML原値
-- `resolved_locator`: 解決後の場所
-- `availability_status`: unresolved / resolved / missing等
+全量42,571参照のうち3,770件（199文書）は公式XMLそのものが`src=""`です。空文字列もRAW観測としてそのまま保持します。
 
-解決に成功しても`source_src`を上書きしません。
+## Phase 3とのrevision binding
 
-## XSD invalid
+10,711 XMLのうち10,705 revisionはPhase 3 API履歴へ照合できました。6 revisionはPhase 3の53,711履歴にも2026-09-05の公式API再照合にも存在しなかったため、XMLから`law_revision`を作成していません。
 
-公式RAWがwell-formedであれば、XSD invalidだけを理由に構造化を中止しません。`schema_validation_status=invalid`として記録し、RAWとnormalized treeを両方保持します。
+この6件はRAW `source_file` / `source_file_member`を保持し、`LAW_REVISION_NOT_RECONCILED`として`reconciliation_issue`へdeferします。
 
-## 現在のゲート
+## XSD
 
-完了済み:
-- DDL設計
-- XML parser
-- synthetic tests
-- 10,711 XML全量structural scan
-- PostgreSQL importer実装
-- 実XML regression fixtures準備
-- Public repo CIでPostgreSQL 16.15 real XML smoke成功
-  - 4 `law_document`
-  - 86 `provision_node`
-  - 1 `attachment`
-  - 4 `source_file_member`
-  - relational invariant failure 0
-  - Articleなし / nonblank tail / OldNum+OldStyle / attachment src のfeature check成功
-  - `skip_existing` idempotence成功
+XSD invalidは取り込み拒否条件ではありません。同一snapshotのPhase 2集計は9,932 valid / 779 invalidです。今回のrelational importでは個々の`law_document.schema_validation_status`は`not-checked`であり、XSDを再実行したとは扱いません。個別status backfillは独立したfollow-upです。
 
-未完了:
-- 10,711 XML full relational import
-- relational validation SQLの全量適用
-- normalized infoset round-trip検査
+## Phase 4 full relational import
 
-PostgreSQL smokeの機械可読証跡は [`../validation/phase4_postgres_smoke_result.json`](../validation/phase4_postgres_smoke_result.json) に記録しています。
+2026-09-05の全量結果:
+
+- input: **10,711**
+- normalized `law_document`: **10,705**
+- expected deferred revision: **6**
+- normal import failure: **0**
+- normalized `provision_node`: **32,116,330**
+- deferred 6 XMLのparser node: **73,184**
+- accounted total: **32,189,514**（事前corpus scanと一致）
+- `attachment`: **42,571**（事前corpus scanと一致）
+- `source_file_member`: **10,711**
+- `xml_parse_issue`: **0**
+
+RAW backlink、root、sibling/document order、node/attachment counts、OldNum/OldStyle投影、attachment revision、source member、Phase 4 search text等の全量validationで不整合0を確認しています。
+
+証跡:
+- [`../validation/phase4-full-relational-import.md`](../validation/phase4-full-relational-import.md)
+- [`../validation/phase4_full_relational_import_result.json`](../validation/phase4_full_relational_import_result.json)
+
+Phase 4の実装・全量relational validationゲートは完了しています。次工程はPhase 5の時点検索＋検索/RAGです。
