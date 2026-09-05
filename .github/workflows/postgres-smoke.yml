@@ -53,7 +53,18 @@ jobs:
       - name: Diagnose SHA-256 constraint
         run: |
           psql "$DATABASE_URL" -Atc "SELECT length('97963a154c9e22c371028acf48cd8b5721bb37c56648c36f41d25141f16d3a8e'), '97963a154c9e22c371028acf48cd8b5721bb37c56648c36f41d25141f16d3a8e' ~ '^[0-9a-fA-F]{64}$';"
-          psql "$DATABASE_URL" -Atc "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='source_file_sha256_check';"
+          python - <<'PY'
+          import json, os
+          import psycopg
+          from pathlib import Path
+          manifest = json.loads(Path('implementation/phase4/fixtures/real/manifest.json').read_text(encoding='utf-8'))
+          with psycopg.connect(os.environ['DATABASE_URL']) as conn:
+              with conn.cursor() as cur:
+                  for fixture in manifest['fixtures']:
+                      value = fixture['archive_sha256']
+                      cur.execute("SELECT length(%s), %s ~ '^[0-9a-fA-F]{64}$'", (value, value))
+                      print(fixture['archive'], repr(value), len(value), value.encode('utf-8').hex(), cur.fetchone())
+          PY
 
       - name: Run real XML PostgreSQL smoke
         run: |
