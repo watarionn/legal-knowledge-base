@@ -41,7 +41,9 @@ jobs:
             implementation/phase5/005_temporal_resolution_smoke.py \
             implementation/phase5/007_lexical_structural_search_smoke.py \
             implementation/phase5/008_full_search_benchmark.py \
-            implementation/phase5/009_full_search_benchmark_test.py
+            implementation/phase5/009_full_search_benchmark_test.py \
+            implementation/phase5/010_full_search_pipeline.py \
+            implementation/phase5/011_full_search_pipeline_test.py
 
       - name: Run Phase 3 tests
         run: |
@@ -58,7 +60,9 @@ jobs:
         run: python implementation/phase5/004_temporal_resolver_test.py -v
 
       - name: Run Phase 5 full search benchmark tests
-        run: python implementation/phase5/009_full_search_benchmark_test.py -v
+        run: |
+          python implementation/phase5/009_full_search_benchmark_test.py -v
+          python implementation/phase5/011_full_search_pipeline_test.py -v
 
       - name: Check public-safety boundaries
         shell: python
