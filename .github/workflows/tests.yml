@@ -47,12 +47,12 @@ jobs:
         run: |
           from pathlib import Path
           forbidden = {
-              "private-drive-url": "drive.google.com/drive/folders/",
-              "old-private-repo-api": "api.github.com/repos/watarionn/ai-memory-vault",
-              "old-private-actions-url": "github.com/watarionn/ai-memory-vault/actions/runs/",
-              "github-classic-token": "ghp_",
-              "github-fine-grained-token": "github_pat_",
-              "authorization-header": "Authorization:",
+              "private-drive-url": "drive.google.com" + "/drive/folders/",
+              "old-private-repo-api": "api.github.com/repos/" + "watarionn/ai-memory-vault",
+              "old-private-actions-url": "github.com/" + "watarionn/ai-memory-vault/actions/runs/",
+              "github-classic-token": "gh" + "p_",
+              "github-fine-grained-token": "github" + "_pat_",
+              "authorization-header": "Author" + "ization:",
           }
           suffixes = {".md", ".yaml", ".yml", ".json", ".py", ".sql", ".txt", ".xml"}
           hits = []
