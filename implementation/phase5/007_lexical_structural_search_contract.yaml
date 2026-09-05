@@ -1,0 +1,105 @@
+schema_version: '1.0'
+contract: legal-kb-phase5-lexical-structural-search
+status: proposed
+scope:
+  phase: '5.2'
+  prerequisite:
+    - Phase 5.1 strict temporal resolution
+    - Phase 4 compact XML structure DB
+
+normalization:
+  version: phase5-search-normalization-v1
+  operations:
+    - Unicode NFKC
+    - Unicode casefold
+    - remove Unicode whitespace
+  authoritative_text: false
+  rule: normalized/cache text is rebuildable search data and must never replace Phase 4 or RAW text
+
+search_unit:
+  index_version: phase5-search-unit-v1
+  kinds:
+    sentence:
+      source: nonblank Sentence element outside TableRow
+      anchor: nearest structural ancestor
+    table-row:
+      source: TableRow element
+      rule: descendant Sentence units are suppressed to avoid duplicate indexing
+    direct-text:
+      source: selected text-bearing container with no searchable Sentence descendant
+  sentence_coverage:
+    denominator: nonblank Sentence string-values
+    required_uncovered_count: 0
+    empty_sentence_ignored: true
+
+structural_context:
+  ancestor_tags:
+    - Part
+    - Chapter
+    - Section
+    - Subsection
+    - Division
+    - Article
+    - Paragraph
+    - Item
+    - Subitem1
+    - Subitem2
+    - Subitem3
+    - Subitem4
+    - Subitem5
+    - Subitem6
+    - Subitem7
+    - Subitem8
+    - Subitem9
+    - Subitem10
+    - SupplProvision
+    - Appdx
+    - AppdxTable
+    - AppdxNote
+    - AppdxStyle
+    - AppdxFig
+    - AppdxFormat
+  context_includes_law_title: true
+
+retrieval:
+  extension: pg_trgm
+  strict_revision_filter: required
+  nearest_revision_fallback: forbidden
+  query_limit_max: 200
+  filters:
+    - anchor_tag_name
+    - anchor_structural_num
+    - unit_kind
+  result_provenance:
+    - law_id
+    - law_revision_id
+    - document_pk
+    - document_id
+    - source_xml_sha256
+    - source_document_order
+    - anchor_document_order
+    - reconstructed_xml_path
+    - hierarchy_jsonb
+
+citation:
+  source: legal_kb.provision_node_string_value(document_pk, source_document_order)
+  search_text_cache_authoritative: false
+  rule: quote/citation text must be reconstructed from Phase 4 normalized infoset or immutable RAW
+
+as_of_integration:
+  rule: Phase 5.1 must resolve exactly one confirmed revision with exactly one available document before search
+  ambiguous: return no hits
+  unresolved: return no hits
+  not_found: return no hits
+  content_missing: return no hits
+  content_multiple: return no hits
+
+phase5_2_exit_gate:
+  required:
+    - synthetic search-unit tests pass
+    - PostgreSQL 16 pg_trgm DDL applies after Phase 3/4/5.1
+    - real XML lexical/structural smoke passes
+    - search hit backlinks to revision, XML path, and source SHA
+    - Phase 4 reconstructed text matches search unit cache after normalization
+    - nonblank Sentence coverage has zero uncovered units
+    - full 10705 normalized-document search build is validated or explicitly recorded as remaining work
