@@ -32,7 +32,10 @@ jobs:
             implementation/phase4/006_xml_parser_test.py \
             implementation/phase4/007_full_corpus_scan.py \
             implementation/phase4/009_postgres_import.py \
-            implementation/phase4/010_postgres_import_smoke.py
+            implementation/phase4/010_postgres_import_smoke.py \
+            implementation/phase4/011_full_relational_import.py \
+            implementation/phase4/012_full_relational_import_test.py \
+            implementation/phase4/013_copy_import_smoke.py
 
       - name: Run Phase 3 tests
         run: |
@@ -41,6 +44,9 @@ jobs:
 
       - name: Run Phase 4 parser tests
         run: python implementation/phase4/006_xml_parser_test.py -v
+
+      - name: Run Phase 4 full import tests
+        run: python implementation/phase4/012_full_relational_import_test.py -v
 
       - name: Check public-safety boundaries
         shell: python
