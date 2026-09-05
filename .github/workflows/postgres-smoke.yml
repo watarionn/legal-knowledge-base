@@ -51,6 +51,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase4/001_xml_structure_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase5/001_temporal_resolution_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase5/006_lexical_structural_search_schema.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase5/012_search_literal_hardening.sql
 
       - name: Run real XML PostgreSQL COPY smoke
         run: |
@@ -63,3 +64,6 @@ jobs:
 
       - name: Run Phase 5.2 lexical and structural search smoke
         run: python implementation/phase5/007_lexical_structural_search_smoke.py
+
+      - name: Run Phase 5.2 search hardening smoke
+        run: python implementation/phase5/014_search_hardening_smoke.py
