@@ -56,22 +56,28 @@ jobs:
             --result "$RUNNER_TEMP/phase4-postgres-copy-smoke.json"
           cat "$RUNNER_TEMP/phase4-postgres-copy-smoke.json"
 
-      - name: Export temporary PostgreSQL 16 rootfs
+      - name: Export temporary local execution kit
         run: |
           set -euo pipefail
           cid="$(docker create postgres:16)"
           trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
           docker export "$cid" | gzip -1 > "$RUNNER_TEMP/postgres16-rootfs.tar.gz"
           sha256sum "$RUNNER_TEMP/postgres16-rootfs.tar.gz" > "$RUNNER_TEMP/postgres16-rootfs.sha256"
-          ls -lh "$RUNNER_TEMP/postgres16-rootfs.tar.gz"
+          python -m pip install --disable-pip-version-check --no-input \
+            --target "$RUNNER_TEMP/psycopg-portable" "psycopg[binary]>=3,<4"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/psycopg-portable.tar.gz" psycopg-portable
+          sha256sum "$RUNNER_TEMP/psycopg-portable.tar.gz" > "$RUNNER_TEMP/psycopg-portable.sha256"
+          ls -lh "$RUNNER_TEMP/postgres16-rootfs.tar.gz" "$RUNNER_TEMP/psycopg-portable.tar.gz"
 
-      - name: Upload temporary PostgreSQL rootfs
+      - name: Upload temporary local execution kit
         uses: actions/upload-artifact@v4
         with:
-          name: portable-postgres16-rootfs
+          name: phase4-local-postgres-kit
           path: |
             ${{ runner.temp }}/postgres16-rootfs.tar.gz
             ${{ runner.temp }}/postgres16-rootfs.sha256
+            ${{ runner.temp }}/psycopg-portable.tar.gz
+            ${{ runner.temp }}/psycopg-portable.sha256
           if-no-files-found: error
           compression-level: 0
           retention-days: 1
