@@ -160,75 +160,75 @@ def _integrity(conn) -> dict:
         "root_count": """
           SELECT d.document_id
           FROM legal_kb.law_document d
-          LEFT JOIN legal_kb.provision_node n ON n.document_id=d.document_id
+          LEFT JOIN legal_kb.provision_node n ON n.document_pk=d.document_pk
           GROUP BY d.document_id
-          HAVING count(n.node_id) FILTER (WHERE n.parent_node_id IS NULL) <> 1
+          HAVING count(n.document_order) FILTER (WHERE n.parent_document_order IS NULL) <> 1
         """,
         "orphan_parent": """
-          SELECT c.node_id
+          SELECT c.document_pk,c.document_order
           FROM legal_kb.provision_node c
           LEFT JOIN legal_kb.provision_node p
-            ON p.document_id=c.document_id AND p.node_id=c.parent_node_id
-          WHERE c.parent_node_id IS NOT NULL AND p.node_id IS NULL
+            ON p.document_pk=c.document_pk AND p.document_order=c.parent_document_order
+          WHERE c.parent_document_order IS NOT NULL AND p.document_order IS NULL
         """,
         "sibling_order": """
-          SELECT document_id,parent_node_id
+          SELECT document_pk,parent_document_order
           FROM legal_kb.provision_node
-          GROUP BY document_id,parent_node_id
+          GROUP BY document_pk,parent_document_order
           HAVING min(ordinal)<>1 OR max(ordinal)<>count(*)
              OR count(DISTINCT ordinal)<>count(*)
         """,
         "document_order": """
-          SELECT document_id
+          SELECT document_pk
           FROM legal_kb.provision_node
-          GROUP BY document_id
+          GROUP BY document_pk
           HAVING min(document_order)<>1 OR max(document_order)<>count(*)
              OR count(DISTINCT document_order)<>count(*)
         """,
-        "xml_path": """
-          SELECT document_id,xml_path
-          FROM legal_kb.provision_node
-          GROUP BY document_id,xml_path
-          HAVING xml_path='' OR count(*)>1
+        "node_id_duplicate": """
+          SELECT node_id FROM legal_kb.provision_node GROUP BY node_id HAVING count(*)>1
+        """,
+        "path_index": """
+          SELECT document_pk,document_order FROM legal_kb.provision_node WHERE path_index<1
         """,
         "mixed_child_reference": """
-          SELECT p.node_id
+          SELECT p.document_pk,p.document_order
           FROM legal_kb.provision_node p
           CROSS JOIN LATERAL jsonb_array_elements(p.mixed_content_jsonb) seg(value)
           LEFT JOIN legal_kb.provision_node c
-            ON c.document_id=p.document_id AND c.node_id=seg.value->>'node_id'
-          WHERE seg.value->>'kind'='child' AND c.node_id IS NULL
+            ON c.document_pk=p.document_pk AND c.document_order=(seg.value->>'document_order')::int
+          WHERE seg.value->>'kind'='child' AND c.document_order IS NULL
         """,
         "mixed_tail_reference": """
-          SELECT p.node_id
+          SELECT p.document_pk,p.document_order
           FROM legal_kb.provision_node p
           CROSS JOIN LATERAL jsonb_array_elements(p.mixed_content_jsonb) seg(value)
           LEFT JOIN legal_kb.provision_node c
-            ON c.document_id=p.document_id AND c.node_id=seg.value->>'after_node_id'
-          WHERE seg.value->>'kind'='tail' AND c.node_id IS NULL
+            ON c.document_pk=p.document_pk AND c.document_order=(seg.value->>'after_document_order')::int
+          WHERE seg.value->>'kind'='tail' AND c.document_order IS NULL
         """,
         "node_count": """
           SELECT d.document_id
           FROM legal_kb.law_document d
-          LEFT JOIN legal_kb.provision_node n ON n.document_id=d.document_id
+          LEFT JOIN legal_kb.provision_node n ON n.document_pk=d.document_pk
           GROUP BY d.document_id,d.node_count
-          HAVING count(n.node_id)<>d.node_count
+          HAVING count(n.document_order)<>d.node_count
         """,
         "attachment_count": """
           SELECT d.document_id
           FROM legal_kb.law_document d
-          LEFT JOIN legal_kb.attachment a ON a.document_id=d.document_id
+          LEFT JOIN legal_kb.attachment a ON a.document_pk=d.document_pk
           GROUP BY d.document_id,d.attachment_reference_count
           HAVING count(a.attachment_id)<>d.attachment_reference_count
         """,
         "attachment_revision": """
           SELECT a.attachment_id
           FROM legal_kb.attachment a
-          JOIN legal_kb.law_document d ON d.document_id=a.document_id
+          JOIN legal_kb.law_document d ON d.document_pk=a.document_pk
           WHERE a.law_revision_id<>d.law_revision_id
         """,
         "search_normalized_text": """
-          SELECT node_id FROM legal_kb.provision_node
+          SELECT document_pk,document_order FROM legal_kb.provision_node
           WHERE text_search_normalized IS NOT NULL
         """,
     }
@@ -239,19 +239,44 @@ def _integrity(conn) -> dict:
     return counts
 
 
+def _path_roundtrip(conn, parsed_docs) -> bool:
+    for parsed in parsed_docs:
+        document_id = parsed.law_document["document_id"]
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT n.document_order, encode(n.node_id, 'hex'),
+                       legal_kb.provision_node_xml_path(n.document_pk, n.document_order)
+                FROM legal_kb.provision_node n
+                JOIN legal_kb.law_document d ON d.document_pk=n.document_pk
+                WHERE d.document_id=%s
+                ORDER BY n.document_order
+                """,
+                (document_id,),
+            )
+            stored = cur.fetchall()
+        expected = [
+            (node["document_order"], node["node_id"], node["xml_path"])
+            for node in parsed.nodes
+        ]
+        if stored != expected:
+            return False
+    return True
+
+
 def _features(conn) -> dict:
     checks = {
         "articleless": _scalar(
             conn,
             """SELECT count(*)=0 FROM legal_kb.provision_node n
-               JOIN legal_kb.law_document d ON d.document_id=n.document_id
+               JOIN legal_kb.law_document d ON d.document_pk=n.document_pk
                WHERE d.law_revision_id=%s AND n.tag_name='Article'""",
             ("503AC0000000004_20210203_000000000000000",),
         ),
         "nonblank_tail": _scalar(
             conn,
             """SELECT count(*)>0 FROM legal_kb.provision_node n
-               JOIN legal_kb.law_document d ON d.document_id=n.document_id
+               JOIN legal_kb.law_document d ON d.document_pk=n.document_pk
                CROSS JOIN LATERAL jsonb_array_elements(n.mixed_content_jsonb) seg(value)
                WHERE d.law_revision_id=%s AND seg.value->>'kind'='tail'
                  AND btrim(seg.value->>'value')<>''""",
@@ -260,7 +285,7 @@ def _features(conn) -> dict:
         "oldnum_oldstyle": _scalar(
             conn,
             """SELECT count(*)>=2 FROM legal_kb.provision_node n
-               JOIN legal_kb.law_document d ON d.document_id=n.document_id
+               JOIN legal_kb.law_document d ON d.document_pk=n.document_pk
                WHERE d.law_revision_id=%s AND n.old_num='true' AND n.old_style='false'
                  AND n.attributes_jsonb->>'OldNum'='true'
                  AND n.attributes_jsonb->>'OldStyle'='false'""",
@@ -322,6 +347,9 @@ def run(database_url: str) -> dict:
 
         integrity = _integrity(conn)
         features = _features(conn)
+        path_roundtrip = _path_roundtrip(conn, parsed_docs)
+        if not path_roundtrip:
+            raise AssertionError("node_id/xml_path reconstruction mismatch")
         idempotent = all(
             not PG_IMPORT.insert_parsed_document(conn, parsed, skip_existing=True)
             for parsed in parsed_docs
@@ -357,6 +385,7 @@ def run(database_url: str) -> dict:
             "totals": totals,
             "zero_issue_counts": integrity,
             "feature_checks": features,
+            "node_id_and_xml_path_roundtrip": path_roundtrip,
             "idempotent_skip_existing": idempotent,
         }
 

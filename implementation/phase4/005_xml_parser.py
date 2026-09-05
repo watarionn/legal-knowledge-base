@@ -241,12 +241,14 @@ def parse_xml_bytes(
     attachments: list[dict[str, Any]] = []
     issues: list[dict[str, Any]] = []
     document_order = 0
+    node_order_by_id: dict[str, int] = {}
 
     def visit(
         elem: ET.Element,
         parent_node_id: str | None,
         path: str,
         ordinal: int,
+        path_index: int,
         depth: int,
     ) -> str:
         nonlocal document_order
@@ -255,11 +257,20 @@ def parse_xml_bytes(
         node_id = make_node_id(document_id, kind, path)
         document_order += 1
         current_order = document_order
+        node_order_by_id[node_id] = current_order
 
         if kind == "element":
             namespace_uri, tag_name = split_expanded_name(str(elem.tag))
             attrs = attributes_for_storage(elem.attrib)
-            text_original = _element_string_value(elem)
+            element_children = [child for child in list(elem) if _node_kind(child) == "element"]
+            has_direct_nonblank_text = bool(elem.text and elem.text.strip()) or any(
+                child.tail and child.tail.strip() for child in list(elem)
+            )
+            text_original = (
+                _element_string_value(elem)
+                if not element_children or has_direct_nonblank_text
+                else None
+            )
             structural_num = projected_attribute(elem.attrib, "Num")
             old_num = projected_attribute(elem.attrib, "OldNum")
             old_style = projected_attribute(elem.attrib, "OldStyle")
@@ -286,6 +297,7 @@ def parse_xml_bytes(
             "parent_node_id": parent_node_id,
             "node_kind": kind,
             "ordinal": ordinal,
+            "path_index": path_index,
             "document_order": current_order,
             "depth": depth,
             "tag_name": tag_name,
@@ -319,16 +331,17 @@ def parse_xml_bytes(
                 node_id,
                 child_path,
                 child_ordinal,
+                child_counters[key],
                 depth + 1,
             )
 
             if kind == "element":
-                mixed.append({"kind": "child", "node_id": child_node_id})
+                mixed.append({"kind": "child", "document_order": node_order_by_id[child_node_id]})
                 if child.tail is not None:
                     mixed.append(
                         {
                             "kind": "tail",
-                            "after_node_id": child_node_id,
+                            "after_document_order": node_order_by_id[child_node_id],
                             "value": child.tail,
                         }
                     )
@@ -371,7 +384,7 @@ def parse_xml_bytes(
         return node_id
 
     root_path = f"/{_path_segment(root, 1)}"
-    visit(root, None, root_path, 1, 0)
+    visit(root, None, root_path, 1, 1, 0)
 
     document = dict(base_document)
     document.update(

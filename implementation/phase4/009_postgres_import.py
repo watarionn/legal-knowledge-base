@@ -23,12 +23,13 @@ DOCUMENT_COLUMNS = (
 )
 
 NODE_COLUMNS = (
+    "document_pk",
+    "document_order",
     "node_id",
-    "document_id",
-    "parent_node_id",
+    "parent_document_order",
     "node_kind",
     "ordinal",
-    "document_order",
+    "path_index",
     "depth",
     "tag_name",
     "namespace_uri",
@@ -41,15 +42,14 @@ NODE_COLUMNS = (
     "text_original",
     "text_search_normalized",
     "mixed_content_jsonb",
-    "xml_path",
     "source_line",
 )
 
 ATTACHMENT_COLUMNS = (
     "attachment_id",
-    "document_id",
+    "document_pk",
     "law_revision_id",
-    "ref_node_id",
+    "ref_document_order",
     "source_file_id",
     "source_attribute_name",
     "source_src",
@@ -64,8 +64,8 @@ ATTACHMENT_COLUMNS = (
 )
 
 ISSUE_COLUMNS = (
-    "document_id",
-    "node_id",
+    "document_pk",
+    "node_document_order",
     "issue_code",
     "severity",
     "message",
@@ -108,17 +108,14 @@ def _load_psycopg():
 
 def _insert_sql(table: str, columns: Sequence[str]) -> str:
     placeholders = ", ".join(["%s"] * len(columns))
-    return (
-        f"INSERT INTO legal_kb.{table} ({', '.join(columns)}) "
-        f"VALUES ({placeholders})"
-    )
+    return f"INSERT INTO legal_kb.{table} ({', '.join(columns)}) VALUES ({placeholders})"
 
 
-def _adapt_row(
-    row: dict[str, Any],
-    columns: Sequence[str],
-    Jsonb,
-) -> tuple[Any, ...]:
+def _copy_sql(table: str, columns: Sequence[str]) -> str:
+    return f"COPY legal_kb.{table} ({', '.join(columns)}) FROM STDIN"
+
+
+def _adapt_row(row: dict[str, Any], columns: Sequence[str], Jsonb) -> tuple[Any, ...]:
     values: list[Any] = []
     for column in columns:
         value = row.get(column)
@@ -135,6 +132,14 @@ def _batched(rows: Sequence[dict[str, Any]], batch_size: int) -> Iterable[Sequen
         yield rows[start : start + batch_size]
 
 
+def _copy_rows(cur, table: str, columns: Sequence[str], rows: Sequence[dict[str, Any]], Jsonb) -> None:
+    if not rows:
+        return
+    with cur.copy(_copy_sql(table, columns)) as copy:
+        for row in rows:
+            copy.write_row(_adapt_row(row, columns, Jsonb))
+
+
 def document_exists(conn, document_id: str) -> bool:
     with conn.cursor() as cur:
         cur.execute(
@@ -145,14 +150,7 @@ def document_exists(conn, document_id: str) -> bool:
 
 
 def insert_source_file_member(conn, row: dict[str, Any]) -> bool:
-    """Insert ZIP member provenance once.
-
-    Returns True when inserted and False when the same member_source_file_id already exists.
-    The caller remains responsible for creating both referenced source_file rows.
-    """
-
-    _, Jsonb = _load_psycopg()
-    del Jsonb
+    """Insert ZIP member provenance once."""
     sql = _insert_sql("source_file_member", SOURCE_FILE_MEMBER_COLUMNS)
     with conn.cursor() as cur:
         cur.execute(
@@ -162,23 +160,80 @@ def insert_source_file_member(conn, row: dict[str, Any]) -> bool:
         return cur.rowcount == 1
 
 
+def _storage_rows(parsed, document_pk: int):
+    order_by_node_id = {row["node_id"]: row["document_order"] for row in parsed.nodes}
+
+    node_rows: list[dict[str, Any]] = []
+    for row in parsed.nodes:
+        parent_id = row.get("parent_node_id")
+        node_rows.append(
+            {
+                "document_pk": document_pk,
+                "document_order": row["document_order"],
+                "node_id": bytes.fromhex(row["node_id"]),
+                "parent_document_order": order_by_node_id.get(parent_id) if parent_id else None,
+                "node_kind": row["node_kind"],
+                "ordinal": row["ordinal"],
+                "path_index": row["path_index"],
+                "depth": row["depth"],
+                "tag_name": row["tag_name"],
+                "namespace_uri": row["namespace_uri"],
+                "qname_original": row["qname_original"],
+                "structural_num": row["structural_num"],
+                "display_label": row["display_label"],
+                "old_num": row["old_num"],
+                "old_style": row["old_style"],
+                "attributes_jsonb": row["attributes_jsonb"],
+                "text_original": row["text_original"],
+                "text_search_normalized": row["text_search_normalized"],
+                "mixed_content_jsonb": row["mixed_content_jsonb"],
+                "source_line": row["source_line"],
+            }
+        )
+
+    attachment_rows: list[dict[str, Any]] = []
+    for row in parsed.attachments:
+        attachment_rows.append(
+            {
+                **row,
+                "document_pk": document_pk,
+                "ref_document_order": order_by_node_id[row["ref_node_id"]],
+            }
+        )
+
+    issue_rows: list[dict[str, Any]] = []
+    for row in parsed.issues:
+        node_id = row.get("node_id")
+        issue_rows.append(
+            {
+                **row,
+                "document_pk": document_pk,
+                "node_document_order": order_by_node_id.get(node_id) if node_id else None,
+            }
+        )
+
+    return node_rows, attachment_rows, issue_rows
+
+
 def insert_parsed_document(
     conn,
     parsed,
     *,
     batch_size: int = 1000,
     skip_existing: bool = True,
+    method: str = "executemany",
 ) -> bool:
-    """Persist one ParsedXmlDocument into the Phase 4 relational model.
+    """Persist one ParsedXmlDocument using compact document-local references.
 
-    The document is inserted before its nodes, then attachments and parse issues.
-    Parent-node FKs are DEFERRABLE, but the parser already emits parents before descendants.
-    Returns True when inserted. When skip_existing=True, an existing document_id is left intact
-    and False is returned.
+    The logical node_id remains the SHA-256 derived by the parser, but PostgreSQL stores it as
+    32-byte bytea and does not use it for parent/child FKs. Physical tree links use
+    ``document_pk + document_order`` so the 32M-node corpus does not repeat 64-character hashes
+    and full XML paths in every composite index.
     """
+    if method not in {"executemany", "copy"}:
+        raise ValueError("method must be 'executemany' or 'copy'")
 
     _, Jsonb = _load_psycopg()
-
     document_id = parsed.law_document["document_id"]
     if skip_existing and document_exists(conn, document_id):
         return False
@@ -190,27 +245,20 @@ def insert_parsed_document(
 
     with conn.transaction():
         with conn.cursor() as cur:
-            cur.execute(
-                document_sql,
-                _adapt_row(parsed.law_document, DOCUMENT_COLUMNS, Jsonb),
-            )
+            cur.execute(document_sql, _adapt_row(parsed.law_document, DOCUMENT_COLUMNS, Jsonb))
+            cur.execute("SELECT document_pk FROM legal_kb.law_document WHERE document_id = %s", (document_id,))
+            document_pk = int(cur.fetchone()[0])
+            node_rows, attachment_rows, issue_rows = _storage_rows(parsed, document_pk)
 
-            for batch in _batched(parsed.nodes, batch_size):
-                cur.executemany(
-                    node_sql,
-                    [_adapt_row(row, NODE_COLUMNS, Jsonb) for row in batch],
-                )
-
-            for batch in _batched(parsed.attachments, batch_size):
-                cur.executemany(
-                    attachment_sql,
-                    [_adapt_row(row, ATTACHMENT_COLUMNS, Jsonb) for row in batch],
-                )
-
-            for batch in _batched(parsed.issues, batch_size):
-                cur.executemany(
-                    issue_sql,
-                    [_adapt_row(row, ISSUE_COLUMNS, Jsonb) for row in batch],
-                )
-
+            if method == "copy":
+                _copy_rows(cur, "provision_node", NODE_COLUMNS, node_rows, Jsonb)
+                _copy_rows(cur, "attachment", ATTACHMENT_COLUMNS, attachment_rows, Jsonb)
+                _copy_rows(cur, "xml_parse_issue", ISSUE_COLUMNS, issue_rows, Jsonb)
+            else:
+                for batch in _batched(node_rows, batch_size):
+                    cur.executemany(node_sql, [_adapt_row(row, NODE_COLUMNS, Jsonb) for row in batch])
+                for batch in _batched(attachment_rows, batch_size):
+                    cur.executemany(attachment_sql, [_adapt_row(row, ATTACHMENT_COLUMNS, Jsonb) for row in batch])
+                for batch in _batched(issue_rows, batch_size):
+                    cur.executemany(issue_sql, [_adapt_row(row, ISSUE_COLUMNS, Jsonb) for row in batch])
     return True

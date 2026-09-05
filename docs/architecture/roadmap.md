@@ -55,7 +55,9 @@
 - normalized nodeからRAW XMLとSHA-256へ戻れる
 - PostgreSQL実データsmokeと全量import validationが通る
 
-状態: 進行中
+2026-09-05に10,711 XMLを全量処理し、10,705 revisionをcompact v2 PostgreSQLへ正規化、Phase 3 API履歴に存在しない6 revisionをRAW provenance付きでdeferしました。通常import failureは0、32,189,514ノードと42,571 attachment参照の全入力accountingが事前scanと一致し、全量relational validationも通過しています。
+
+状態: 完了
 
 ## Phase 5 時点検索＋検索/RAG
 
@@ -67,7 +69,7 @@
 - 未施行・廃止・過去版・境界曖昧性の扱い
 - 回答根拠に`law_id` / `law_revision_id` / `source_sha256`を保持
 
-状態: 未着手
+状態: 次工程
 
 ## Phase 6 官報・議会資料連携
 

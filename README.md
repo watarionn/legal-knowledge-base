@@ -21,35 +21,45 @@
 | 1 | 要件・アーキテクチャ設計 | 完了 |
 | 2 | 原本・全量データ検証 | 完了 |
 | 3 | 法令・履歴DB実装 | 完了 |
-| 4 | XML構造DB | **進行中** |
-| 5 | 時点検索＋検索/RAG | 未着手 |
+| 4 | XML構造DB | **完了** |
+| 5 | 時点検索＋検索/RAG | **次工程** |
 | 6 | 官報・議会資料連携 | 未着手 |
 
-Phase 4では、`law_document` / `provision_node` / `attachment` を中心に、法令XMLを**一般化した順序付きツリー**として保持します。Articleを必須階層にはせず、未知要素・未知属性、`OldNum` / `OldStyle`、mixed content、tail text、表・図も同じモデルで保存します。
+Phase 4では、`law_document` / `provision_node` / `attachment` を中心に、法令XMLを一般化した順序付きツリーとして保持します。32Mノードを実用的な容量で扱うため、外向けの決定的node identityとDB内部のcompactなdocument-local参照を分離しています。
 
-詳細は [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) を参照してください。
+詳細は [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) と [`docs/architecture/phase4-xml-structure-db.md`](docs/architecture/phase4-xml-structure-db.md) を参照してください。
 
 ## 実測済みデータ
 
-2026-09-05時点の検証では、保存済みXMLスナップショット10,711件について次を確認しています。
+2026-09-05時点の保存済みXMLスナップショット10,711件について:
 
 - XML parse: **10,711 / 10,711 成功**
-- parse failure: **0**
 - 総XMLノード数: **32,189,514**
-- タグ: **114種類**
-- 属性: **29種類**
+- タグ: **114種類** / 属性: **29種類**
 - 最大: **201,013ノード / 文書**
 - MainProvision配下のどこにもArticleがない文書: **1,219件**
 - 非空tail textを含む文書: **2,626件**
-- `OldNum`: **458文書**
-- `OldStyle`: **1,155文書**
+- `OldNum`: **458文書** / `OldStyle`: **1,155文書**
 - `src`参照: **42,571件 / 2,176文書**
 
-同じスナップショットの公式v3 XSD検証では、9,932件適合、779件非適合でした。**公式RAW XMLは、XSD非適合だけを理由に拒否・自動修正しません。** 検証状態とエラーを来歴として保持します。
+Phase 4 full relational importでは:
 
-Phase 3の全量bootstrapでは、e-Gov法令API Version 2から9,551法令・53,711履歴をPostgreSQLへ取り込み、最終取得失敗0、error-class reconciliation issue 0を確認しています。
+- input XML: **10,711**
+- Phase 3 API履歴へ照合して正規化: **10,705**
+- API履歴に存在せずRAW provenance付きdefer: **6**
+- 通常import failure: **0**
+- normalized `provision_node`: **32,116,330**
+- deferred 6 XMLのparser node: **73,184**
+- accounted nodes: **32,189,514**（事前scanと一致）
+- `attachment`: **42,571**（事前scanと一致）
+- `source_file_member`: **10,711**
+- full DB size: **17,354,128,407 bytes**
 
-詳細な集計値は [`docs/validation/`](docs/validation/) に置いています。
+全量結果は [`docs/validation/phase4-full-relational-import.md`](docs/validation/phase4-full-relational-import.md) に記録しています。
+
+同一snapshotの公式v3 XSD検証は9,932件適合、779件非適合です。公式RAW XMLはXSD非適合だけを理由に拒否・自動修正しません。なおPhase 4 relational importでは個別XSD statusを再実行・backfillしていません。
+
+Phase 3の全量bootstrapでは、e-Gov法令API Version 2から9,551法令・53,711履歴をPostgreSQLへ取り込み、最終取得失敗0を確認しています。
 
 ## ディレクトリ
 
@@ -60,26 +70,20 @@ Phase 3の全量bootstrapでは、e-Gov法令API Version 2から9,551法令・53
 │   └── validation/         # 公開可能な検証証跡・集計値
 ├── implementation/
 │   ├── phase3/             # law / law_revision、API bootstrap
-│   └── phase4/             # XML parser、構造DB、corpus scan、DB importer
+│   └── phase4/             # XML parser、構造DB、full importer
 └── .github/workflows/      # 自動テスト・PostgreSQL smoke
 ```
 
 ## クイックテスト
 
-Phase 3のオフラインテスト:
-
 ```bash
 python implementation/phase3/005_bootstrap_import_test.py -v
 python implementation/phase3/008_resumable_full_bootstrap_test.py -v
-```
-
-Phase 4 XML parserのsynthetic tests:
-
-```bash
 python implementation/phase4/006_xml_parser_test.py -v
+python implementation/phase4/012_full_relational_import_test.py -v
 ```
 
-PostgreSQLを使う手順は各Phaseの実装ファイルとCIを参照してください。
+PostgreSQL COPY smokeは `.github/workflows/postgres-smoke.yml` と `implementation/phase4/013_copy_import_smoke.py` を参照してください。
 
 ## データの扱い
 

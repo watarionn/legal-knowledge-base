@@ -50,8 +50,8 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase3/001_law_history_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase4/001_xml_structure_schema.sql
 
-      - name: Run real XML PostgreSQL smoke
+      - name: Run real XML PostgreSQL COPY smoke
         run: |
-          python implementation/phase4/010_postgres_import_smoke.py \
-            --result "$RUNNER_TEMP/phase4-postgres-smoke.json"
-          cat "$RUNNER_TEMP/phase4-postgres-smoke.json"
+          python implementation/phase4/013_copy_import_smoke.py \
+            --result "$RUNNER_TEMP/phase4-postgres-copy-smoke.json"
+          cat "$RUNNER_TEMP/phase4-postgres-copy-smoke.json"

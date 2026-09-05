@@ -58,16 +58,18 @@ class XmlParserSyntheticTests(unittest.TestCase):
         )
         sentence = self.node_by_tag(result, "Sentence")
         ruby = self.node_by_tag(result, "Ruby")
+        root = self.node_by_tag(result, "Law")
 
+        self.assertIsNone(root["text_original"])
         self.assertEqual(sentence["text_original"], "前中後")
         self.assertEqual(
             sentence["mixed_content_jsonb"],
             [
                 {"kind": "text", "value": "前"},
-                {"kind": "child", "node_id": ruby["node_id"]},
+                {"kind": "child", "document_order": ruby["document_order"]},
                 {
                     "kind": "tail",
-                    "after_node_id": ruby["node_id"],
+                    "after_document_order": ruby["document_order"],
                     "value": "後",
                 },
             ],
@@ -245,6 +247,7 @@ class XmlParserSyntheticTests(unittest.TestCase):
             len({node["xml_path"] for node in result.nodes}),
             len(result.nodes),
         )
+        self.assertTrue(all(node["path_index"] >= 1 for node in result.nodes))
 
         ordinals_by_parent = {}
         for node in result.nodes:

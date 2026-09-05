@@ -1,0 +1,136 @@
+{
+  "schema_version": "1.0",
+  "evidence_kind": "phase4-full-relational-import",
+  "executed_on": "2026-09-05",
+  "status": "passed-with-expected-deferred-revisions",
+  "postgresql": {
+    "version": "16.15",
+    "full_version": "PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu",
+    "database_size_bytes_after_import": 17354128407,
+    "compact_storage_version": "phase4-compact-v2"
+  },
+  "input": {
+    "snapshot_xml_count": 10711,
+    "manifest_sha256": "6a9b2021be17208a2b6e4de8adc2d951994099355c0281f336c331e7b464fa46",
+    "archive_count": 4,
+    "archive_size_sha256_member_count_preflight": "passed",
+    "raw_xml_sha256_rows_rechecked": 10711,
+    "raw_xml_sha256_mismatch_count": 0
+  },
+  "phase3_prerequisite": {
+    "law_count": 9551,
+    "law_revision_count": 53711,
+    "mode": "identity-only reconstruction from the approved Phase 3 full-bootstrap evidence for this isolated Phase 4 execution",
+    "note": "Phase 4 never seeds law_revision from XML. Only revision identities are required for this relational binding gate."
+  },
+  "import": {
+    "runner": "011_full_relational_import.py",
+    "runner_version": "phase4-full-relational-import-0.2",
+    "parser_version": "phase4-xml-parser-0.1",
+    "method": "PostgreSQL COPY FROM STDIN",
+    "attempted_input_count": 10711,
+    "reconciled_revision_count": 10705,
+    "normalized_document_count": 10705,
+    "deferred_unreconciled_revision_count": 6,
+    "failed_document_count": 0,
+    "normalized_node_count": 32116330,
+    "attachment_count": 42571,
+    "source_file_member_count": 10711,
+    "xml_parse_issue_count": 0,
+    "resume_run_elapsed_seconds": 887.986
+  },
+  "deferred_unreconciled": {
+    "issue_code": "LAW_REVISION_NOT_RECONCILED",
+    "revision_ids": [
+      "211AC0000000070_20270518_505AC0000000031",
+      "314AC0000000073_20270518_505AC0000000031",
+      "342AC0000000035_21171231_507AC0000000013",
+      "342AC0000000035_21171231_507AC0000000032",
+      "342AC0000000081_20270518_505AC0000000031",
+      "411AC0000000097_20270620_506AC0000000060"
+    ],
+    "raw_source_rows_preserved": 6,
+    "raw_backlink_failure_count": 0,
+    "parser_accounted_node_count": 73184,
+    "parser_accounted_attachment_count": 0,
+    "law_revision_rows_created_from_xml": 0
+  },
+  "corpus_reconciliation": {
+    "preimport_full_scan_node_count": 32189514,
+    "normalized_node_count": 32116330,
+    "deferred_node_count": 73184,
+    "normalized_plus_deferred_node_count": 32189514,
+    "node_total_matches_preimport_scan": true,
+    "preimport_attachment_reference_count": 42571,
+    "normalized_attachment_count": 42571,
+    "deferred_attachment_count": 0,
+    "attachment_total_matches_preimport_scan": true,
+    "direct_articleless_main_provision_documents_normalized": 4880,
+    "direct_articleless_main_provision_documents_deferred": 6,
+    "direct_articleless_main_provision_documents_accounted": 4886,
+    "preimport_direct_articleless_main_provision_documents": 4886,
+    "nonblank_tail_documents_normalized": 2621,
+    "nonblank_tail_documents_deferred": 5,
+    "nonblank_tail_documents_accounted": 2626,
+    "preimport_nonblank_tail_documents": 2626,
+    "oldnum_documents_normalized": 456,
+    "oldnum_documents_deferred": 2,
+    "oldnum_documents_accounted": 458,
+    "preimport_oldnum_documents": 458,
+    "oldstyle_documents_normalized": 1153,
+    "oldstyle_documents_deferred": 2,
+    "oldstyle_documents_accounted": 1155,
+    "preimport_oldstyle_documents": 1155,
+    "column_documents_normalized": 5815,
+    "column_documents_deferred": 6,
+    "column_documents_accounted": 5821,
+    "preimport_column_documents": 5821,
+    "tablecolumn_documents_normalized": 3925,
+    "tablecolumn_documents_deferred": 6,
+    "tablecolumn_documents_accounted": 3931,
+    "preimport_tablecolumn_documents": 3931
+  },
+  "validation": {
+    "zero_issue_counts": {
+      "raw_document_backlink": 0,
+      "duplicate_document_source": 0,
+      "root_count": 0,
+      "sibling_ordinal_contiguity": 0,
+      "document_order_contiguity": 0,
+      "law_document_node_count_mismatch": 0,
+      "law_document_attachment_count_mismatch": 0,
+      "element_missing_tag_name": 0,
+      "oldnum_oldstyle_projection_mismatch": 0,
+      "attachment_revision_mismatch": 0,
+      "source_file_member_backlink": 0,
+      "source_file_member_duplicate": 0,
+      "phase4_search_normalized_nonnull": 0,
+      "deferred_raw_backlink": 0
+    },
+    "all_phase4_table_constraints_validated": true,
+    "mixed_child_segment_count": 32105625,
+    "expected_non_root_node_count": 32105625,
+    "mixed_child_segment_count_matches_non_root_nodes": true,
+    "real_fixture_node_id_and_xml_path_roundtrip": true,
+    "real_fixture_count": 4,
+    "fresh_schema_copy_smoke": "passed"
+  },
+  "source_observations": {
+    "attachment_source_src_empty_count": 3770,
+    "attachment_source_src_empty_document_count": 199,
+    "attachment_source_src_nonempty_count": 38801,
+    "empty_src_is_preserved_raw_observation": true
+  },
+  "xsd": {
+    "relational_import_schema_validation_status": {
+      "not-checked": 10705
+    },
+    "phase2_snapshot_baseline": {
+      "valid": 9932,
+      "invalid": 779
+    },
+    "baseline_rerun_in_this_import": false,
+    "per_document_status_backfilled": false,
+    "note": "The independently pinned Phase 2 XSD result remains authoritative aggregate evidence. Per-document XSD status backfill is a separate follow-up."
+  }
+}

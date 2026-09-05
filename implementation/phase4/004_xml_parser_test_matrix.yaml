@@ -164,9 +164,24 @@ round_trip_definition:
   - do not silently repair XSD-invalid official XML
   - do not trim or Unicode-normalize text for round-trip comparison
 
+full_relational_import_2026_09_05:
+  attempted_inputs: 10711
+  reconciled_normalized_documents: 10705
+  deferred_unreconciled_raw_revisions: 6
+  failed_documents: 0
+  normalized_nodes: 32116330
+  deferred_nodes: 73184
+  accounted_corpus_nodes: 32189514
+  attachments: 42571
+  source_file_members: 10711
+  xml_parse_issues: 0
+  copy_method: PostgreSQL COPY FROM STDIN
+  compact_storage: document_pk + document_order + parent_document_order + path_index
+  note: per-document XSD status remains not-checked in this relational run; Phase 2 aggregate XSD evidence remains 9932 valid / 779 invalid
+
 phase4_design_gate:
   pass_when:
   - schema and ingestion contract cover every fixture above
   - validation queries exist for relational integrity and corpus inventories
   - implementation can proceed without assuming Article is universal
-  current_status: full-corpus-scan-and-postgresql-real-xml-smoke-passed
+  current_status: full-relational-import-passed-with-6-unreconciled-raw-revisions-deferred
