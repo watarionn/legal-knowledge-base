@@ -1,0 +1,95 @@
+name: Phase 5 Full Search Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      archive_dir:
+        description: Local directory containing all_xml_01.zip through all_xml_04.zip
+        required: true
+        type: string
+      work_dir:
+        description: Local work/output directory on the self-hosted runner
+        required: true
+        type: string
+      workers:
+        description: Phase 3 worker count
+        required: true
+        default: "2"
+        type: string
+      benchmark_repeats:
+        description: Number of repetitions per benchmark query
+        required: true
+        default: "5"
+        type: string
+      history_request_interval:
+        description: Seconds between e-Gov history requests
+        required: true
+        default: "0.6"
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  LEGAL_KB_DSN: ${{ secrets.LEGAL_KB_DSN }}
+
+jobs:
+  full-search-benchmark:
+    runs-on: [self-hosted, Windows, X64, legal-kb-full-benchmark]
+    timeout-minutes: 1440
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Verify runner prerequisites
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          if (-not $env:LEGAL_KB_DSN) {
+            throw "Repository secret LEGAL_KB_DSN is not configured."
+          }
+          python --version
+          python -c "import sys; print(sys.executable)"
+          python -m pip install --disable-pip-version-check --no-input "psycopg[binary]>=3,<4"
+
+      - name: Run hardened full-search pipeline
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & implementation/phase5/018_run_full_search.ps1 `
+            -ArchiveDir '${{ inputs.archive_dir }}' `
+            -WorkDir '${{ inputs.work_dir }}' `
+            -Workers ([int]'${{ inputs.workers }}') `
+            -BenchmarkRepeats ([int]'${{ inputs.benchmark_repeats }}') `
+            -HistoryRequestInterval ([double]'${{ inputs.history_request_interval }}')
+
+      - name: Show compact reports
+        if: always()
+        shell: pwsh
+        run: |
+          $work = '${{ inputs.work_dir }}'
+          foreach ($name in @(
+            'phase5-full-search-host-preflight.json',
+            'phase5-full-search-benchmark.json',
+            'phase5-full-search-pipeline.json'
+          )) {
+            $path = Join-Path $work $name
+            if (Test-Path $path) {
+              Write-Host "===== $name ====="
+              Get-Content -Raw -Encoding UTF8 $path
+            }
+          }
+
+      - name: Upload benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: phase5-full-search-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ inputs.work_dir }}/phase5-full-search-host-preflight.json
+            ${{ inputs.work_dir }}/phase5-full-search-benchmark.json
+            ${{ inputs.work_dir }}/phase5-full-search-pipeline.json
+            ${{ inputs.work_dir }}/phase3-full.json
+            ${{ inputs.work_dir }}/phase4-full-relational-import.json
