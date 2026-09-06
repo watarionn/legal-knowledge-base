@@ -51,6 +51,28 @@ jobs:
             implementation/phase5/017_full_search_execution_preflight.py \
             implementation/phase5/019_full_search_execution_preflight_test.py
 
+      - name: Parse PowerShell launchers
+        shell: pwsh
+        run: |
+          $errors = @()
+          foreach ($path in @(
+            "implementation/phase5/018_run_full_search.ps1",
+            "implementation/phase5/020_setup_self_hosted_runner.ps1",
+            "implementation/phase5/021_bootstrap_and_dispatch_full_search.ps1"
+          )) {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            if ($parseErrors) {
+              $errors += $parseErrors
+            }
+          }
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host "PowerShell parser checks passed"
+
       - name: Run Phase 3 tests
         run: |
           python implementation/phase3/005_bootstrap_import_test.py -v
@@ -84,7 +106,7 @@ jobs:
               "github-fine-grained-token": "github" + "_pat_",
               "authorization-header": "Author" + "ization:",
           }
-          suffixes = {".md", ".yaml", ".yml", ".json", ".py", ".sql", ".txt", ".xml"}
+          suffixes = {".md", ".yaml", ".yml", ".json", ".py", ".sql", ".txt", ".xml", ".ps1"}
           hits = []
           for path in Path(".").rglob("*"):
               if not path.is_file() or ".git" in path.parts or path.suffix.lower() not in suffixes:
