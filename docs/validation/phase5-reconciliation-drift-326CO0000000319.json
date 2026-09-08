@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0",
+  "recorded_on": "2026-09-08",
+  "law_id": "326CO0000000319",
+  "law_title": "出入国管理及び難民認定法",
+  "target_revision_id": "326CO0000000319_20270331_508AC0000000032",
+  "classification": "official-source-drift",
+  "snapshot": {
+    "archive": "all_xml_04.zip",
+    "member": "326CO0000000319_20270331_508AC0000000032/326CO0000000319_20270331_508AC0000000032.xml",
+    "bytes": 1162781,
+    "sha256": "cadb33731ba2e30bd5b10d3a63b803af8d688eeecbba5b89237e68129a257014",
+    "well_formed": true
+  },
+  "phase3_api_observation": {
+    "observed_on": "2026-09-07",
+    "endpoint": "/law_revisions/326CO0000000319",
+    "response_bytes": 38067,
+    "response_sha256": "6e82f8eaa661575dc85c11f7cee871ce180b549ebb3ed8a8b2266a20c5cb5824",
+    "revision_count": 42,
+    "target_present": false
+  },
+  "live_recheck": {
+    "observed_on": "2026-09-08",
+    "law_revisions_response_sha256": "6e82f8eaa661575dc85c11f7cee871ce180b549ebb3ed8a8b2266a20c5cb5824",
+    "target_present": false,
+    "target_law_data_http_status": 404,
+    "target_law_data_error_code": "404004"
+  },
+  "current_same_amendment_revisions": [
+    {"law_revision_id": "326CO0000000319_20290331_508AC0000000032", "updated": "2026-09-07T09:33:53+09:00"},
+    {"law_revision_id": "326CO0000000319_20281031_508AC0000000032", "updated": "2026-09-07T09:32:12+09:00"},
+    {"law_revision_id": "326CO0000000319_20261001_508AC0000000032", "updated": "2026-09-07T09:24:58+09:00"},
+    {"law_revision_id": "326CO0000000319_20260605_508AC0000000032", "updated": "2026-08-24T17:51:22+09:00"}
+  ],
+  "prior_phase4_observation": {
+    "observed_on": "2026-09-05",
+    "reconciled_documents": 10705,
+    "deferred_documents": 6,
+    "target_was_in_deferred_list": false
+  },
+  "benchmark_observation": {
+    "observed_on": "2026-09-07",
+    "reconciled_documents": 10704,
+    "deferred_documents": 7,
+    "target_was_in_deferred_list": true
+  },
+  "handling": {
+    "fabricate_law_revision_from_xml": false,
+    "preserve_snapshot_provenance": true,
+    "preserve_later_api_non_observation": true,
+    "overwrite_prior_observation": false
+  },
+  "interpretation": "The immutable XML snapshot and later official API observations diverged. Preserve both observations and treat the additional defer as official source drift, not an importer failure."
+}
