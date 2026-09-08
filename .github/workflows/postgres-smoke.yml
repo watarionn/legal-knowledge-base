@@ -53,6 +53,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase5/006_lexical_structural_search_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase5/012_search_literal_hardening.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase5/022_retrieval_chunk_schema.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase5/027_embedding_schema.sql
 
       - name: Run real XML PostgreSQL COPY smoke
         run: |
@@ -71,3 +72,6 @@ jobs:
 
       - name: Run Phase 5.3 retrieval chunk smoke
         run: python implementation/phase5/026_retrieval_chunk_smoke.py
+
+      - name: Run Phase 5.3 embedding adapter smoke
+        run: python implementation/phase5/031_embedding_adapter_smoke.py

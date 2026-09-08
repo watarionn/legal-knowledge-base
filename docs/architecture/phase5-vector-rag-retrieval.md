@@ -66,4 +66,30 @@ character limitはtokenizer非依存のsoft limitとして1,200文字を既定�
 - PostgreSQL provenance roundtrip: implemented
 - embedding model非依存: implemented
 
-embedding生成・vector backend選定・hybrid retrievalは5.3b以降で実装する。
+5.3aは完了。embedding生成・vector backend選定・hybrid retrievalは5.3b以降で実装する。
+
+
+## 5.3b Embedding Adapter
+
+Embedding Adapterはprovider-neutralなinterfaceとし、provider / model / model version / dimensions / input policyを`embedding_profile`へimmutable metadataとして保存する。profile identityはこれらの生成条件からSHA-256で決定する。
+
+既定input policyは`context-prefix-plus-retrieval-text-v1`とする。`context_prefix`があれば`context_prefix + "\n\n" + retrieval_text`、なければ`retrieval_text`そのものを入力とし、そのexact UTF-8 bytesを`embedding_input_sha256`で固定する。入力は検索用派生値であり引用対象ではない。
+
+provider出力はfiniteなfloat32へ正規化し、dimensions完全一致を必須にする。vectorはIEEE-754 binary32 big-endian列のSHA-256を`embedding_values_sha256`として固定する。PostgreSQLでは5.3cでvector backendを選ぶまでtransport-neutralな`real[]`として保持する。
+
+同じ`embedding_profile_id + chunk_id`へ異なるinput hashまたはvector hashを返した場合は上書きせずdriftとして失敗させる。model version変更は別profileを作り、過去embeddingを残したまま共存させる。認証情報はprofile、DB、public artifactのいずれにも保存しない。
+
+CIでは`deterministic-test / sha256-float32` providerだけを使用する。このproviderは品質評価やproduction retrievalには使用せず、adapter contract、hash、dimension、drift detection、provenance roundtripの検証専用とする。
+
+### 5.3b exit gate
+
+- provider/model/version/dimensions/input policyのimmutable profile: implemented
+- exact embedding input SHA: implemented
+- canonical float32 vector SHA: implemented
+- dimension / nonfinite rejection: implemented
+- same-profile silent drift rejection: implemented
+- model-version coexistence: implemented
+- embedding → chunk → revision → RAW SHA provenance roundtrip: implemented
+- credentials persistence: prohibited
+
+実embedding provider接続とvector backend / ANN indexの選定は、provider contractを変えず次工程へ接続する。

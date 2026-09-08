@@ -1,0 +1,73 @@
+schema_version: "1.0"
+phase: "5.3b"
+adapter_version: "phase5-embedding-adapter-1.0"
+
+purpose:
+  - generate embeddings from Phase 5.3a retrieval chunks through a provider-neutral interface
+  - persist provider/model/version/dimensions and exact input/vector hashes
+  - keep embeddings disposable and separate from citation truth
+
+non_goals:
+  - selecting a vector database or ANN index
+  - ranking lexical versus vector hits
+  - choosing a legal revision
+  - using embedding text as authoritative quotation text
+
+profile_identity:
+  algorithm: sha256
+  fields:
+    - adapter_version
+    - provider
+    - model
+    - model_version
+    - vector_dimensions
+    - input_policy
+embedding_input:
+  default_policy: "context-prefix-plus-retrieval-text-v1"
+  rules:
+    - if context_prefix is nonblank, input is context_prefix + two LF characters + retrieval_text
+    - otherwise input is retrieval_text
+    - no lowercasing, stemming, translation, or semantic rewriting
+  hash: sha256 of exact UTF-8 bytes
+  citation_eligible: false
+
+vector_normalization:
+  storage_scalar: float32
+  finite_values_only: true
+  exact_dimensions_required: true
+  canonical_hash:
+    scalar_encoding: IEEE-754 binary32 big-endian
+    vector_order: provider output order
+    algorithm: sha256
+
+provider_contract:
+  required_profile_fields:
+    - provider
+    - model
+    - model_version
+    - vector_dimensions
+  secrets:
+    persist: false
+    log: false
+    rule: credentials remain outside profile metadata and result artifacts
+storage_rules:
+  - embedding_profile rows are immutable descriptions of generation conditions
+  - chunk_embedding primary key is embedding_profile_id plus chunk_id
+  - different models or model versions coexist instead of overwriting one another
+  - vector_dimensions is duplicated on chunk_embedding and database-checked against the profile
+  - embedding values are transport-neutral PostgreSQL real arrays until 5.3c selects a vector backend
+
+safety_rules:
+  - never allow an embedding provider to select or replace a law revision
+  - never fallback to another chunk when source content is missing
+  - never treat vector similarity as legal confidence
+  - never store provider credentials in database rows or public artifacts
+  - never overwrite a prior profile to represent a changed model version
+  - never silently accept nonfinite values or a dimension mismatch
+
+test_provider:
+  provider: "deterministic-test"
+  model: "sha256-float32"
+  model_version: "1"
+  production_eligible: false
+  purpose: deterministic CI and PostgreSQL smoke only
