@@ -49,7 +49,10 @@ jobs:
             implementation/phase5/015_full_search_pipeline_hardened.py \
             implementation/phase5/016_full_search_benchmark_v2_test.py \
             implementation/phase5/017_full_search_execution_preflight.py \
-            implementation/phase5/019_full_search_execution_preflight_test.py
+            implementation/phase5/019_full_search_execution_preflight_test.py \
+            implementation/phase5/024_retrieval_chunk_builder.py \
+            implementation/phase5/025_retrieval_chunk_builder_test.py \
+            implementation/phase5/026_retrieval_chunk_smoke.py
 
       - name: Parse PowerShell launchers
         shell: pwsh
@@ -93,6 +96,9 @@ jobs:
           python implementation/phase5/011_full_search_pipeline_test.py -v
           python implementation/phase5/016_full_search_benchmark_v2_test.py -v
           python implementation/phase5/019_full_search_execution_preflight_test.py -v
+
+      - name: Run Phase 5 retrieval chunk tests
+        run: python implementation/phase5/025_retrieval_chunk_builder_test.py -v
 
       - name: Check public-safety boundaries
         shell: python
