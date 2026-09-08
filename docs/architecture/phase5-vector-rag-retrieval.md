@@ -93,3 +93,29 @@ CIでは`deterministic-test / sha256-float32` providerだけを使用する。�
 - credentials persistence: prohibited
 
 実embedding provider接続とvector backend / ANN indexの選定は、provider contractを変えず次工程へ接続する。
+
+
+## 5.3c Hybrid Retrieval / Context Assembly
+
+5.3cは検索チャネルより先にstrict temporal resolutionを実行し、`resolved + content_status=available`の単一revision/documentだけを検索scopeとする。`ambiguous` / `unresolved` / `not-found` / content missingではlexical・structural・vectorの全チャネルを実行しない。
+
+同一documentに異なるchunk設定が共存できるため、hybrid retrievalは`chunking_config_sha256`を必須入力とし、異なるchunk setを同一rankingへ混在させない。vectorを使う場合は`embedding_profile_id`とquery vectorを必ず対で指定する。
+
+候補はlexical / structural / vectorごとに独立順位を保持し、異種raw scoreを直接比較せずweighted Reciprocal Rank Fusionで統合する。tie breakはchunk identityで決定的にする。context assemblyは文字数budgetを持つが、引用境界を推測してchunk内部を切断しない。
+
+初期`exact-real-array-v1` vector backendは`real[]`をcosine exact scanするcorrectness validation backendであり、全量production ANN用途ではない。ANN backendは同じscope/provenance contractを満たす差し替え実装として追加する。
+
+各context itemは`chunk_id`、revision、document、source XML SHA、source node order、deterministic XML pathを保持する。context本文とranking scoreは引用正本ではなく、5.3dで最終引用を確定するときはPhase 4 normalized infoset / immutable RAWへ戻る。
+
+### 5.3c exit gate
+
+- strict temporal gate before all retrieval channels: implemented
+- chunking config isolation: implemented
+- lexical / structural / vector common chunk envelope: implemented
+- deterministic weighted RRF: implemented
+- context budget without mid-chunk truncation: implemented
+- exact vector correctness backend: implemented
+- Phase 4 / RAW provenance roundtrip: implemented
+- ANN backend: deferred behind replaceable interface
+
+5.3c完了後は5.3d RAG Answer Contractへ進み、回答文と根拠・最終引用を分離する。
