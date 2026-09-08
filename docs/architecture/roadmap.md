@@ -95,9 +95,11 @@ revision-awareな検索unitを構築し、検索hitから`law_revision_id`、XML
 
 embedding/chunkを交換可能な派生層として追加し、RAG回答の根拠をPhase 3/4へbacklinkします。
 
-最初の5.3aでは、embeddingモデルやvector backendを固定する前にmodel-independentな`retrieval_chunk`を追加します。構造anchorを跨がず、source node境界だけでsoft character limit分割し、unknown structureはdirect parentへfallbackします。chunk本文は引用正本にせず、revision、source XML SHA、source node list、deterministic XML pathへ戻れることを必須とします。
+5.3aでは、embeddingモデルやvector backendを固定する前にmodel-independentな`retrieval_chunk`を追加しました。構造anchorを跨がず、source node境界だけでsoft character limit分割し、unknown structureはdirect parentへfallbackします。chunk本文は引用正本にせず、revision、source XML SHA、source node list、deterministic XML pathへ戻れることを必須としています。
 
-状態: **進行中（5.3a Retrieval Chunk Foundation）**
+5.3bではprovider-neutralなEmbedding Adapterを追加します。provider / model / model version / dimensions / input policyをimmutable profileとして固定し、embedding入力SHAとfloat32 vector SHAを保存します。同一profileで異なるvectorが返ればsilent driftとして拒否し、model version違いは別profileとして共存させます。vector backend選定は5.3cへ持ち越します。
+
+状態: **進行中（5.3a完了、5.3b Embedding Adapter）**
 
 ## Phase 6 官報・議会資料連携
 
