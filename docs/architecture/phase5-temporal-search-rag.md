@@ -126,4 +126,4 @@ Phase 3には53,711 revisionがありますが、現在のPhase 4 snapshotは10,
 - 本文missing時にfallbackしない: **passed**
 - synthetic testsとPostgreSQL smokeが通る: **passed**
 
-**Phase 5.1の技術ゲートは完了です。次工程はPhase 5.2 Lexical / Structural Searchです。**
+**Phase 5.1の技術ゲートは完了済みです。Phase 5.2も全量benchmarkまで完了し、現在はPhase 5.3 Vector / RAG Retrievalへ進んでいます。** 詳細は [`phase5-vector-rag-retrieval.md`](phase5-vector-rag-retrieval.md) を参照してください。

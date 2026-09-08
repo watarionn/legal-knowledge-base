@@ -87,13 +87,17 @@ revision-awareな検索unitを構築し、検索hitから`law_revision_id`、XML
 
 検索indexは引用の正本ではありません。検索hitは必ずPhase 3/4へbacklinkし、派生層を削除・再構築しても原文・履歴・provenanceを失わない構成とします。
 
-状態: **進行中**
+2026-09-07に全量benchmarkを完走し、10,704 documentsから14,679,077 search unitsを構築しました。revision-scoped lexical searchは中央値約25.8〜38.7ms、structural searchは中央値4.544msでした。一方、global lexical searchは中央値約4.9〜27.1秒で今後の改善対象です。search layerの追加storageは約12.8 GBでした。2026-09-05観測との差1 documentはofficial source driftとして別証跡化しています。
+
+状態: **完了**
 
 ### Phase 5.3 Vector / RAG Retrieval
 
 embedding/chunkを交換可能な派生層として追加し、RAG回答の根拠をPhase 3/4へbacklinkします。
 
-状態: 未着手
+最初の5.3aでは、embeddingモデルやvector backendを固定する前にmodel-independentな`retrieval_chunk`を追加します。構造anchorを跨がず、source node境界だけでsoft character limit分割し、unknown structureはdirect parentへfallbackします。chunk本文は引用正本にせず、revision、source XML SHA、source node list、deterministic XML pathへ戻れることを必須とします。
+
+状態: **進行中（5.3a Retrieval Chunk Foundation）**
 
 ## Phase 6 官報・議会資料連携
 
