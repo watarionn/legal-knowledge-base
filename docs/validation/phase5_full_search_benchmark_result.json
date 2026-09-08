@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0",
+  "recorded_on": "2026-09-08",
+  "purpose": "Public-safe evidence for the 2026-09-07 Phase 5.2 full-search benchmark.",
+  "execution": {
+    "pipeline_runner": "015_full_search_pipeline_hardened.py",
+    "pipeline_runner_version": "phase5-full-search-pipeline-0.2",
+    "benchmark_runner": "013_full_search_benchmark_v2.py",
+    "benchmark_runner_version": "phase5-full-search-benchmark-0.2",
+    "postgresql_version": "18.6",
+    "environment": "Ubuntu 26.04 on WSL2",
+    "phase3_workers": 2,
+    "history_request_interval_seconds": 0.6,
+    "benchmark_repeats": 5,
+    "input_archive_count": 4,
+    "input_archive_bytes": 330651407,
+    "database_url_recorded": false,
+    "pipeline_started_at": "2026-09-07T06:50:44.171958+00:00",
+    "pipeline_completed_at": "2026-09-07T08:26:37.488495+00:00",
+    "pipeline_status": "succeeded"
+  },
+  "phase3": {
+    "result_status": "succeeded",
+    "requested_law_count": 9551,
+    "resume_skipped_law_count": 1296,
+    "pending_law_count_at_start": 8255,
+    "revision_observations_processed_this_run": 44453,
+    "law_revision_count": 53711,
+    "failed_law_count": 0,
+    "warning_issue_count": 47569,
+    "error_issue_count": 0,
+    "same_day_group_count": 3063,
+    "unresolved_amendment_law_id_count": 16975
+  },
+  "phase4": {
+    "status": "partial",
+    "expected_document_count": 10711,
+    "attempted_document_count": 10711,
+    "inserted_document_count": 10704,
+    "deferred_unreconciled_document_count": 7,
+    "failed_document_count": 0,
+    "inserted_node_count": 32105947,
+    "inserted_attachment_count": 42571,
+    "source_file_member_count": 10711,
+    "xml_parse_issue_count": 0,
+    "elapsed_seconds": 945.861,
+    "unreconciled_revision_ids": [
+      "211AC0000000070_20270518_505AC0000000031",
+      "314AC0000000073_20270518_505AC0000000031",
+      "326CO0000000319_20270331_508AC0000000032",
+      "342AC0000000035_21171231_507AC0000000013",
+      "342AC0000000035_21171231_507AC0000000032",
+      "342AC0000000081_20270518_505AC0000000031",
+      "411AC0000000097_20270620_506AC0000000060"
+    ]
+  },
+  "search_index": {
+    "eligible_nodes": 14679077,
+    "search_units": 14679077,
+    "indexed_documents": 10704,
+    "indexed_revisions": 10704,
+    "rebuild_seconds": 1223.94,
+    "analyze_seconds": 2.383,
+    "storage_initial_database_bytes": 20841289407,
+    "storage_after_database_bytes": 33648203455,
+    "database_build_delta_bytes": 12806914048,
+    "search_unit_total_bytes": 12806963200,
+    "search_unit_heap_bytes": 6581829632,
+    "search_unit_index_bytes": 6188425216
+  },
+  "latency_ms": {
+    "global_lexical": {
+      "国民": {"median": 4865.278, "p95": 5100.305},
+      "法律": {"median": 15222.491, "p95": 15487.137},
+      "政令": {"median": 24324.878, "p95": 26183.696},
+      "附則": {"median": 27090.662, "p95": 27965.709}
+    },
+    "revision_scoped_lexical": {
+      "国民": {"median": 25.78, "p95": 143.74},
+      "法律": {"median": 36.116, "p95": 65.47},
+      "政令": {"median": 38.737, "p95": 124.51},
+      "附則": {"median": 34.327, "p95": 164.863}
+    },
+    "structural_article": {
+      "returned_rows": 100,
+      "median": 4.544,
+      "p95": 105.522
+    }
+  },
+  "source_drift": {
+    "classification": "official-source-drift",
+    "target_revision_id": "326CO0000000319_20270331_508AC0000000032",
+    "prior_phase4_observation": {"observed_on": "2026-09-05", "reconciled_documents": 10705, "deferred_documents": 6},
+    "benchmark_observation": {"observed_on": "2026-09-07", "reconciled_documents": 10704, "deferred_documents": 7},
+    "details": "docs/validation/phase5-reconciliation-drift-326CO0000000319.json"
+  },
+  "interpretation": {
+    "phase5_full_build_succeeded": true,
+    "revision_scoped_search_is_fast": true,
+    "global_lexical_search_needs_optimization": true,
+    "search_index_is_rebuildable_derivative_data": true,
+    "search_ranking_is_not_legal_confidence": true,
+    "temporal_resolution_must_precede_legal_answer_search": true
+  }
+}
