@@ -55,7 +55,10 @@ jobs:
             implementation/phase5/026_retrieval_chunk_smoke.py \
             implementation/phase5/029_embedding_adapter.py \
             implementation/phase5/030_embedding_adapter_test.py \
-            implementation/phase5/031_embedding_adapter_smoke.py
+            implementation/phase5/031_embedding_adapter_smoke.py \
+            implementation/phase5/034_hybrid_retrieval.py \
+            implementation/phase5/035_hybrid_retrieval_test.py \
+            implementation/phase5/036_hybrid_retrieval_smoke.py
 
       - name: Parse PowerShell launchers
         shell: pwsh
@@ -105,6 +108,9 @@ jobs:
 
       - name: Run Phase 5 embedding adapter tests
         run: python implementation/phase5/030_embedding_adapter_test.py -v
+
+      - name: Run Phase 5 hybrid retrieval tests
+        run: python implementation/phase5/035_hybrid_retrieval_test.py -v
 
       - name: Check public-safety boundaries
         shell: python

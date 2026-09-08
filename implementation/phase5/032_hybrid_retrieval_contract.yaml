@@ -1,0 +1,89 @@
+schema_version: "1.0"
+phase: "5.3c"
+retrieval_version: "phase5-hybrid-retrieval-1.0"
+
+purpose:
+  - resolve law revision strictly before any retrieval channel runs
+  - fuse lexical, structural, and vector chunk hits without losing provenance
+  - assemble bounded derived context without turning chunk text into citation truth
+
+strict_temporal_gate:
+  required_resolution_status: resolved
+  required_content_status: available
+  rule: no retrieval channel may run for ambiguous, unresolved, not-found, or missing content
+  selected_revision_only: true
+  selected_document_only: true
+  chunking_config_sha256_required: true
+
+channels:
+  lexical:
+    source: retrieval_chunk.retrieval_text
+    match: literal substring with pg_trgm similarity ranking
+    citation_eligible: false
+  structural:
+    source: retrieval_chunk anchor metadata
+    optional: true
+    citation_eligible: false
+  vector:
+    profile_required: true
+    query_dimensions_must_match_profile: true
+    backend_interface: VectorBackend
+    validation_backend: postgres-real-array-exact
+    production_ann_backend_selected: false
+fusion:
+  method: weighted-rrf-v1
+  rrf_k: 60
+  default_weights:
+    lexical: 1.0
+    structural: 0.75
+    vector: 1.0
+  tie_breaker: chunk_id
+  score_role: ranking_only
+
+context_assembly:
+  unit: retrieval_chunk
+  default_max_contexts: 8
+  default_character_budget: 6000
+  split_chunks: false
+  first_chunk_may_exceed_budget: true
+  preserve_retrieval_text_exactly: true
+  citation_ready: false
+  provenance_required:
+    - law_id
+    - law_revision_id
+    - document_pk
+    - chunk_id
+    - source_xml_sha256
+    - retrieval_text_sha256
+    - source_document_orders
+    - anchor_xml_path
+    - start_xml_path
+    - end_xml_path
+
+reproducibility:
+  config_hash: sha256
+  config_fields:
+    - retrieval_version
+    - rrf_k
+    - channel_weights
+    - per_channel_limit
+    - max_contexts
+    - character_budget
+    - embedding_profile_id
+    - chunking_config_sha256
+safety_rules:
+  - never search another revision when temporal resolution is blocked
+  - never search another document when selected content is unavailable
+  - never let vector score resolve temporal ambiguity
+  - never mix embeddings from different embedding_profile_id values
+  - never silently change query vector dimensions
+  - never truncate chunk text to satisfy context budget
+  - never treat RRF score as legal confidence
+  - never treat retrieval_text as authoritative quotation text
+  - never omit Phase 4 and RAW provenance from assembled context
+
+backend_transition:
+  rule: scalable ANN backends must implement the same revision-scoped VectorBackend contract
+  exact_backend_role: correctness validation and smoke tests
+  ann_backend_role: scalable candidate generation only
+  citation_truth_unchanged: true

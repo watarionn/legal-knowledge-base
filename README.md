@@ -29,7 +29,7 @@ Phase 5.1では、`law_id + as_of_date`からrevision候補を解決するstrict
 
 2026-09-05のPostgreSQL 16.15 smokeでは、最初のrevision以前の`not-found`、exclusive境界、same-day `ambiguous`、低品質単一候補の`unresolved`、本文missingの非fallbackを確認し、8件のsynthetic resolver testsもfailure 0でした。
 
-Phase 5.2の全量実測とPhase 5.3a Retrieval Chunk Foundationまで完了し、Phase 5.3b Embedding Adapterへ進んでいます。5.3bではprovider/model/version/dimensionsとembedding入力・vector hashを固定し、embeddingをchunkへ従属する交換可能な派生層として実装します。詳細は [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) と [`docs/architecture/phase5-vector-rag-retrieval.md`](docs/architecture/phase5-vector-rag-retrieval.md) を参照してください。
+Phase 5.2の全量実測、Phase 5.3a Retrieval Chunk Foundation、5.3b Embedding Adapterまで完了し、Phase 5.3c Hybrid Retrieval / Context Assemblyへ進んでいます。5.3cではstrict temporal resolution後のrevisionだけを対象にlexical / structural / vector候補を統合し、contextからPhase 4原文・RAW provenanceへ戻れることを必須にします。詳細は [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) と [`docs/architecture/phase5-vector-rag-retrieval.md`](docs/architecture/phase5-vector-rag-retrieval.md) を参照してください。
 
 ## 実測済みデータ
 
