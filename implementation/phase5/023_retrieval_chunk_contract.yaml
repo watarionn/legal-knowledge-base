@@ -2,6 +2,13 @@ schema_version: "1.0"
 phase: "5.3a"
 chunking_version: "phase5-structural-chunk-1.0"
 
+chunking_config:
+  algorithm: sha256
+  fields:
+    - chunking_version
+    - soft_max_characters
+  rule: runtime chunking parameters must be persisted and included in chunk identity
+
 purpose:
   - build model-independent retrieval chunks from Phase 4 normalized XML nodes
   - keep every chunk backlinked to law revision, source XML SHA, and exact source nodes
@@ -17,6 +24,7 @@ identity:
   algorithm: sha256
   fields:
     - chunking_version
+    - chunking_config_sha256
     - law_revision_id
     - source_xml_sha256
     - anchor_node_id
@@ -70,6 +78,8 @@ provenance_required:
   - law_id
   - law_revision_id
   - document_pk
+  - chunking_config_sha256
+  - soft_max_characters
   - source_xml_sha256
   - anchor_document_order
   - start_document_order
@@ -95,4 +105,5 @@ future_embedding_contract:
     - embedding_model_version
     - vector_dimensions
     - chunking_version
+    - chunking_config_sha256
   rule: embedding rows must reference chunk_id and remain disposable derivative data

@@ -19,7 +19,7 @@ Phase 5.3は、Phase 5.1のstrict temporal resolutionとPhase 5.2のlexical / st
 
 ## 5.3aの設計
 
-`retrieval_chunk`はembeddingモデルに依存しない。chunk identityには`chunking_version`、revision、source XML SHA、anchor/start/end node ID、retrieval text hashを含める。
+`retrieval_chunk`はembeddingモデルに依存しない。chunk identityには`chunking_version`、`chunking_config_sha256`、revision、source XML SHA、anchor/start/end node ID、retrieval text hashを含める。`chunking_config_sha256`はalgorithm versionとruntime parameter（現在は`soft_max_chars`）を固定し、同じalgorithm version内の設定差を再現可能にする。
 
 chunkは最寄りの法的・構造的anchorを越えない。初期anchorはArticle / Paragraph / Item / Subitem / Supplementary Provision / appendix / table / figure等とし、未知構造は削除せずdirect parentへfallbackする。
 
@@ -37,6 +37,7 @@ character limitはtokenizer非依存のsoft limitとして1,200文字を既定�
 - contributing `source_document_orders[]`
 - anchor / start / end logical `node_id`
 - `chunking_version`
+- `chunking_config_sha256` / `soft_max_chars`
 - `retrieval_text_sha256`
 
 `legal_kb.retrieval_chunk_provenance()`でanchor/start/endのdeterministic XML pathを再構成できる。

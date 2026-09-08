@@ -51,6 +51,8 @@ def run(database_url: str) -> dict:
                 JOIN legal_kb.law_document d ON d.document_pk=c.document_pk
                 WHERE c.document_pk=%s
                   AND c.source_xml_sha256=d.source_xml_sha256
+                  AND c.soft_max_chars=400
+                  AND c.chunking_config_sha256 ~ '^[0-9a-f]{64}$'
                   AND c.start_document_order<=c.end_document_order
                   AND cardinality(c.source_document_orders)=c.source_unit_count
                   AND c.source_document_orders[1]=c.start_document_order
@@ -77,6 +79,8 @@ def run(database_url: str) -> dict:
             "runner": "026_retrieval_chunk_smoke.py",
             "status": "passed",
             "chunking_version": BUILDER.CHUNKING_VERSION,
+            "chunking_config_sha256": second[0].chunking_config_sha256,
+            "soft_max_chars": second[0].soft_max_chars,
             "document_pk": int(document_pk),
             "chunk_count": len(second),
             "oversize_chunk_count": sum(1 for chunk in second if chunk.is_oversize),

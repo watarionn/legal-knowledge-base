@@ -44,6 +44,8 @@ class NodeRow:
 class ChunkPlan:
     chunk_id: str
     chunking_version: str
+    chunking_config_sha256: str
+    soft_max_chars: int
     document_pk: int
     law_id: str
     law_revision_id: str
@@ -116,8 +118,14 @@ def _sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def chunking_config_sha256(version: str, max_chars: int) -> str:
+    payload = "\x1f".join((version, f"soft_max_chars={max_chars}"))
+    return _sha256_text(payload)
+
+
 def _chunk_id(
     version: str,
+    config_sha256: str,
     meta: DocumentMeta,
     anchor: NodeRow,
     first: NodeRow,
@@ -126,6 +134,7 @@ def _chunk_id(
 ) -> str:
     payload = "\x1f".join((
         version,
+        config_sha256,
         meta.law_revision_id,
         meta.source_xml_sha256,
         anchor.node_id_hex,
@@ -150,9 +159,12 @@ def _make_chunk(
     last = source_units[-1][0]
     retrieval_text = "\n".join(text for _, text in source_units)
     text_sha = _sha256_text(retrieval_text)
+    config_sha = chunking_config_sha256(version, max_chars)
     return ChunkPlan(
-        chunk_id=_chunk_id(version, meta, anchor, first, last, text_sha),
+        chunk_id=_chunk_id(version, config_sha, meta, anchor, first, last, text_sha),
         chunking_version=version,
+        chunking_config_sha256=config_sha,
+        soft_max_chars=max_chars,
         document_pk=meta.document_pk,
         law_id=meta.law_id,
         law_revision_id=meta.law_revision_id,
@@ -269,26 +281,28 @@ def load_document_nodes(conn: Any, document_pk: int) -> list[NodeRow]:
         return [NodeRow(*row) for row in cur.fetchall()]
 
 
-def store_chunks(conn: Any, chunks: list[ChunkPlan], *, document_pk: int, chunking_version: str) -> int:
+def store_chunks(conn: Any, chunks: list[ChunkPlan], *, document_pk: int, chunking_config_sha256: str) -> int:
     with conn.cursor() as cur:
         cur.execute(
-            "DELETE FROM legal_kb.retrieval_chunk WHERE document_pk=%s AND chunking_version=%s",
-            (document_pk, chunking_version),
+            "DELETE FROM legal_kb.retrieval_chunk WHERE document_pk=%s AND chunking_config_sha256=%s",
+            (document_pk, chunking_config_sha256),
         )
         for chunk in chunks:
             cur.execute(
                 """
                 INSERT INTO legal_kb.retrieval_chunk (
-                    chunk_id, chunking_version, document_pk, law_id, law_revision_id,
-                    source_xml_sha256, anchor_document_order, start_document_order,
+                    chunk_id, chunking_version, chunking_config_sha256, soft_max_chars,
+                    document_pk, law_id, law_revision_id, source_xml_sha256,
+                    anchor_document_order, start_document_order,
                     end_document_order, source_document_orders, anchor_node_id,
                     start_node_id, end_node_id, anchor_tag_name,
                     anchor_structural_num, anchor_display_label, context_prefix,
                     retrieval_text, retrieval_text_sha256, char_count,
                     source_unit_count, is_oversize
                 ) VALUES (
-                    %s, %s, %s, %s, %s,
-                    %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s,
                     %s, %s, decode(%s, 'hex'),
                     decode(%s, 'hex'), decode(%s, 'hex'), %s,
                     %s, %s, %s,
@@ -297,8 +311,9 @@ def store_chunks(conn: Any, chunks: list[ChunkPlan], *, document_pk: int, chunki
                 )
                 """,
                 (
-                    chunk.chunk_id, chunk.chunking_version, chunk.document_pk,
-                    chunk.law_id, chunk.law_revision_id, chunk.source_xml_sha256,
+                    chunk.chunk_id, chunk.chunking_version, chunk.chunking_config_sha256,
+                    chunk.soft_max_chars, chunk.document_pk, chunk.law_id,
+                    chunk.law_revision_id, chunk.source_xml_sha256,
                     chunk.anchor_document_order, chunk.start_document_order,
                     chunk.end_document_order, list(chunk.source_document_orders),
                     chunk.anchor_node_id_hex, chunk.start_node_id_hex, chunk.end_node_id_hex,
@@ -330,7 +345,7 @@ def rebuild_document(
         conn,
         chunks,
         document_pk=document_pk,
-        chunking_version=chunking_version,
+        chunking_config_sha256=chunking_config_sha256(chunking_version, max_chars),
     )
     return chunks
 
@@ -363,8 +378,9 @@ def main() -> None:
         "schema_version": "1.0",
         "runner": "024_retrieval_chunk_builder.py",
         "chunking_version": args.chunking_version,
+        "chunking_config_sha256": chunking_config_sha256(args.chunking_version, args.max_chars),
+        "soft_max_chars": args.max_chars,
         "document_pk": args.document_pk,
-        "max_chars": args.max_chars,
         "chunk_count": len(chunks),
         "oversize_chunk_count": sum(1 for chunk in chunks if chunk.is_oversize),
         "database_url_recorded": False,

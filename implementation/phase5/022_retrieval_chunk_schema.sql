@@ -7,6 +7,8 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS legal_kb.retrieval_chunk (
     chunk_id text PRIMARY KEY,
     chunking_version text NOT NULL,
+    chunking_config_sha256 text NOT NULL,
+    soft_max_chars integer NOT NULL CHECK (soft_max_chars >= 100),
     document_pk bigint NOT NULL,
     law_id text NOT NULL,
     law_revision_id text NOT NULL,
@@ -33,6 +35,7 @@ CREATE TABLE IF NOT EXISTS legal_kb.retrieval_chunk (
     created_at timestamptz NOT NULL DEFAULT now(),
 
     CHECK (chunk_id ~ '^[0-9a-f]{64}$'),
+    CHECK (chunking_config_sha256 ~ '^[0-9a-f]{64}$'),
     CHECK (source_xml_sha256 ~ '^[0-9a-fA-F]{64}$'),
     CHECK (retrieval_text_sha256 ~ '^[0-9a-f]{64}$'),
     CHECK (btrim(chunking_version) <> ''),
@@ -43,7 +46,7 @@ CREATE TABLE IF NOT EXISTS legal_kb.retrieval_chunk (
     CHECK (source_document_orders[array_length(source_document_orders, 1)] = end_document_order),
     CHECK (array_position(source_document_orders, NULL) IS NULL),
 
-    UNIQUE (chunking_version, document_pk, start_document_order, end_document_order),
+    UNIQUE (chunking_config_sha256, document_pk, start_document_order, end_document_order),
     FOREIGN KEY (document_pk, law_revision_id)
         REFERENCES legal_kb.law_document(document_pk, law_revision_id)
         ON DELETE CASCADE,
@@ -64,6 +67,10 @@ CREATE TABLE IF NOT EXISTS legal_kb.retrieval_chunk (
 
 COMMENT ON TABLE legal_kb.retrieval_chunk IS
   'Phase 5.3のmodel-independent retrieval chunk。再生成可能な派生層であり、引用正本ではない。';
+COMMENT ON COLUMN legal_kb.retrieval_chunk.chunking_config_sha256 IS
+  'chunking_versionとruntime chunking parametersを固定する設定hash。同一algorithm version内の設定差を区別する。';
+COMMENT ON COLUMN legal_kb.retrieval_chunk.soft_max_chars IS
+  'このchunkを生成したsoft character limit。再現性のためruntime値を保持する。';
 COMMENT ON COLUMN legal_kb.retrieval_chunk.source_document_orders IS
   'chunkへ寄与したtext-bearing Phase 4 nodeのdocument_orderを順序付きで保持する。';
 COMMENT ON COLUMN legal_kb.retrieval_chunk.context_prefix IS
@@ -73,6 +80,8 @@ COMMENT ON COLUMN legal_kb.retrieval_chunk.retrieval_text IS
 COMMENT ON COLUMN legal_kb.retrieval_chunk.is_oversize IS
   '単一source unitがsoft max charactersを超え、node内分割を避けたchunkであることを示す。';
 
+CREATE INDEX IF NOT EXISTS ix_retrieval_chunk_config
+    ON legal_kb.retrieval_chunk(chunking_config_sha256, document_pk, start_document_order);
 CREATE INDEX IF NOT EXISTS ix_retrieval_chunk_revision
     ON legal_kb.retrieval_chunk(law_revision_id, start_document_order);
 CREATE INDEX IF NOT EXISTS ix_retrieval_chunk_law
@@ -84,6 +93,8 @@ CREATE OR REPLACE FUNCTION legal_kb.retrieval_chunk_provenance(p_chunk_id text)
 RETURNS TABLE (
     chunk_id text,
     chunking_version text,
+    chunking_config_sha256 text,
+    soft_max_chars integer,
     law_id text,
     law_revision_id text,
     document_pk bigint,
@@ -103,6 +114,8 @@ AS $$
 SELECT
     c.chunk_id,
     c.chunking_version,
+    c.chunking_config_sha256,
+    c.soft_max_chars,
     c.law_id,
     c.law_revision_id,
     c.document_pk,

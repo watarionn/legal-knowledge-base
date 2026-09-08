@@ -114,6 +114,11 @@ class RetrievalChunkBuilderTest(unittest.TestCase):
         self.assertEqual(first.chunk_id, moved.chunk_id)
         self.assertNotEqual(first.chunk_id, changed.chunk_id)
 
+        changed_limit = CHUNK.build_document_chunks(META, rows, max_chars=200)[0]
+        self.assertNotEqual(first.chunking_config_sha256, changed_limit.chunking_config_sha256)
+        self.assertNotEqual(first.chunk_id, changed_limit.chunk_id)
+        self.assertEqual(changed_limit.soft_max_chars, 200)
+
     def test_retrieval_text_collapses_whitespace_only(self):
         rows = [
             node(1, None, "Law"),
