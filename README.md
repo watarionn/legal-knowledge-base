@@ -22,14 +22,14 @@
 | 2 | 原本・全量データ検証 | 完了 |
 | 3 | 法令・履歴DB実装 | 完了 |
 | 4 | XML構造DB | **完了** |
-| 5 | 時点検索＋検索/RAG | **進行中（Phase 5.1完了 / Phase 5.2次工程）** |
+| 5 | 時点検索＋検索/RAG | **進行中（Phase 5.1 / 5.2完了、Phase 5.3進行中）** |
 | 6 | 官報・議会資料連携 | 未着手 |
 
 Phase 5.1では、`law_id + as_of_date`からrevision候補を解決するstrict resolverを実装しました。Phase 3の実データにはsame-day複数revisionとtemporal ambiguityがあるため、**一意に確認できない候補を勝手に1 revisionへ丸めません**。時点revisionの確定とPhase 4本文のavailabilityも分離し、本文未収録時に別revisionへfallbackしません。
 
 2026-09-05のPostgreSQL 16.15 smokeでは、最初のrevision以前の`not-found`、exclusive境界、same-day `ambiguous`、低品質単一候補の`unresolved`、本文missingの非fallbackを確認し、8件のsynthetic resolver testsもfailure 0でした。
 
-次工程はPhase 5.2 Lexical / Structural Searchです。詳細は [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) と [`docs/architecture/phase5-temporal-search-rag.md`](docs/architecture/phase5-temporal-search-rag.md) を参照してください。
+Phase 5.2の全量実測まで完了し、Phase 5.3 Vector / RAG Retrievalへ進んでいます。5.3aではembeddingモデルを固定する前に、構造境界を保持したdeterministic retrieval chunkとPhase 4 provenance backlinkを実装します。詳細は [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) と [`docs/architecture/phase5-vector-rag-retrieval.md`](docs/architecture/phase5-vector-rag-retrieval.md) を参照してください。
 
 ## 実測済みデータ
 

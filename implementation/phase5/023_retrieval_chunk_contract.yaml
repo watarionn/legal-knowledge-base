@@ -1,0 +1,98 @@
+schema_version: "1.0"
+phase: "5.3a"
+chunking_version: "phase5-structural-chunk-1.0"
+
+purpose:
+  - build model-independent retrieval chunks from Phase 4 normalized XML nodes
+  - keep every chunk backlinked to law revision, source XML SHA, and exact source nodes
+  - allow embedding model and vector backend to change without changing citation truth
+
+non_goals:
+  - embedding generation
+  - vector index selection
+  - LLM answer generation
+  - treating chunk text as authoritative quotation text
+
+identity:
+  algorithm: sha256
+  fields:
+    - chunking_version
+    - law_revision_id
+    - source_xml_sha256
+    - anchor_node_id
+    - start_node_id
+    - end_node_id
+    - retrieval_text_sha256
+chunking:
+  default_soft_max_characters: 1200
+  overlap_source_units: 0
+  split_only_between_source_units: true
+  allow_single_source_unit_oversize: true
+  source_text_normalization: collapse_unicode_whitespace_only
+  source_order: document_order
+
+anchor_selection:
+  strategy: nearest_structural_ancestor
+  fallback: direct_parent_then_self
+  boundary_tags:
+    - Article
+    - Paragraph
+    - Item
+    - Subitem1
+    - Subitem2
+    - Subitem3
+    - Subitem4
+    - Subitem5
+    - Subitem6
+    - Subitem7
+    - Subitem8
+    - Subitem9
+    - Subitem10
+    - SupplProvision
+    - Preamble
+    - EnactStatement
+    - Appdx
+    - AppdxTable
+    - AppdxStyle
+    - AppdxFig
+    - AppdxFormat
+    - AppdxNote
+    - TableStruct
+    - FigStruct
+
+context_prefix:
+  derived_only: true
+  separator: " > "
+  source: structural ancestor labels
+  citation_eligible: false
+
+provenance_required:
+  - law_id
+  - law_revision_id
+  - document_pk
+  - source_xml_sha256
+  - anchor_document_order
+  - start_document_order
+  - end_document_order
+  - source_document_orders
+  - anchor_node_id
+  - start_node_id
+  - end_node_id
+  - retrieval_text_sha256
+
+safety_rules:
+  - never select a revision inside the chunker
+  - never fallback to another revision when content is missing
+  - never use retrieval_text or context_prefix as citation truth
+  - never cross a structural anchor merely to reach the target character size
+  - never split a single Phase 4 source node only to satisfy the soft character limit
+  - preserve unknown structures by falling back to their direct parent instead of dropping them
+
+future_embedding_contract:
+  required_metadata:
+    - embedding_provider
+    - embedding_model
+    - embedding_model_version
+    - vector_dimensions
+    - chunking_version
+  rule: embedding rows must reference chunk_id and remain disposable derivative data
