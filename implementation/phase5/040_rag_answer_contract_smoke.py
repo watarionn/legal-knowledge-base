@@ -21,8 +21,9 @@ def _load(name: str, filename: str):
     return module
 
 
-HYBRID = _load("legal_kb_phase5_hybrid_smoke_target", "034_hybrid_retrieval.py")
-EMBED = _load("legal_kb_phase5_embedding_hybrid_smoke", "029_embedding_adapter.py")
+HYBRID = _load("legal_kb_phase5_hybrid_answer_smoke", "034_hybrid_retrieval.py")
+EMBED = _load("legal_kb_phase5_embedding_answer_smoke", "029_embedding_adapter.py")
+RAG = _load("legal_kb_phase5_rag_answer_smoke", "038_rag_answer_contract.py")
 
 
 def _one(conn, sql: str, params=()):
@@ -62,9 +63,8 @@ def run(database_url: str) -> dict:
         first_line = next((line.strip() for line in str(retrieval_text).splitlines() if line.strip()), "")
         query_text = first_line[: min(12, len(first_line))]
         if not query_text:
-            raise AssertionError("smoke chunk has no lexical query text")
+            raise AssertionError("smoke chunk has no query text")
         query_vector = provider.embed([query_text])[0]
-        structural_filter = HYBRID.StructuralFilter(tag_name=anchor_tag, structural_num=anchor_num)
         config = HYBRID.RetrievalConfig(
             chunking_config_sha256=str(chunk_config),
             embedding_profile_id=profile_id,
@@ -72,9 +72,12 @@ def run(database_url: str) -> dict:
             max_contexts=5,
             character_budget=3000,
         )
-
+        structural_filter = HYBRID.StructuralFilter(
+            tag_name=anchor_tag,
+            structural_num=anchor_num,
+        )
         with conn.cursor() as cur:
-            cur.execute("SAVEPOINT phase53c_temporal_seed")
+            cur.execute("SAVEPOINT phase53d_temporal_seed")
             cur.execute(
                 """UPDATE legal_kb.law_revision
                    SET valid_from=NULL, valid_to_exclusive=NULL
@@ -89,63 +92,71 @@ def run(database_url: str) -> dict:
                 (date(2020, 1, 1), revision_id),
             )
         try:
-            result = HYBRID.hybrid_retrieve(
-                conn, str(law_id), date(2026, 1, 1), query_text,
+            retrieval = HYBRID.hybrid_retrieve(
+                conn,
+                str(law_id),
+                date(2026, 1, 1),
+                query_text,
                 config=config,
                 structural_filter=structural_filter,
                 query_vector=query_vector,
             )
+            evidence = RAG.build_evidence_bundles(conn, retrieval)
         finally:
             with conn.cursor() as cur:
-                cur.execute("ROLLBACK TO SAVEPOINT phase53c_temporal_seed")
-                cur.execute("RELEASE SAVEPOINT phase53c_temporal_seed")
+                cur.execute("ROLLBACK TO SAVEPOINT phase53d_temporal_seed")
+                cur.execute("RELEASE SAVEPOINT phase53d_temporal_seed")
+        if retrieval.status != "ok" or not evidence:
+            raise AssertionError("5.3d requires successful retrieval evidence")
+        for item in evidence:
+            if item.law_revision_id != revision_id or item.document_pk != document_pk:
+                raise AssertionError("evidence leaked outside selected revision/document")
+            if item.source_xml_sha256.lower() != str(source_sha).lower():
+                raise AssertionError("evidence source SHA differs from temporal selection")
+            if not item.source_nodes:
+                raise AssertionError("evidence contains no Phase 4 source nodes")
+            if any(not node.node_id_hex or not node.xml_path for node in item.source_nodes):
+                raise AssertionError("source node provenance is incomplete")
 
-        if result.status != "ok":
-            raise AssertionError(f"hybrid retrieval did not return context: {result.status}")
-        if result.resolution.selected_revision_id != revision_id:
-            raise AssertionError("hybrid retrieval changed the resolved revision")
-        if result.resolution.selected_document_pk != document_pk:
-            raise AssertionError("hybrid retrieval changed the selected document")
-        counts = dict(result.channel_counts)
-        if counts["lexical"] <= 0 or counts["vector"] <= 0:
-            raise AssertionError("lexical and vector channels must both produce smoke hits")
-        if structural_filter.active() and counts["structural"] <= 0:
-            raise AssertionError("active structural channel produced no hits")
-        if not result.contexts:
-            raise AssertionError("context assembly produced no contexts")
-        if structural_filter.active() and not any(len(context.channels) >= 2 for context in result.contexts):
-            raise AssertionError("hybrid fusion did not combine any channel evidence")
+        answer_provider = RAG.DeterministicTestAnswerProvider()
+        answer = RAG.generate_and_finalize(answer_provider, query_text, evidence)
+        if answer.status != "citation-ready" or not answer.citation_ready:
+            raise AssertionError("valid answer was not citation-ready")
+        if answer.semantic_entailment_verified:
+            raise AssertionError("semantic entailment must not be machine-asserted")
+        if answer.generated_answer_is_source_truth:
+            raise AssertionError("generated answer must not become source truth")
+        known_ids = {item.evidence_id for item in evidence}
+        if any(eid not in known_ids for claim in answer.claims for eid in claim.evidence_ids):
+            raise AssertionError("answer cites an unknown evidence bundle")
 
-        for context in result.contexts:
-            if context.law_revision_id != revision_id or context.document_pk != document_pk:
-                raise AssertionError("context leaked outside selected revision/document")
-            if context.source_xml_sha256.lower() != str(source_sha).lower():
-                raise AssertionError("context source SHA differs from temporal selection")
-            if context.citation_ready:
-                raise AssertionError("5.3c derived context must not claim citation readiness")
-            if not context.anchor_xml_path or not context.start_xml_path or not context.end_xml_path:
-                raise AssertionError("context must retain Phase 4 XML paths")
-            if not context.source_document_orders:
-                raise AssertionError("context must retain source node orders")
+        invalid = RAG.AnswerDraft(
+            answer_text="不正な回答",
+            claims=(RAG.AnswerClaim(
+                claim_id="invalid-claim",
+                text="根拠のない主張",
+                evidence_ids=("0" * 64,),
+            ),),
+        )
+        blocked = RAG.finalize_answer(invalid, evidence)
+        if blocked.citation_ready or blocked.status != "blocked":
+            raise AssertionError("unknown evidence reference was not blocked")
 
         return {
             "schema_version": "1.0",
-            "runner": "036_hybrid_retrieval_smoke.py",
+            "runner": "040_rag_answer_contract_smoke.py",
             "status": "passed",
-            "retrieval_version": HYBRID.RETRIEVAL_VERSION,
-            "retrieval_config_sha256": result.retrieval_config_sha256,
+            "contract_version": RAG.CONTRACT_VERSION,
             "law_id": str(law_id),
             "law_revision_id": str(revision_id),
             "document_pk": int(document_pk),
-            "chunking_config_sha256": str(chunk_config),
-            "embedding_profile_id": profile_id,
-            "vector_backend": result.vector_backend,
-            "channel_counts": counts,
-            "context_count": len(result.contexts),
-            "multi_channel_context": any(len(context.channels) >= 2 for context in result.contexts),
-            "strict_revision_scope": True,
-            "provenance_roundtrip": True,
-            "context_citation_ready": False,
+            "evidence_bundle_count": len(evidence),
+            "evidence_source_node_count": sum(len(item.source_nodes) for item in evidence),
+            "citation_ready": answer.citation_ready,
+            "semantic_entailment_verified": answer.semantic_entailment_verified,
+            "generated_answer_is_source_truth": answer.generated_answer_is_source_truth,
+            "unknown_evidence_reference_blocked": True,
+            "phase4_provenance_roundtrip": True,
             "database_url_recorded": False,
         }
 

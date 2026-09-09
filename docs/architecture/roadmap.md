@@ -101,7 +101,9 @@ embedding/chunkを交換可能な派生層として追加し、RAG回答の根�
 
 5.3cではstrict temporal resolverが一意に確定したrevision/documentだけを検索対象とし、同一`chunking_config_sha256`のlexical / structural / vector候補をweighted RRFで統合します。context budgetではchunk本文を途中切断せず、全hitをPhase 4 XML path・source node・RAW SHAへbacklinkします。初期vector backendはcorrectness検証用exact scanで、ANN backendは同一interfaceへ差し替えます。
 
-状態: **進行中（5.3a / 5.3b完了、5.3c Hybrid Retrieval / Context Assembly）**
+5.3dではretrieval contextを直接引用せず、`source_document_orders[]`からPhase 4 source nodeを再取得してEvidence Bundleを構築します。生成回答はclaimごとに既知Evidence IDを必須とし、未知根拠・根拠なしclaimをblockedにします。`citation-ready`は参照整合性とprovenanceが検証済みであることだけを意味し、意味的entailmentや生成文そのものを一次情報とは扱いません。
+
+状態: **進行中（5.3a / 5.3b / 5.3c完了、5.3d RAG Answer Contract）**
 
 ## Phase 6 官報・議会資料連携
 

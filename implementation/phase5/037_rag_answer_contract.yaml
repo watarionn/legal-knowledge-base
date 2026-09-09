@@ -1,0 +1,91 @@
+schema_version: "1.0"
+contract_version: "phase5-rag-answer-contract-1.0"
+purpose: >-
+  Separate generated answer text from legal evidence and make final citations
+  resolve to Phase 4 source nodes / immutable RAW provenance.
+
+input:
+  required:
+    - hybrid_retrieval_result
+    - answer_draft
+  retrieval_requirements:
+    status: ok
+    temporal_status: resolved
+    content_status: available
+    context_citation_ready: false
+
+answer_draft:
+  fields:
+    answer_text: string
+    claims: list
+  claim_fields:
+    claim_id: string
+    text: string
+    evidence_ids: list[string]
+  rule: every_nonempty_claim_requires_evidence
+evidence_bundle:
+  source_of_truth: phase4_phase3
+  one_bundle_per_context: true
+  fields:
+    evidence_id: sha256
+    chunk_id: string
+    law_id: string
+    law_revision_id: string
+    document_pk: integer
+    source_xml_sha256: sha256
+    source_nodes: list
+  source_node_fields:
+    document_order: integer
+    node_id_hex: sha256_hex
+    xml_path: string
+    tag_name: string_or_null
+    structural_num: string_or_null
+    display_label: string_or_null
+    text_original: string_or_null
+  evidence_id_inputs:
+    - law_revision_id
+    - source_xml_sha256
+    - chunk_id
+    - ordered_source_node_ids
+validation:
+  require_same_law_revision_as_temporal_selection: true
+  require_same_document_as_temporal_selection: true
+  require_same_source_xml_sha256_as_temporal_selection: true
+  reject_unknown_evidence_id: true
+  reject_duplicate_claim_id: true
+  reject_empty_claim_text: true
+  semantic_entailment_verified: false
+  note: >-
+    Mechanical validation proves identity and provenance linkage only. It does
+    not assert that evidence semantically entails a generated claim.
+
+output:
+  status_values:
+    - citation-ready
+    - blocked
+  citation_truth: phase3-phase4
+  citation_ready_requires:
+    - valid_temporal_selection
+    - evidence_provenance_roundtrip
+    - all_claim_evidence_references_resolve
+  required_flags:
+    citation_ready: boolean
+    semantic_entailment_verified: false
+    generated_answer_is_source_truth: false
+prohibitions:
+  - cite_retrieval_text_as_legal_source
+  - cite_embedding_input_or_vector
+  - resolve_temporal_ambiguity_with_generation
+  - fallback_to_other_revision_when_content_missing
+  - invent_missing_source_text
+  - mark_semantic_entailment_as_verified_without_external_review
+  - persist_model_credentials_in_answer_artifact
+
+provider_boundary:
+  generation_provider: replaceable
+  provider_output_is_untrusted_until_validated: true
+  provider_metadata_recommended:
+    - provider
+    - model
+    - model_version
+  provider_metadata_must_not_contain_credentials: true
