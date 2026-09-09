@@ -111,8 +111,17 @@ embedding/chunkを交換可能な派生層として追加し、RAG回答の根�
 
 目的は、官報、国会会議録、帝国議会会議録、国立国会図書館の立法資料を、法令本文とは別ソースとして関連付けることです。
 
-想定entity:
-- `external_document`
-- `source_relation`
+### Phase 6.1 External Source Foundation
 
-状態: 未着手
+外部provider、logical document、immutable snapshot、法令へのrelation assertionを分離します。raw取得物は既存`source_file`へ結び、metadata projectionや検索scoreを一次情報へ昇格させません。
+
+主要entity:
+- `external_source_provider`
+- `external_document`
+- `external_document_snapshot`
+- `source_relation`
+- `source_relation_assertion`
+
+自動的なidentifier / metadata / text matchは`candidate`から開始し、外部資料の類似度だけで法的関係をconfirmedにしません。Phase 6.2以降で国会・帝国議会API、官報発行サイト、NDLサーチの実provider adapterを追加します。
+
+状態: **進行中（6.1 External Source Foundation）**
