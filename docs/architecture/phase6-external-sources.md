@@ -72,3 +72,28 @@ OAI-PMHのidentifier等、providerが返す識別子をlogical document identity
 - automatic match default candidate: implemented
 - Phase 3/4 target + raw SHA provenance roundtrip: implemented
 - real provider network ingestion: deferred to 6.2以降
+
+
+## 6.2 Parliamentary Proceedings Adapters
+
+国会会議録と帝国議会会議録は、公式APIの会議recordを`external_document`へ、各発言を`external_document_part`へ投影する。会議の`issueID`と発言の`speechID`はproviderが返す一意識別子として扱う。
+
+`external_document_part`は親meetingから独立したsource truthではなく、同じimmutable raw response snapshotから再構築可能なsubdocument projectionである。各speech observationは`snapshot_id`、本文SHA、raw record SHAへbacklinkする。
+
+共通projectionは会期、院名、会議名、開催日、発言順、発言者、所属、役職、本文、会議/発言URL等を保持する。国会会議録固有の`speakerRole`、帝国議会会議録固有の`speakerElection` / `officeTerm`、その他未知fieldはprovider metadata JSONへ残す。
+
+取得clientは直列実行し、既定3秒のrequest間隔を強制する。live probeはCIでは実行せず、公開可能な件数・SHA・再現手順だけを`docs/validation/phase6-parliamentary-live.md`へ保存する。
+
+### 6.2 exit gate
+
+- official `issueID` meeting identity: implemented
+- official `speechID` subdocument identity: implemented
+- Diet / Imperial Diet provider differences preserved: implemented
+- unknown provider fields preserved: implemented
+- raw API response → Phase 3 `source_file` SHA: implemented
+- speech observation → raw snapshot provenance: implemented
+- silent speech drift detection within same snapshot: implemented
+- serial request throttle: implemented
+- fresh PostgreSQL 18 Phase 3→6.2 smoke: passed
+- real NDL API live probe for both providers: passed
+- cross-source legal linkage automation: deferred to 6.5

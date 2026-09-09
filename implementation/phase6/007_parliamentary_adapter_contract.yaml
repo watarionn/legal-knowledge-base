@@ -1,0 +1,95 @@
+schema_version: "1.0"
+contract: phase6-parliamentary-adapter-1.0
+purpose: >-
+  Normalize National Diet and Imperial Diet meeting APIs into the Phase 6.1
+  external-source foundation without promoting projections to law-text truth.
+
+providers:
+  kokkai-ndl:
+    source_family: diet-minutes
+    authority_name: National Diet Library
+    base_url: https://kokkai.ndl.go.jp/
+    meeting_endpoint: https://kokkai.ndl.go.jp/api/meeting
+    provider_document_id: issueID
+    provider_part_id: speechID
+    source_truth_role: official-proceedings
+  teikoku-ndl:
+    source_family: imperial-diet-minutes
+    authority_name: National Diet Library
+    base_url: https://teikokugikai-i.ndl.go.jp/
+    meeting_endpoint: https://teikokugikai-i.ndl.go.jp/api/emp/meeting
+    provider_document_id: issueID
+    provider_part_id: speechID
+    source_truth_role: official-proceedings
+
+request_policy:
+  method: GET
+  recordPacking: json
+  meeting_maximum_records: 1
+  request_filter: issueID exact match
+  request_query_max_bytes: 2000
+  concurrency: 1
+  default_min_interval_seconds: 3.0
+  reason: >-
+    NDL asks machine clients to avoid multiple simultaneous requests and to wait
+    several seconds after a completed request before sending the next request.
+
+identity:
+  issue_id_regex: '^[0-9A-Z]{21}$'
+  speech_id_regex: '^[0-9A-Z]{21}_[0-9]{3,4}$'
+  external_document_id: phase6-external-document-1.0
+  external_part_id: phase6-parliamentary-part-1.0
+  part_observation_id: phase6-parliamentary-part-observation-1.0
+
+raw_evidence:
+  storage: legal_kb.source_file
+  immutable: true
+  payload_hash: sha256 exact response bytes
+  snapshot: legal_kb.external_document_snapshot
+
+projection_policy:
+  meeting_fields:
+    - issueID
+    - imageKind
+    - searchObject
+    - session
+    - nameOfHouse
+    - nameOfMeeting
+    - issue
+    - date
+    - meetingURL
+    - pdfURL
+  speech_common_fields:
+    - speechID
+    - speechOrder
+    - speaker
+    - speakerYomi
+    - speakerGroup
+    - speakerPosition
+    - speech
+    - startPage
+    - speechURL
+  provider_specific_fields:
+    kokkai-ndl: [closing, speakerRole, createTime, updateTime]
+    teikoku-ndl: [speakerElection, officeTerm]
+  unknown_fields: preserve_in_metadata_projection
+  projections_are_source_truth: false
+
+invariants:
+  - response must contain exactly one meetingRecord for requested issueID
+  - every speechID must be prefixed by the meeting issueID and an underscore
+  - a changed raw payload creates a new external_document_snapshot
+  - the same part plus snapshot cannot silently change text_sha256
+  - speech text projection is rebuildable from raw response bytes
+  - provider-specific speaker metadata is never discarded
+  - no automated parliamentary record is linked to a law merely because text is similar
+  - database URL and credentials are never persisted in source metadata
+
+exit_gate:
+  - both providers parse the same common envelope
+  - provider-specific fields survive normalization
+  - deterministic meeting and speech identities
+  - immutable source_file and snapshot persistence
+  - speech provenance returns source_file SHA and text SHA
+  - offline tests pass without network
+  - live validation fetches one known issue from each provider serially

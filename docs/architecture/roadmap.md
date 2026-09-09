@@ -124,4 +124,12 @@ embedding/chunkを交換可能な派生層として追加し、RAG回答の根�
 
 自動的なidentifier / metadata / text matchは`candidate`から開始し、外部資料の類似度だけで法的関係をconfirmedにしません。Phase 6.2以降で国会・帝国議会API、官報発行サイト、NDLサーチの実provider adapterを追加します。
 
-状態: **進行中（6.1 External Source Foundation）**
+状態: **完了**
+
+### Phase 6.2 Parliamentary Proceedings Adapters
+
+国会会議録・帝国議会会議録の公式APIを共通adapterで取得し、`issueID`をmeeting record、`speechID`をspeech subdocument identityとして保持します。API raw payloadは`source_file`へ保存し、speech本文・発言者・会議metadataはprojectionとして別層へ展開します。provider固有の発言者属性と未知fieldはmetadata JSONへ保持し、将来のAPI拡張で情報を落としません。
+
+取得clientは直列実行し、既定3秒以上のrequest間隔を強制します。2026-09-09のlive probeでは国会会議録1会議9発言、帝国議会会議録1会議94発言を取得し、計103 speech observationsをfresh PostgreSQLへ保存しました。全103件でraw `source_file` SHAへのprovenance欠落0を確認しています。
+
+状態: **実装完了・マージ待ち**

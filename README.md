@@ -23,7 +23,7 @@
 | 3 | 法令・履歴DB実装 | 完了 |
 | 4 | XML構造DB | **完了** |
 | 5 | 時点検索＋検索/RAG | **完了** |
-| 6 | 官報・議会資料連携 | **進行中（6.1）** |
+| 6 | 官報・議会資料連携 | **進行中（6.2）** |
 
 Phase 5.1では、`law_id + as_of_date`からrevision候補を解決するstrict resolverを実装しました。Phase 3の実データにはsame-day複数revisionとtemporal ambiguityがあるため、**一意に確認できない候補を勝手に1 revisionへ丸めません**。時点revisionの確定とPhase 4本文のavailabilityも分離し、本文未収録時に別revisionへfallbackしません。
 
@@ -31,7 +31,7 @@ Phase 5.1では、`law_id + as_of_date`からrevision候補を解決するstrict
 
 Phase 5.2の全量実測とPhase 5.3a〜dを完了しました。strict temporal resolution後の単一revisionを対象にlexical / structural / vector候補を統合し、Evidence Bundleを経由して最終根拠をPhase 4原文・RAW provenanceへ戻すRAG回答基盤まで実装しています。Phase 5 closure監査結果は [`docs/validation/phase5-closure.md`](docs/validation/phase5-closure.md) に記録しています。詳細は [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) と [`docs/architecture/phase5-vector-rag-retrieval.md`](docs/architecture/phase5-vector-rag-retrieval.md) を参照してください。
 
-Phase 6.1では官報・議会資料・NDL書誌を法令本文とは別系列で扱うExternal Source Foundationを実装中です。外部資料は`external_document`、raw取得物はPhase 3 `source_file`へ結ぶimmutable snapshot、法令との関連は証拠付き`source_relation_assertion`として保持します。詳細は [`docs/architecture/phase6-external-sources.md`](docs/architecture/phase6-external-sources.md) を参照してください。
+Phase 6.1のExternal Source Foundationを完了し、Phase 6.2では国会会議録・帝国議会会議録の実provider adapterを実装しました。`issueID`を会議record、`speechID`をspeech subdocumentとして保持し、raw API payloadはPhase 3 `source_file`へimmutable snapshotとして保存します。2026-09-09のlive probeでは国会9発言・帝国議会94発言、計103 speech observationsを取得し、全件でraw SHAへのprovenance欠落0を確認しました。詳細は [`docs/architecture/phase6-external-sources.md`](docs/architecture/phase6-external-sources.md) と [`docs/validation/phase6-parliamentary-live.md`](docs/validation/phase6-parliamentary-live.md) を参照してください。
 
 ## 実測済みデータ
 
@@ -89,6 +89,7 @@ python implementation/phase4/006_xml_parser_test.py -v
 python implementation/phase4/012_full_relational_import_test.py -v
 python implementation/phase5/004_temporal_resolver_test.py -v
 python implementation/phase6/004_external_source_identity_test.py -v
+python implementation/phase6/010_parliamentary_adapter_test.py -v
 ```
 
 PostgreSQL smokeは `.github/workflows/postgres-smoke.yml` を参照してください。Phase 5.1の機械可読証跡は [`docs/validation/phase5_temporal_resolution_smoke_result.json`](docs/validation/phase5_temporal_resolution_smoke_result.json) に保存しています。
