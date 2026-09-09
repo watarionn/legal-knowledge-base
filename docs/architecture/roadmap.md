@@ -103,7 +103,9 @@ embedding/chunkを交換可能な派生層として追加し、RAG回答の根�
 
 5.3dではretrieval contextを直接引用せず、`source_document_orders[]`からPhase 4 source nodeを再取得してEvidence Bundleを構築します。生成回答はclaimごとに既知Evidence IDを必須とし、未知根拠・根拠なしclaimをblockedにします。`citation-ready`は参照整合性とprovenanceが検証済みであることだけを意味し、意味的entailmentや生成文そのものを一次情報とは扱いません。
 
-状態: **進行中（5.3a / 5.3b / 5.3c完了、5.3d RAG Answer Contract）**
+状態: **完了**
+
+2026-09-09のclosure監査でPhase 3〜5.3d全回帰、fresh PostgreSQL 18、既存全量DBのprovenance roundtripを再確認しました。production embedding provider / ANN / LLM品質評価はcorrectness基盤と分離した後続最適化とし、Phase 5のsource-truth境界を変更しません。詳細は [`../validation/phase5-closure.md`](../validation/phase5-closure.md) を参照してください。
 
 ## Phase 6 官報・議会資料連携
 
