@@ -1,10 +1,12 @@
 import importlib.util
 import pathlib
+import sys
 import unittest
 
 MODULE_PATH = pathlib.Path(__file__).with_name("003_external_source_identity.py")
 SPEC = importlib.util.spec_from_file_location("phase6_identity", MODULE_PATH)
 mod = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = mod
 assert SPEC.loader is not None
 SPEC.loader.exec_module(mod)
 

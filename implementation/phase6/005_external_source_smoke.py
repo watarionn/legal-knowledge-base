@@ -5,6 +5,7 @@ import importlib.util
 import json
 import os
 import pathlib
+import sys
 import uuid
 from datetime import date, datetime, timezone
 
@@ -15,6 +16,7 @@ SPEC = importlib.util.spec_from_file_location(
     "phase6_identity", HERE / "003_external_source_identity.py"
 )
 identity = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = identity
 assert SPEC.loader is not None
 SPEC.loader.exec_module(identity)
 
