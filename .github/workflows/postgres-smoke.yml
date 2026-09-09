@@ -45,7 +45,7 @@ jobs:
       - name: Show PostgreSQL version
         run: psql "$DATABASE_URL" -Atc "select version();"
 
-      - name: Apply Phase 3, Phase 4, and Phase 5 DDL
+      - name: Apply Phase 3, Phase 4, Phase 5, and Phase 6 DDL
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase3/001_law_history_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase4/001_xml_structure_schema.sql
@@ -55,6 +55,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase5/022_retrieval_chunk_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase5/027_embedding_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase5/033_hybrid_retrieval_schema.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase6/001_external_source_schema.sql
 
       - name: Run real XML PostgreSQL COPY smoke
         run: |
@@ -82,3 +83,6 @@ jobs:
 
       - name: Run Phase 5.3 RAG answer contract smoke
         run: python implementation/phase5/040_rag_answer_contract_smoke.py
+
+      - name: Run Phase 6 external source foundation smoke
+        run: python implementation/phase6/005_external_source_smoke.py
