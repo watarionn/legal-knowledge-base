@@ -1,0 +1,80 @@
+schema_version: "1.0"
+phase: "6.1"
+name: external-source-foundation
+identity_version: phase6-external-document-1.0
+snapshot_version: phase6-external-snapshot-1.0
+relation_version: phase6-source-relation-1.0
+assertion_version: phase6-relation-assertion-1.0
+
+principles:
+  - external_material_is_not_law_text_truth
+  - immutable_raw_payloads_use_phase3_source_file
+  - provider_metadata_projections_are_rebuildable
+  - changed_payload_creates_new_snapshot
+  - conflicting_relation_assertions_coexist
+  - automated_links_do_not_silently_become_confirmed
+  - temporal_ambiguity_is_not_resolved_by_external_similarity
+  - no_credentials_or_paid_service_tokens_in_repository
+
+providers:
+  kanpo-go-jp:
+    source_family: official-gazette
+    authority_name: 内閣府
+    base_url: https://www.kanpo.go.jp/
+    transport_kind: html-pdf
+    source_truth_role: official-publication
+    id_kind: derived-provider-key
+    id_strategy: issued-date + publication-kind + issue-number
+    notes:
+      - 2025-04-01以降は官報発行サイト上の電子データが官報の正本
+      - derived provider key must never be labeled as an official site ID
+  kokkai-ndl:
+    source_family: diet-minutes
+    authority_name: 国立国会図書館
+    base_url: https://kokkai.ndl.go.jp/
+    transport_kind: http-json-xml
+    source_truth_role: official-proceedings
+    id_kind: provider-explicit
+    document_id_field: issueID
+    future_part_id_field: speechID
+  teikoku-ndl:
+    source_family: imperial-diet-minutes
+    authority_name: 国立国会図書館
+    base_url: https://teikokugikai-i.ndl.go.jp/
+    transport_kind: http-json-xml
+    source_truth_role: official-proceedings
+    id_kind: provider-explicit
+    document_id_field: issueID
+    future_part_id_field: speechID
+  ndl-search:
+    source_family: ndl-search
+    authority_name: 国立国会図書館
+    base_url: https://ndlsearch.ndl.go.jp/
+    transport_kind: sru-opensearch-oai-pmh
+    source_truth_role: bibliographic-metadata
+    id_kind: provider-explicit
+    document_id_field: OAI-PMH identifier
+
+relation_policy:
+  candidate_by_default_for:
+    - identifier-match
+    - metadata-match
+    - text-match
+    - derived
+  confirmation_allowed_for:
+    - provider-explicit
+    - manual
+  prohibited:
+    - promote_vector_or_search_rank_to_legal_confidence
+    - overwrite_rejected_or_conflicting_assertions
+    - cite_metadata_projection_as_primary_source
+    - infer_promulgation_or_amendment_only_from_text_similarity
+
+phase61_exit_gate:
+  provider_registry: required
+  deterministic_external_document_identity: required
+  immutable_snapshot_to_source_file: required
+  law_revision_provision_node_relation_targets: required
+  relation_assertion_history: required
+  provenance_roundtrip: required
+  real_provider_network_ingestion: deferred_to_phase62_plus
