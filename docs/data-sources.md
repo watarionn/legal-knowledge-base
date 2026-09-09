@@ -33,19 +33,18 @@ XMLはPhase 4で一般化した順序付きツリーへ構造化しますが、�
 
 XSD非適合だけで公式RAWを拒否・自動修正しません。
 
-## 将来連携する一次資料
+## Phase 6 external sources
 
-Phase 6では、次を法令本文とは別の`external_document`として接続する予定です。
+Phase 6では、次を法令本文とは別の`external_document`系列として接続します。raw payloadは既存`source_file`へ保存し、外部資料のmetadata projectionを法令本文の正本として扱いません。
 
-- 官報
-- 国会会議録
-- 帝国議会会議録
-- 国立国会図書館の立法・法令関連資料
+- 官報: https://www.kanpo.go.jp/
+- 国会会議録: https://kokkai.ndl.go.jp/
+- 帝国議会会議録: https://teikokugikai-i.ndl.go.jp/
+- NDLサーチ: https://ndlsearch.ndl.go.jp/
 
-関係例:
-- promulgated_in
-- bill_for
-- deliberated_in
+2025-04-01以降の官報は内閣府の官報発行サイト上の電子データが正本です。国会・帝国議会会議録APIでは会議録`issueID`、発言`speechID`をprovider識別子として利用できます。NDLサーチはSRU/OpenSearch/OpenURL/OAI-PMHを提供しており、Phase 6では返却識別子とraw responseを分離して保持します。
+
+法令との関連は`source_relation`と`source_relation_assertion`へ保存します。自動照合はcandidateとして保持し、provider明示または明示的reviewなしにpromulgation・amendment等の法的関係を確定しません。
 
 ## Snapshotについて
 

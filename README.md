@@ -23,13 +23,15 @@
 | 3 | 法令・履歴DB実装 | 完了 |
 | 4 | XML構造DB | **完了** |
 | 5 | 時点検索＋検索/RAG | **完了** |
-| 6 | 官報・議会資料連携 | 未着手 |
+| 6 | 官報・議会資料連携 | **進行中（6.1）** |
 
 Phase 5.1では、`law_id + as_of_date`からrevision候補を解決するstrict resolverを実装しました。Phase 3の実データにはsame-day複数revisionとtemporal ambiguityがあるため、**一意に確認できない候補を勝手に1 revisionへ丸めません**。時点revisionの確定とPhase 4本文のavailabilityも分離し、本文未収録時に別revisionへfallbackしません。
 
 2026-09-05のPostgreSQL 16.15 smokeでは、最初のrevision以前の`not-found`、exclusive境界、same-day `ambiguous`、低品質単一候補の`unresolved`、本文missingの非fallbackを確認し、8件のsynthetic resolver testsもfailure 0でした。
 
 Phase 5.2の全量実測とPhase 5.3a〜dを完了しました。strict temporal resolution後の単一revisionを対象にlexical / structural / vector候補を統合し、Evidence Bundleを経由して最終根拠をPhase 4原文・RAW provenanceへ戻すRAG回答基盤まで実装しています。Phase 5 closure監査結果は [`docs/validation/phase5-closure.md`](docs/validation/phase5-closure.md) に記録しています。詳細は [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) と [`docs/architecture/phase5-vector-rag-retrieval.md`](docs/architecture/phase5-vector-rag-retrieval.md) を参照してください。
+
+Phase 6.1では官報・議会資料・NDL書誌を法令本文とは別系列で扱うExternal Source Foundationを実装中です。外部資料は`external_document`、raw取得物はPhase 3 `source_file`へ結ぶimmutable snapshot、法令との関連は証拠付き`source_relation_assertion`として保持します。詳細は [`docs/architecture/phase6-external-sources.md`](docs/architecture/phase6-external-sources.md) を参照してください。
 
 ## 実測済みデータ
 
@@ -73,7 +75,8 @@ Phase 3の全量bootstrapでは、e-Gov法令API Version 2から9,551法令・53
 ├── implementation/
 │   ├── phase3/             # law / law_revision、API bootstrap
 │   ├── phase4/             # XML parser、構造DB、full importer
-│   └── phase5/             # temporal resolver、検索/RAG（進行中）
+│   ├── phase5/             # temporal resolver、検索/RAG
+│   └── phase6/             # 官報・議会資料・NDL external source foundation
 └── .github/workflows/      # 自動テスト・PostgreSQL smoke
 ```
 
@@ -85,6 +88,7 @@ python implementation/phase3/008_resumable_full_bootstrap_test.py -v
 python implementation/phase4/006_xml_parser_test.py -v
 python implementation/phase4/012_full_relational_import_test.py -v
 python implementation/phase5/004_temporal_resolver_test.py -v
+python implementation/phase6/004_external_source_identity_test.py -v
 ```
 
 PostgreSQL smokeは `.github/workflows/postgres-smoke.yml` を参照してください。Phase 5.1の機械可読証跡は [`docs/validation/phase5_temporal_resolution_smoke_result.json`](docs/validation/phase5_temporal_resolution_smoke_result.json) に保存しています。
