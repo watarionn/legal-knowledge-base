@@ -58,7 +58,10 @@ jobs:
             implementation/phase5/031_embedding_adapter_smoke.py \
             implementation/phase5/034_hybrid_retrieval.py \
             implementation/phase5/035_hybrid_retrieval_test.py \
-            implementation/phase5/036_hybrid_retrieval_smoke.py
+            implementation/phase5/036_hybrid_retrieval_smoke.py \
+            implementation/phase5/038_rag_answer_contract.py \
+            implementation/phase5/039_rag_answer_contract_test.py \
+            implementation/phase5/040_rag_answer_contract_smoke.py
 
       - name: Parse PowerShell launchers
         shell: pwsh
@@ -111,6 +114,9 @@ jobs:
 
       - name: Run Phase 5 hybrid retrieval tests
         run: python implementation/phase5/035_hybrid_retrieval_test.py -v
+
+      - name: Run Phase 5 RAG answer contract tests
+        run: python implementation/phase5/039_rag_answer_contract_test.py -v
 
       - name: Check public-safety boundaries
         shell: python

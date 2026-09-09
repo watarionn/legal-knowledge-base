@@ -119,3 +119,22 @@ CIでは`deterministic-test / sha256-float32` providerだけを使用する。�
 - ANN backend: deferred behind replaceable interface
 
 5.3c完了後は5.3d RAG Answer Contractへ進み、回答文と根拠・最終引用を分離する。
+
+
+## 5.3d RAG Answer Contract
+
+5.3dは5.3cのretrieval contextと生成回答の間にEvidence Bundle境界を置く。contextの`retrieval_text`は検索用派生値なので引用には使わず、`source_document_orders[]`からPhase 4 `provision_node`を再取得し、logical node ID、deterministic XML path、source XML SHAを持つ根拠bundleへ固定する。
+
+Answer Providerはprovider/model/versionを記録する交換可能interfaceとし、回答draftはclaimごとにEvidence IDを1件以上参照する。未知Evidence ID、重複claim ID、根拠なしclaim、空回答はfinalize時にblockedとする。生成回答はsource truthではなく、Evidence BundleもPhase 4 / immutable RAWへの参照envelopeである。
+
+`citation-ready`は、回答claimが既知Evidence Bundleだけを参照し、bundleがstrict temporal scope内のPhase 4 source nodeとRAW SHAへ戻れることを機械検証した状態を表す。根拠が主張を意味的に支持するかというsemantic entailmentは自動でtrueにせず、`semantic_entailment_verified=false`を明示する。
+
+### 5.3d exit gate
+
+- retrieval contextからPhase 4 source nodeへのEvidence Bundle再構築: implemented
+- deterministic Evidence ID: implemented
+- claimごとのknown Evidence ID必須: implemented
+- unknown / duplicate / unsupported evidence reference blocking: implemented
+- generated answerとsource truthの分離: implemented
+- semantic entailmentを自動assertしない: implemented
+- fresh PostgreSQL / full DB provenance roundtrip: implemented

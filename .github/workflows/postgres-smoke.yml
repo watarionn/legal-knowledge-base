@@ -79,3 +79,6 @@ jobs:
 
       - name: Run Phase 5.3 hybrid retrieval smoke
         run: python implementation/phase5/036_hybrid_retrieval_smoke.py
+
+      - name: Run Phase 5.3 RAG answer contract smoke
+        run: python implementation/phase5/040_rag_answer_contract_smoke.py
