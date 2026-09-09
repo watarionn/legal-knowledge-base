@@ -138,3 +138,11 @@ Answer Providerはprovider/model/versionを記録する交換可能interfaceと�
 - generated answerとsource truthの分離: implemented
 - semantic entailmentを自動assertしない: implemented
 - fresh PostgreSQL / full DB provenance roundtrip: implemented
+
+## Phase 5.3 closure
+
+5.3a〜dのexit gateを2026-09-09に再監査し、Phase 3〜5.3d全回帰、fresh PostgreSQL 18、既存全量DBのhybrid retrieval / Evidence Bundle provenance roundtripを再確認した。blocking gapはなく、Phase 5.3を完了とする。
+
+production embedding provider、ANN backend、LLM provider、semantic answer quality評価はcorrectness/provenance contractから分離した後続最適化であり、Phase 3/4のsource truth境界を変更しない。closure証跡は [`../validation/phase5-closure.md`](../validation/phase5-closure.md) に記録する。
+
+状態: **完了**

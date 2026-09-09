@@ -22,14 +22,14 @@
 | 2 | 原本・全量データ検証 | 完了 |
 | 3 | 法令・履歴DB実装 | 完了 |
 | 4 | XML構造DB | **完了** |
-| 5 | 時点検索＋検索/RAG | **進行中（Phase 5.1 / 5.2完了、Phase 5.3進行中）** |
+| 5 | 時点検索＋検索/RAG | **完了** |
 | 6 | 官報・議会資料連携 | 未着手 |
 
 Phase 5.1では、`law_id + as_of_date`からrevision候補を解決するstrict resolverを実装しました。Phase 3の実データにはsame-day複数revisionとtemporal ambiguityがあるため、**一意に確認できない候補を勝手に1 revisionへ丸めません**。時点revisionの確定とPhase 4本文のavailabilityも分離し、本文未収録時に別revisionへfallbackしません。
 
 2026-09-05のPostgreSQL 16.15 smokeでは、最初のrevision以前の`not-found`、exclusive境界、same-day `ambiguous`、低品質単一候補の`unresolved`、本文missingの非fallbackを確認し、8件のsynthetic resolver testsもfailure 0でした。
 
-Phase 5.2の全量実測、Phase 5.3a Retrieval Chunk Foundation、5.3b Embedding Adapter、5.3c Hybrid Retrieval / Context Assemblyまで完了し、Phase 5.3d RAG Answer Contractへ進んでいます。5.3dでは生成回答と根拠を分離し、引用候補はretrieval chunk本文ではなくPhase 4 source nodeへ戻してEvidence Bundleとして確定します。詳細は [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) と [`docs/architecture/phase5-vector-rag-retrieval.md`](docs/architecture/phase5-vector-rag-retrieval.md) を参照してください。
+Phase 5.2の全量実測とPhase 5.3a〜dを完了しました。strict temporal resolution後の単一revisionを対象にlexical / structural / vector候補を統合し、Evidence Bundleを経由して最終根拠をPhase 4原文・RAW provenanceへ戻すRAG回答基盤まで実装しています。Phase 5 closure監査結果は [`docs/validation/phase5-closure.md`](docs/validation/phase5-closure.md) に記録しています。詳細は [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) と [`docs/architecture/phase5-vector-rag-retrieval.md`](docs/architecture/phase5-vector-rag-retrieval.md) を参照してください。
 
 ## 実測済みデータ
 
