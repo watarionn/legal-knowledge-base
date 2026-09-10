@@ -121,7 +121,7 @@ OAI-PMHのidentifier等、providerが返す識別子をlogical document identity
 - structure presence != cryptographic validity: enforced
 - fresh PostgreSQL 18 Phase 3→6.3 smoke: passed
 - real explicit Gazette PDF live probe: passed
-- automatic legal linkage: deferred to 6.5
+- automatic legal linkage: implemented in 6.5
 - article-level extraction/indexing: deferred
 
 ## 6.4 NDL Legislative Metadata Adapter
@@ -143,4 +143,24 @@ OAI repositoryのdeleted recordはtombstone observationとして追加し、既�
 - bulk `ListRecords` disabled: implemented
 - fresh PostgreSQL 18 Phase 3→6.4 smoke: passed
 - real SRU exact discovery + OAI GetRecord live probe: passed
-- automatic legal linkage: deferred to 6.5
+- automatic legal linkage: implemented in 6.5
+
+## 6.5 Cross-source Legal Linkage / Retrieval
+
+自動linkageはexact e-Gov law ID / 法令番号 / 法令名 / 改正法令識別子だけを信号にし、fuzzy matchや検索scoreを法的confidenceへ変換しない。国会・帝国議会は`mentions`、NDL metadataは`bibliographic-reference`としてcandidateを生成する。6.3官報は記事本文抽出を行っていないため自動text linkage対象外とする。
+
+relation statusはcandidate / confirmed / rejectedをassertionとして追記し、confirmedとrejectedが共存する場合は`conflicted`とする。retrievalはconfirmedだけを既定表示・citation-readyとし、non-confirmedは明示opt-inでもcitation-ready=falseを維持する。
+
+### 6.5 exit gate
+
+- exact identifier / law-number / law-title matching only: implemented
+- all automatic linkage forced candidate: implemented
+- amendment identifier → revision candidate: implemented
+- manual confirmed/rejected review without overwrite: implemented
+- confirmed+rejected conflict state: implemented
+- confirmed-only default retrieval: implemented
+- candidate/conflicted/rejected citation-ready false: implemented
+- raw external snapshot SHA provenance in retrieval envelope: implemented
+- fresh PostgreSQL 18 Phase 3→6.5 smoke: passed
+- real National Diet exact-title live candidate probe: passed
+- Gazette automatic text linkage: deferred until article-level extraction exists

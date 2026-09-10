@@ -51,6 +51,8 @@ Phase 6では、次を法令本文とは別の`external_document`系列として
 
 法令との関連は`source_relation`と`source_relation_assertion`へ保存します。自動照合はcandidateとして保持し、provider明示または明示的reviewなしにpromulgation・amendment等の法的関係を確定しません。
 
+Phase 6.5では国会・帝国議会・NDL metadataの完全一致シグナルからcandidate relationを生成します。既定retrievalはconfirmed relationだけを返し、candidate / rejected / conflictedはcitation-readyとして扱いません。
+
 ## Snapshotについて
 
 このリポジトリに記録された件数は、取得日時・取得方法・フィルタが異なるsnapshotを含みます。たとえばAPIの法令集合、保存済みXML snapshot、別時点のcurrent bulkは同じ母集団とは限りません。
