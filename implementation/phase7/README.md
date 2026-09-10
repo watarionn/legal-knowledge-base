@@ -139,21 +139,23 @@ Phase 5のlexical retrievalはliteral substringを基礎にしているため、
 - Web UIはsource/user textを`textContent`で描画し、HTMLとして直接挿入しない
 - generated answerはsource truthとして扱わない
 
-## 次のgate
+## 全量runtime検証
 
-隔離PostgreSQL + 実XML fixtureでMVP経路は通過済みです。次のgateは、過去に構築した全量corpus相当のPostgreSQLを再用意して、実際の法令名・日付・自然言語質問で検索品質を確認することです。
+2026-09-10取得のe-Gov公式runtime snapshotを使った全量gateは完了しています。
 
-確認対象:
+- Phase 3: 9,551法令 / 53,718 revision、failed law 0、error 0
+- Phase 4: 10,680文書 / 31,725,732 provision nodes / 41,886 attachments、failed 0、parse issue 0
+- Phase 5.3 retrieval chunk: 10,680文書 / 6,070,516 chunks、failed 0
+- trigram GIN indexとlexical / structural retrieval functionを全量DBへ適用済み
+- 建設業法「請負契約」、民法第90条、労働基準法「労働時間」でEvidence取得を確認
+- 2026-09-10時点でtemporal ambiguityとなる法令はrevisionを推測せずblocked-temporalで停止
+- HTTP `/`、health、query、Evidence detail roundtripを全量DBで確認
 
-1. 実法令名から`law_id`を一意解決できる
-2. 指定日がPhase 5 strict temporal resolverへそのまま渡る
-3. resolved revision以外を検索しない
-4. Evidence BundleがPhase 4原文へroundtripする
-5. Web UIで原文・revision・RAW SHAを確認できる
-6. ambiguous / unresolved / no-hitの表示が崩れない
-7. query plannerの実データ上のrecallが日常利用に足りる
+Phase 4では6 revisionだけPhase 3 API履歴と照合できずdeferredになりました。6件はすべてruntime snapshot日より未来の施行日で、2026-09-10時点の利用対象本文を欠落させていません。別revision本文への代用は行いません。
 
-全量DBが現在のローカル環境に常駐していなかったため、このgateは未実施です。全量DBを再用意する前に、DB dumpや巨大RAWをGitへ追加しない既存方針を維持します。
+query plannerは全量テストで見つかった「確認したい」が検索主題より優先される問題を修正し、意図語を除外するようにしました。chunking config検出も全chunk `GROUP BY`からindexを利用できる`DISTINCT ... LIMIT 2`へ変更しています。
+
+機械可読な全量検証証跡は [`../../docs/validation/phase7-1-full-runtime-validation-20260910.json`](../../docs/validation/phase7-1-full-runtime-validation-20260910.json) に保存しています。
 
 ## Runtime corpus再構築
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from functools import lru_cache
 from datetime import date
 import importlib.util
 import os
@@ -20,7 +21,10 @@ _SPLIT_RE = re.compile(
     r"(?:について|に関係する|に関する|を教えてください|を教えて|教えてください|教えて|"
     r"とは|では|から|まで|より|で|は|が|を|に|の|と)"
 )
-_STOP_SEGMENTS = frozenset({"規定", "内容", "法律", "法令", "時点", "場合", "場面", "ください"})
+_STOP_SEGMENTS = frozenset({
+    "規定", "内容", "法律", "法令", "時点", "場合", "場面", "ください",
+    "確認", "確認する", "確認したい", "知りたい", "調べる", "調べたい", "見たい",
+})
 
 
 def _load(name: str, path: Path):
@@ -243,10 +247,10 @@ def _discover_chunking_config(conn: Any, configured: str | None) -> str:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT chunking_config_sha256, count(*) AS chunk_count
+            SELECT DISTINCT chunking_config_sha256
             FROM legal_kb.retrieval_chunk
-            GROUP BY chunking_config_sha256
-            ORDER BY chunk_count DESC, chunking_config_sha256
+            ORDER BY chunking_config_sha256
+            LIMIT 2
             """
         )
         rows = cur.fetchall()
@@ -261,6 +265,7 @@ def _discover_chunking_config(conn: Any, configured: str | None) -> str:
     return str(rows[0][0]).lower()
 
 
+@lru_cache(maxsize=1)
 def _load_phase5_modules() -> tuple[Any, Any]:
     hybrid = _load("legal_kb_phase5_hybrid_for_phase7", PHASE5_DIR / "034_hybrid_retrieval.py")
     rag = _load("legal_kb_phase5_rag_for_phase7", PHASE5_DIR / "038_rag_answer_contract.py")

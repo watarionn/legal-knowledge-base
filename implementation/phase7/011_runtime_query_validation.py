@@ -161,13 +161,23 @@ def run(database_url: str, *, as_of: date) -> dict[str, Any]:
         and case["evidence_count"] > 0
         for case in successful
     )
-    expected_success = all(
+    resolved_cases = [case for case in cases if case["temporal_status"] == "resolved"]
+    ambiguous_cases = [case for case in cases if case["temporal_status"] == "ambiguous"]
+    resolved_cases_have_evidence = all(
         case["law_resolution_status"] == "resolved"
-        and case["temporal_status"] == "resolved"
         and case["content_status"] == "available"
         and case["retrieval_status"] == "ok"
+        and case["status"] == "evidence-only"
         and case["evidence_count"] > 0
-        for case in cases
+        for case in resolved_cases
+    ) and bool(resolved_cases)
+    ambiguous_named_cases_blocked = all(
+        case["law_resolution_status"] == "resolved"
+        and case["status"] == "blocked-temporal"
+        and case["law_revision_id"] is None
+        and case["retrieval_status"] == "blocked-temporal"
+        and case["evidence_count"] == 0
+        for case in ambiguous_cases
     )
     result = {
         "schema_version": "1.0",
@@ -180,7 +190,8 @@ def run(database_url: str, *, as_of: date) -> dict[str, Any]:
         "cases": cases,
         "ambiguous_case": ambiguous,
         "checks": {
-            "all_named_cases_resolved_with_evidence": expected_success,
+            "resolved_named_cases_have_evidence": resolved_cases_have_evidence,
+            "ambiguous_named_cases_block_without_guessing": ambiguous_named_cases_blocked,
             "evidence_preserves_phase3_phase4_truth": evidence_integrity,
             "ambiguous_case_found": ambiguous is not None,
             "ambiguous_case_blocked_without_guessing": (

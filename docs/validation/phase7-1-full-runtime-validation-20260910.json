@@ -1,0 +1,289 @@
+{
+  "schema_version": "1.0",
+  "validation": "phase7-1-full-runtime",
+  "captured_on": "2026-09-10",
+  "status": "passed",
+  "snapshot": {
+    "sha256": "29f6ec453c6637bb216fc40a60a40f780de7eca124ce44d68b4d7c6ed03e42fd",
+    "xml_count": 10686,
+    "unique_law_id_count": 8981,
+    "verification": "passed"
+  },
+  "phase3": {
+    "status": "succeeded",
+    "law_count": 9551,
+    "law_revision_count": 53718,
+    "failed_law_count": 0,
+    "error_issue_count": 0
+  },
+  "phase4": {
+    "status": "partial",
+    "document_count": 10680,
+    "document_law_count": 8981,
+    "provision_node_count": 31725732,
+    "attachment_count": 41886,
+    "failed_document_count": 0,
+    "parse_issue_count": 0,
+    "deferred_count": 6,
+    "deferred_revisions": [
+      {
+        "law_revision_id": "211AC0000000070_20270518_505AC0000000031",
+        "effective_date": "2027-05-18",
+        "future_to_snapshot": true
+      },
+      {
+        "law_revision_id": "314AC0000000073_20270518_505AC0000000031",
+        "effective_date": "2027-05-18",
+        "future_to_snapshot": true
+      },
+      {
+        "law_revision_id": "342AC0000000035_21171231_507AC0000000013",
+        "effective_date": "2117-12-31",
+        "future_to_snapshot": true
+      },
+      {
+        "law_revision_id": "342AC0000000035_21171231_507AC0000000032",
+        "effective_date": "2117-12-31",
+        "future_to_snapshot": true
+      },
+      {
+        "law_revision_id": "342AC0000000081_20270518_505AC0000000031",
+        "effective_date": "2027-05-18",
+        "future_to_snapshot": true
+      },
+      {
+        "law_revision_id": "411AC0000000097_20270620_506AC0000000060",
+        "effective_date": "2027-06-20",
+        "future_to_snapshot": true
+      }
+    ],
+    "all_deferred_are_future_to_snapshot": true
+  },
+  "retrieval_chunks": {
+    "status": "succeeded",
+    "document_count": 10680,
+    "chunk_count": 6070516,
+    "oversize_chunk_count": 7403,
+    "failed_document_count": 0,
+    "chunking_config_sha256": "05a1fe9446d4c873ddfa8e0de7698fbe3dc5a3de4fd2e1ba24d5fb2da32ece48",
+    "trigram_index_present": true,
+    "retrieval_function_count": 2
+  },
+  "query_validation": {
+    "schema_version": "1.0",
+    "runner": "011_runtime_query_validation.py",
+    "as_of_date": "2026-09-10",
+    "database_url_recorded": false,
+    "answer_provider_required": false,
+    "case_count": 4,
+    "evidence_only_case_count": 3,
+    "cases": [
+      {
+        "name": "construction-contract",
+        "question": "建設業法で請負契約に関係する規定を確認したい",
+        "as_of_date": "2026-09-10",
+        "status": "evidence-only",
+        "law_resolution_status": "resolved",
+        "law_id": "324AC0000000100",
+        "law_title": "建設業法",
+        "temporal_status": "resolved",
+        "content_status": "available",
+        "law_revision_id": "324AC0000000100_20251212_506AC0000000049",
+        "retrieval_status": "ok",
+        "retrieval_query_text": "請負契約",
+        "channel_counts": {
+          "lexical": 50,
+          "structural": 0,
+          "vector": 0
+        },
+        "evidence_count": 8,
+        "citation_truth": "phase3-phase4",
+        "source_sha_count": 1,
+        "timing_ms": {
+          "law_resolution": 51.433,
+          "temporal_and_retrieval": 187.706,
+          "evidence": 14.434,
+          "total": 1112.409
+        },
+        "warnings": []
+      },
+      {
+        "name": "civil-code-article-90",
+        "question": "民法の第90条を確認したい",
+        "as_of_date": "2026-09-10",
+        "status": "evidence-only",
+        "law_resolution_status": "resolved",
+        "law_id": "129AC0000000089",
+        "law_title": "民法",
+        "temporal_status": "resolved",
+        "content_status": "available",
+        "law_revision_id": "129AC0000000089_20260624_508AC0000000045",
+        "retrieval_status": "ok",
+        "retrieval_query_text": "の第90条を確認したい",
+        "channel_counts": {
+          "lexical": 0,
+          "structural": 1,
+          "vector": 0
+        },
+        "evidence_count": 1,
+        "citation_truth": "phase3-phase4",
+        "source_sha_count": 1,
+        "timing_ms": {
+          "law_resolution": 46.576,
+          "temporal_and_retrieval": 16.584,
+          "evidence": 1.021,
+          "total": 761.967
+        },
+        "warnings": []
+      },
+      {
+        "name": "labor-hours",
+        "question": "労働基準法で労働時間に関係する規定を確認したい",
+        "as_of_date": "2026-09-10",
+        "status": "evidence-only",
+        "law_resolution_status": "resolved",
+        "law_id": "322AC0000000049",
+        "law_title": "労働基準法",
+        "temporal_status": "resolved",
+        "content_status": "available",
+        "law_revision_id": "322AC0000000049_20260717_508AC0000000060",
+        "retrieval_status": "ok",
+        "retrieval_query_text": "労働時間",
+        "channel_counts": {
+          "lexical": 50,
+          "structural": 0,
+          "vector": 0
+        },
+        "evidence_count": 8,
+        "citation_truth": "phase3-phase4",
+        "source_sha_count": 1,
+        "timing_ms": {
+          "law_resolution": 36.69,
+          "temporal_and_retrieval": 179.686,
+          "evidence": 13.203,
+          "total": 918.303
+        },
+        "warnings": []
+      },
+      {
+        "name": "personal-data",
+        "question": "個人情報の保護に関する法律で個人データに関係する規定を確認したい",
+        "as_of_date": "2026-09-10",
+        "status": "blocked-temporal",
+        "law_resolution_status": "resolved",
+        "law_id": "415AC0000000057",
+        "law_title": "個人情報の保護に関する法律",
+        "temporal_status": "ambiguous",
+        "content_status": "candidate-dependent",
+        "law_revision_id": null,
+        "retrieval_status": "blocked-temporal",
+        "retrieval_query_text": "個人データ",
+        "channel_counts": {
+          "lexical": 0,
+          "structural": 0,
+          "vector": 0
+        },
+        "evidence_count": 0,
+        "citation_truth": null,
+        "source_sha_count": 0,
+        "timing_ms": {
+          "law_resolution": 49.262,
+          "temporal_and_retrieval": 7.669,
+          "total": 739.404
+        },
+        "warnings": [
+          "TEMPORAL_MULTIPLE_CANDIDATES",
+          "RETRIEVAL_NOT_RUN"
+        ]
+      }
+    ],
+    "ambiguous_case": {
+      "law_id": "332M50000040015",
+      "law_title": "租税特別措置法施行規則",
+      "as_of_date": "2026-09-10",
+      "candidate_count": 3,
+      "status": "blocked-temporal",
+      "temporal_status": "ambiguous",
+      "selected_revision_id": null,
+      "reported_candidate_count": 3,
+      "passed": true
+    },
+    "checks": {
+      "resolved_named_cases_have_evidence": true,
+      "ambiguous_named_cases_block_without_guessing": true,
+      "evidence_preserves_phase3_phase4_truth": true,
+      "ambiguous_case_found": true,
+      "ambiguous_case_blocked_without_guessing": true
+    },
+    "timing_ms": {
+      "median_total": 840.135,
+      "max_total": 1112.409
+    },
+    "status": "passed"
+  },
+  "evidence_precision_samples": [
+    {
+      "name": "construction",
+      "status": "evidence-only",
+      "query_text": "請負契約",
+      "evidence": [
+        {
+          "path": "/Law[1]/LawBody[1]/MainProvision[1]/Chapter[3]/Section[1]/Article[14]/ArticleCaption[1] … /Law[1]/LawBody[1]/MainProvision[1]/Chapter[3]/Section[1]/Article[14]/ArticleTitle[1]",
+          "quote": "（請負契約とみなす場合）\n第二十四条"
+        },
+        {
+          "path": "/Law[1]/LawBody[1]/TOC[1]/TOCChapter[3]/ChapterTitle[1]",
+          "quote": "第三章　建設工事の請負契約"
+        },
+        {
+          "path": "/Law[1]/LawBody[1]/MainProvision[1]/Chapter[3]/ChapterTitle[1]",
+          "quote": "第三章　建設工事の請負契約"
+        }
+      ]
+    },
+    {
+      "name": "labor",
+      "status": "evidence-only",
+      "query_text": "労働時間",
+      "evidence": [
+        {
+          "path": "/Law[1]/LawBody[1]/MainProvision[1]/Chapter[4]/Article[1]/ArticleCaption[1] … /Law[1]/LawBody[1]/MainProvision[1]/Chapter[4]/Article[1]/ArticleTitle[1]",
+          "quote": "（労働時間）\n第三十二条"
+        },
+        {
+          "path": "/Law[1]/LawBody[1]/MainProvision[1]/Chapter[6]/Article[5]/ArticleCaption[1] … /Law[1]/LawBody[1]/MainProvision[1]/Chapter[6]/Article[5]/ArticleTitle[1]",
+          "quote": "（労働時間及び休日）\n第六十条"
+        },
+        {
+          "path": "/Law[1]/LawBody[1]/TOC[1]/TOCChapter[4]/ChapterTitle[1]",
+          "quote": "第四章　労働時間、休憩、休日及び年次有給休暇"
+        }
+      ]
+    }
+  ],
+  "http_smoke": {
+    "root_status": 200,
+    "health_status": "ok",
+    "database": "configured",
+    "query_status": "evidence-only",
+    "law_id": "324AC0000000100",
+    "temporal_status": "resolved",
+    "retrieval_status": "ok",
+    "retrieval_query_text": "請負契約",
+    "evidence_count": 8,
+    "citation_truth": "phase3-phase4",
+    "evidence_roundtrip": true,
+    "total_ms": 965.706
+  },
+  "checks": {
+    "snapshot_verified": true,
+    "phase3_succeeded": true,
+    "phase4_has_no_failures": true,
+    "phase4_deferred_are_future_only": true,
+    "snapshot_law_coverage_matches": true,
+    "chunks_cover_all_documents": true,
+    "search_index_and_functions_ready": true,
+    "runtime_query_validation_passed": true,
+    "http_smoke_passed": true
+  }
+}

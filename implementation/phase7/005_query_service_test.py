@@ -70,6 +70,28 @@ class QueryPlannerTest(unittest.TestCase):
         )
         self.assertEqual(text, "請負契約")
 
+    def test_confirmation_intent_does_not_outweigh_subject(self):
+        resolution = Resolution(
+            selected_law_id="322AC0000000049",
+            candidates=(Candidate("322AC0000000049", "労働基準法"),),
+        )
+        text = SERVICE.plan_retrieval_text(
+            "労働基準法で労働時間に関係する規定を確認したい",
+            resolution,
+        )
+        self.assertEqual(text, "労働時間")
+
+    def test_contract_subject_survives_confirmation_intent(self):
+        resolution = Resolution(
+            selected_law_id="324AC0000000100",
+            candidates=(Candidate("324AC0000000100", "建設業法"),),
+        )
+        text = SERVICE.plan_retrieval_text(
+            "建設業法で請負契約に関係する規定を確認したい",
+            resolution,
+        )
+        self.assertEqual(text, "請負契約")
+
     def test_fullwidth_article_number_is_normalized(self):
         value = SERVICE.structural_filter_from_question("民法の第９０条を確認したい")
         self.assertEqual(value["tag_name"], "Article")
