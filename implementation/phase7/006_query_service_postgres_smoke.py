@@ -11,6 +11,7 @@ import sys
 HERE = Path(__file__).resolve().parent
 _KANJI_TOKEN_RE = re.compile(r"[一-龥々〆ヵヶ]{2,12}")
 _SKIP_TOKENS = frozenset({"法律", "法令", "規定", "内容"})
+_SMOKE_LAW_TITLE = "Phase7検証法"
 
 
 def _load(name: str, filename: str):
@@ -53,10 +54,8 @@ def run(database_url: str) -> dict:
             """
             SELECT c.document_pk, c.law_id, c.law_revision_id,
                    c.chunking_config_sha256, c.retrieval_text,
-                   c.source_xml_sha256, lr.law_title
+                   c.source_xml_sha256
             FROM legal_kb.retrieval_chunk c
-            JOIN legal_kb.law_revision lr ON lr.law_revision_id=c.law_revision_id
-            WHERE lr.law_title IS NOT NULL AND btrim(lr.law_title) <> ''
             ORDER BY c.document_pk, c.start_document_order, c.chunk_id
             LIMIT 1
             """,
@@ -70,7 +69,6 @@ def run(database_url: str) -> dict:
             chunk_config,
             retrieval_text,
             source_sha,
-            law_title,
         ) = row
         token = _pick_token(str(retrieval_text))
 
@@ -88,10 +86,11 @@ def run(database_url: str) -> dict:
                 """
                 UPDATE legal_kb.law_revision
                 SET valid_from=%s, valid_to_exclusive=NULL,
-                    temporal_resolution_quality='confirmed-api'
+                    temporal_resolution_quality='confirmed-api',
+                    law_title=%s
                 WHERE law_revision_id=%s
                 """,
-                (date(2020, 1, 1), revision_id),
+                (date(2020, 1, 1), _SMOKE_LAW_TITLE, revision_id),
             )
         try:
             service = SERVICE.QueryService(
@@ -102,7 +101,7 @@ def run(database_url: str) -> dict:
             )
 
             request = SERVICE.CONTRACT.parse_query_payload(
-                {"question": f"{law_title}を確認したい"},
+                {"question": f"{_SMOKE_LAW_TITLE}を確認したい"},
                 default_date=date(2026, 1, 1),
             )
             discovered = service.resolve_law(conn, request)
@@ -162,7 +161,7 @@ def run(database_url: str) -> dict:
             "status": "passed",
             "law_discovery": "resolved",
             "law_id": str(law_id),
-            "law_title": str(law_title),
+            "law_title": _SMOKE_LAW_TITLE,
             "law_revision_id": str(revision_id),
             "document_pk": int(document_pk),
             "query_token": token,
