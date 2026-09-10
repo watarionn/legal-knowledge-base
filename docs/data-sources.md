@@ -38,6 +38,8 @@ XSD非適合だけで公式RAWを拒否・自動修正しません。
 Phase 6では、次を法令本文とは別の`external_document`系列として接続します。raw payloadは既存`source_file`へ保存し、外部資料のmetadata projectionを法令本文の正本として扱いません。
 
 - 官報: https://www.kanpo.go.jp/
+  - 2025-04-01以降の官報発行サイトを対象とする。サイトのcrawler禁止を尊重し、6.3はoperator指定の単一PDFだけを取得する。
+  - raw PDFの電子署名・タイムスタンプ構造を観測するが、暗号学的validation未実行時は有効と断定しない。
 - 国会会議録: https://kokkai.ndl.go.jp/
 - 帝国議会会議録: https://teikokugikai-i.ndl.go.jp/
 - NDLサーチ: https://ndlsearch.ndl.go.jp/

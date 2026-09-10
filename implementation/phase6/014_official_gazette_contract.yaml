@@ -1,0 +1,58 @@
+version: phase6-official-gazette-1.0
+provider_code: kanpo-cao
+source_family: official-gazette
+source_truth_role: official-publication
+
+acquisition:
+  mode: explicit-issue-only
+  crawl_site: false
+  discover_links: false
+  allowed_host: www.kanpo.go.jp
+  allowed_scheme: https
+  raw_media_type: application/pdf
+
+identity:
+  official_document_id_available: false
+  provider_document_id_format: "derived:{issued_on}:{publication_kind}:{issue_number}"
+  publication_kinds:
+    - regular
+    - extra
+    - government-procurement
+    - special-extra
+    - index
+  note: derived_provider_key_must_not_be_labeled_official_id
+
+assets:
+  allow_split_pdf_segments: true
+  require_page_start: true
+  require_page_end: true
+  require_exact_pdf_url: true
+  max_bytes_default: 134217728
+certificate_observation:
+  structure_detection:
+    byte_range: true
+    signature_dictionary: true
+    document_timestamp: true
+    cades_detached: true
+  cryptographic_validation:
+    required_for_ingest: false
+    default_status: not-checked
+    external_validator_result_may_be_recorded: true
+  invariant: structure_presence_is_not_certificate_validity
+
+provenance:
+  raw_pdf_to_source_file: required
+  external_document_snapshot: required
+  asset_to_snapshot: required
+  source_file_sha256: required
+  mutable_projection_is_source_truth: false
+
+privacy_and_site_rules:
+  respect_90_day_article_restrictions: required
+  collect_personal_articles_for_bulk_index: false
+  automated_site_crawling: prohibited
+  explicit_pdf_download_only: true
+
+linkage:
+  create_law_relation_automatically: false
+  cross_source_linkage_phase: 6.5
