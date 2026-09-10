@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>法令ナレッジベース</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">Legal Knowledge Base · Phase 7-1</p>
+        <h1>法令ナレッジベース</h1>
+        <p class="lede">法令について質問すると、回答より先に対象時点を確定し、根拠原文まで辿れる形で表示します。</p>
+      </div>
+      <span class="badge">v1 foundation</span>
+    </header>
+
+    <section class="query-card" aria-labelledby="query-title">
+      <h2 id="query-title">質問する</h2>
+      <form id="query-form">
+        <label for="as-of-date">基準日 <span class="muted">任意</span></label>
+        <input id="as-of-date" name="as_of_date" type="date">
+        <label for="question">質問</label>
+        <textarea id="question" name="question" rows="4" maxlength="4000" required placeholder="例: 建設業法で請負契約に関係する規定を教えて"></textarea>
+        <input id="law-id" type="hidden" value="">
+        <div class="form-row">
+          <p id="selected-law" class="muted" aria-live="polite"></p>
+          <button id="submit-button" type="submit">調べる</button>
+        </div>
+      </form>
+      <div class="examples" aria-label="例示質問">
+        <button type="button" data-example="建設業法で請負契約に関係する規定を教えて">建設業法と請負契約</button>
+        <button type="button" data-example="民法の第90条を確認したい">民法 第90条</button>
+      </div>
+    </section>
+
+    <p id="progress" class="progress" role="status" aria-live="polite"></p>
+    <section id="result" hidden>
+      <div id="status-banner" class="status-banner"></div>
+      <div id="law-candidates" class="candidate-panel" hidden></div>
+      <div class="result-grid">
+        <article class="answer-panel">
+          <h2>回答</h2>
+          <div id="answer"></div>
+        </article>
+        <aside class="evidence-panel" aria-labelledby="evidence-title">
+          <div class="panel-heading">
+            <h2 id="evidence-title">根拠</h2>
+            <span id="evidence-count" class="count"></span>
+          </div>
+          <div id="evidence-list"></div>
+        </aside>
+      </div>
+      <details class="technical">
+        <summary>対象版・検索情報</summary>
+        <pre id="technical"></pre>
+      </details>
+    </section>
+  </main>
+
+  <dialog id="source-dialog">
+    <button id="dialog-close" class="dialog-close" type="button">閉じる</button>
+    <h2>根拠原文</h2>
+    <p id="dialog-path" class="mono"></p>
+    <pre id="dialog-text" class="source-text"></pre>
+    <dl id="dialog-meta"></dl>
+  </dialog>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
