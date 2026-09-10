@@ -59,6 +59,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase6/006_parliamentary_proceedings_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase6/013_official_gazette_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase6/020_ndl_metadata_schema.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase6/027_cross_source_linkage_schema.sql
 
       - name: Run real XML PostgreSQL COPY smoke
         run: |
@@ -98,3 +99,6 @@ jobs:
 
       - name: Run Phase 6 NDL metadata adapter smoke
         run: python implementation/phase6/025_ndl_metadata_smoke.py
+
+      - name: Run Phase 6 cross-source linkage smoke
+        run: python implementation/phase6/032_cross_source_linkage_smoke.py

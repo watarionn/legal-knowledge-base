@@ -148,4 +148,14 @@ NDLサーチのSRUをbounded discovery、OAI-PMH `GetRecord`をmetadata evidence
 
 OAI削除recordはpersistent tombstoneとして観測し、過去snapshotを削除しません。2026-09-10のlive probeではSRU完全一致1件からOAI GetRecord 1件を取得し、raw XML 6,250 bytes、provenance roundtrip、自動legal relation 0を確認しました。
 
+状態: **完了**
+
+### Phase 6.5 Cross-source Legal Linkage / Retrieval
+
+Phase 6.1の`source_relation` / `source_relation_assertion`を実運用し、国会・帝国議会・NDL metadataからPhase 3 law / law_revisionへの関連候補を生成します。自動照合はe-Gov law ID、法令番号、法令名、改正法令識別子の完全一致だけを使い、全て`candidate`から開始します。
+
+manual reviewは既存assertionを上書きせずconfirmed/rejected evidenceとして追加します。confirmedとrejectedが共存するrelationは`conflicted`とし、既定retrievalから除外します。外部source retrieval envelopeはraw `source_file` SHAへbacklinkし、`confirmed`だけをcitation-readyとします。
+
+2026-09-10のlive probeでは国会会議録1会議250発言を取得し、「行政手続法」の完全一致言及1件からcandidate relation 1件を生成しました。未review状態ではdefault retrieval 0、candidate citation-ready falseを確認しました。
+
 状態: **実装完了・マージ待ち**

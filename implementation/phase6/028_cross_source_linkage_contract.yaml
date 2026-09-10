@@ -1,0 +1,69 @@
+version: phase6-cross-source-linkage-1.0
+phase: 6.5
+purpose: evidence-backed linkage between external sources and Phase 3/4 law entities
+
+source_truth_boundary:
+  law_text_truth: phase3-phase4
+  external_raw_truth: source_file + external_document_snapshot
+  relation_truth: source_relation_assertion evidence
+  ranking_is_legal_confidence: false
+
+automatic_linkage:
+  allowed_bases:
+    - identifier-match
+    - metadata-match
+    - text-match
+    - derived
+  forced_status: candidate
+  fuzzy_title_matching: false
+  inferred_legal_effect: false
+review:
+  confirmation_bases:
+    - provider-explicit
+    - manual
+  decisions:
+    - confirmed
+    - rejected
+  conflicting_confirmed_rejected_state: conflicted
+  preserve_prior_assertions: true
+
+retrieval:
+  default_states:
+    - confirmed
+  nonconfirmed_opt_in: true
+  citation_ready_states:
+    - confirmed
+  candidate_citation_ready: false
+  conflicted_citation_ready: false
+  rejected_citation_ready: false
+
+provider_policy:
+  kokkai-ndl:
+    automated_relation_kind: mentions
+  teikoku-ndl:
+    automated_relation_kind: mentions
+  ndl-search:
+    automated_relation_kind: bibliographic-reference
+  kanpo-cao:
+    automated_text_linkage: false
+    reason: phase6.3 stores PDF evidence but does not perform article-level text extraction
+
+match_signals:
+  law_id_exact:
+    basis: identifier-match
+  law_number_exact:
+    basis: identifier-match
+  law_title_exact:
+    basis: text-match
+  amendment_law_id_exact:
+    basis: identifier-match
+    target: law_revision
+  amendment_law_number_exact:
+    basis: identifier-match
+    target: law_revision
+
+prohibited:
+  - silent revision fallback
+  - approximate title confirmation
+  - candidate evidence presented as citation-ready
+  - generated answer promoted to source evidence

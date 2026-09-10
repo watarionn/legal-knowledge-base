@@ -23,7 +23,7 @@
 | 3 | 法令・履歴DB実装 | 完了 |
 | 4 | XML構造DB | **完了** |
 | 5 | 時点検索＋検索/RAG | **完了** |
-| 6 | 官報・議会資料連携 | **進行中（6.4）** |
+| 6 | 官報・議会資料連携 | **進行中（6.5）** |
 
 Phase 5.1では、`law_id + as_of_date`からrevision候補を解決するstrict resolverを実装しました。Phase 3の実データにはsame-day複数revisionとtemporal ambiguityがあるため、**一意に確認できない候補を勝手に1 revisionへ丸めません**。時点revisionの確定とPhase 4本文のavailabilityも分離し、本文未収録時に別revisionへfallbackしません。
 
@@ -36,6 +36,8 @@ Phase 6.1のExternal Source Foundationを完了し、Phase 6.2では国会会議
 Phase 6.3では官報発行サイトのOfficial Gazette Adapterを実装しました。サイトのcrawler禁止を尊重し、発行日・種別・号数・PDF URLを明示する`explicit-issue-only`方式でraw PDFを取得します。PDF SHAを`source_file`へ保存し、電子署名・タイムスタンプの構造観測と暗号学的validityを分離します。live probeの詳細は [`docs/validation/phase6-official-gazette-live.md`](docs/validation/phase6-official-gazette-live.md) を参照してください。
 
 Phase 6.4ではNDLサーチのSRUをbounded discovery、OAI-PMH `GetRecord`をmetadata evidence取得に分離しました。OAI `identifier`をlogical document identityとし、`dcndl_v3` raw XMLをimmutable `source_file` snapshotへ保存します。削除済みOAI recordも過去snapshotを消さずtombstone observationとして保持します。live probeの詳細は [`docs/validation/phase6-ndl-metadata-live.md`](docs/validation/phase6-ndl-metadata-live.md) を参照してください。
+
+Phase 6.5ではexternal documentと法令・revisionのrelationをevidence-backed candidateとして生成し、manual/provider-explicit reviewとretrievalを分離します。自動照合は完全一致のみを使用し、candidate/conflicted/rejectedはcitation-readyにしません。live probeの詳細は [`docs/validation/phase6-cross-source-linkage-live.md`](docs/validation/phase6-cross-source-linkage-live.md) を参照してください。
 
 ## 実測済みデータ
 
@@ -96,6 +98,7 @@ python implementation/phase6/004_external_source_identity_test.py -v
 python implementation/phase6/010_parliamentary_adapter_test.py -v
 python implementation/phase6/017_official_gazette_adapter_test.py -v
 python implementation/phase6/024_ndl_metadata_adapter_test.py -v
+python implementation/phase6/031_cross_source_linkage_test.py -v
 ```
 
 PostgreSQL smokeは `.github/workflows/postgres-smoke.yml` を参照してください。Phase 5.1の機械可読証跡は [`docs/validation/phase5_temporal_resolution_smoke_result.json`](docs/validation/phase5_temporal_resolution_smoke_result.json) に保存しています。

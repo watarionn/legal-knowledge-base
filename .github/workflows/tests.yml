@@ -79,7 +79,13 @@ jobs:
             implementation/phase6/023_ndl_metadata_persistence.py \
             implementation/phase6/024_ndl_metadata_adapter_test.py \
             implementation/phase6/025_ndl_metadata_smoke.py \
-            implementation/phase6/026_ndl_metadata_live_probe.py
+            implementation/phase6/026_ndl_metadata_live_probe.py \
+            implementation/phase6/029_cross_source_linker.py \
+            implementation/phase6/030_cross_source_linkage_persistence.py \
+            implementation/phase6/031_cross_source_linkage_test.py \
+            implementation/phase6/032_cross_source_linkage_smoke.py \
+            implementation/phase6/033_external_relation_retrieval.py \
+            implementation/phase6/034_cross_source_linkage_live_probe.py
 
       - name: Parse PowerShell launchers
         shell: pwsh
@@ -147,6 +153,9 @@ jobs:
 
       - name: Run Phase 6 NDL metadata adapter tests
         run: python implementation/phase6/024_ndl_metadata_adapter_test.py -v
+
+      - name: Run Phase 6 cross-source linkage tests
+        run: python implementation/phase6/031_cross_source_linkage_test.py -v
 
       - name: Check public-safety boundaries
         shell: python
