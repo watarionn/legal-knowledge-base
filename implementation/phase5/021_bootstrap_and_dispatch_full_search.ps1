@@ -19,6 +19,8 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+throw "Disabled by the GitHub Actions cost guard. Run implementation/phase5/018_run_full_search.ps1 locally instead."
+
 function Assert-Command {
     param([string]$Name)
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {

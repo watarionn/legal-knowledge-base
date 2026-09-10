@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "captured_on": "2026-09-10",
+  "repository": "watarionn/legal-knowledge-base",
+  "repository_actions_enabled": false,
+  "active_workflow_yaml_count": 0,
+  "active_workflow_run_count": 0,
+  "archived_workflow_count": 3,
+  "guard_script_tests": {
+    "passed": 3,
+    "failed": 0
+  },
+  "powershell_parse": "passed",
+  "git_diff_check": "passed",
+  "legacy_dispatch_launcher": "fail-closed",
+  "status": "passed"
+}

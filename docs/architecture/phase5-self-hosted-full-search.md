@@ -1,5 +1,9 @@
 # Phase 5.2 self-hosted full-search execution
 
+> [!IMPORTANT]
+> The referenced workflow is archived under `.github/workflows-disabled/` and repository Actions are disabled. Use the local execution path instead.
+
+
 ## Purpose
 
 The full Phase 5.2 benchmark needs a PostgreSQL 16+ host with substantially more disk than the chat execution environment. The repository therefore provides a manual-only GitHub Actions entrypoint for a dedicated Windows self-hosted runner.
