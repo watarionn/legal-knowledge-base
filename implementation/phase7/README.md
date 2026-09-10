@@ -1,4 +1,4 @@
-# Phase 7-1 Daily Legal Assistant MVP
+# Phase 7 Daily Legal Assistant
 
 Phase 1〜6で完成した法令ナレッジベース v1 を、日常利用できるWebアプリへ接続する最小実装です。
 
@@ -17,6 +17,8 @@ Phase 1〜6で完成した法令ナレッジベース v1 を、日常利用で�
 - Evidence-only動作。answer providerは未接続でも利用可能
 - read-only DB transaction
 - 1画面のresponsive Web UI
+- Phase 7-2: 法令revision履歴タイムライン
+- Phase 7-2: 履歴上の施行日から同じ質問をstrict再検索
 
 ## 構成
 
@@ -28,6 +30,11 @@ implementation/phase7/
 ├── 004_application_contract_test.py
 ├── 005_query_service_test.py
 ├── 006_query_service_postgres_smoke.py
+├── 012_law_history_service.py
+├── 013_law_history_service_test.py
+├── 014_law_history_postgres_smoke.py
+├── 015_history_web_contract_test.py
+├── 016_history_http_smoke.py
 └── web/
     ├── index.html
     ├── styles.css
@@ -79,6 +86,12 @@ $env:LEGAL_KB_CHUNKING_CONFIG_SHA256 = '<64-char SHA-256>'
 ```
 
 対象法令を安全に一意確定できない場合は`law-candidates`を返し、UIから候補を選択して再実行します。
+
+### `GET /api/v1/laws/{law_id}/history?as_of_date=YYYY-MM-DD`
+
+Phase 7-2の改正履歴APIです。Phase 3のrevision履歴、Phase 5.1 strict temporal result、Phase 4本文availabilityを1つのread responseとして返します。
+
+`ambiguous`を1 revisionへ丸めず、historical body missing時にも別revisionへfallbackしません。UIの「この施行日で再検索」もrevision IDを直接固定せず、日付をquery APIへ渡してstrict resolverを再実行します。
 
 ### `GET /api/v1/evidence/{evidence_id}`
 
@@ -200,3 +213,9 @@ python implementation/phase7/008_retrieval_chunk_full_rebuild.py `
 ```
 
 同一chunking configの既存documentは既定でskipするため、中断後の再開時に完成済みchunkを作り直しません。
+
+## Phase 7-2 validation
+
+2026-09-10の全量runtime DBで、民法の現時点resolved、2023-04-01の同日2 revision ambiguous、2024-04-01の本文missing非fallbackを確認しています。設計は [`../../docs/architecture/phase7-point-in-time-history.md`](../../docs/architecture/phase7-point-in-time-history.md) を参照してください。
+
+公開用の統合証跡は [`../../docs/validation/phase7-2-history-validation-20260911.json`](../../docs/validation/phase7-2-history-validation-20260911.json) に保存しています。offline回帰27/27、history HTTP runnerの契約チェック10/10、GitHub Actions cost guard passedを記録しています。

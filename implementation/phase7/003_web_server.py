@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import sys
 from typing import Any
+from urllib.parse import parse_qs, urlsplit
 
 HERE = Path(__file__).resolve().parent
 WEB_DIR = HERE / "web"
@@ -25,6 +26,7 @@ def _load(name: str, path: Path):
 
 
 SERVICE = _load("legal_kb_phase7_query_service", HERE / "002_query_service.py")
+HISTORY = _load("legal_kb_phase7_history_service", HERE / "012_law_history_service.py")
 
 
 class AppState:
@@ -120,9 +122,48 @@ class Handler(BaseHTTPRequestHandler):
                     "database": "configured" if self.state.database_url else "not-configured",
                     "answer_provider": "not-configured",
                     "vector_provider": "not-configured",
-                    "app_version": "phase7-1-mvp",
+                    "app_version": "phase7-2-history",
                 },
             )
+            return
+        history_prefix = "/api/v1/laws/"
+        history_suffix = "/history"
+        if path.startswith(history_prefix) and path.endswith(history_suffix):
+            law_id = path[len(history_prefix):-len(history_suffix)].strip("/")
+            if not self.state.database_url:
+                self._send_error_json(503, "DATABASE_NOT_CONFIGURED", "LEGAL_KB_DATABASE_URL is not configured")
+                return
+            try:
+                as_of_raw = parse_qs(urlsplit(self.path).query).get("as_of_date", [None])[-1]
+                as_of = HISTORY.parse_as_of_date(as_of_raw)
+            except ValueError as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+                return
+            try:
+                import psycopg
+                conn = psycopg.connect(self.state.database_url)
+            except ImportError:
+                self._send_error_json(503, "PSYCOPG_NOT_INSTALLED", "psycopg is required for database queries")
+                return
+            except Exception:
+                self._send_error_json(503, "DATABASE_UNAVAILABLE", "database connection failed")
+                return
+            try:
+                with conn:
+                    with conn.cursor() as cur:
+                        cur.execute("SET TRANSACTION READ ONLY")
+                    history = HISTORY.get_law_history(conn, law_id, as_of_date=as_of)
+                if history is None:
+                    self._send_error_json(404, "LAW_NOT_FOUND", "law was not found")
+                else:
+                    self._send_json(200, history)
+            except ValueError as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+            except Exception as exc:
+                self.log_error("history query failed: %s", exc.__class__.__name__)
+                self._send_error_json(500, "HISTORY_QUERY_FAILED", "history query failed")
+            finally:
+                conn.close()
             return
         prefix = "/api/v1/evidence/"
         if path.startswith(prefix):
