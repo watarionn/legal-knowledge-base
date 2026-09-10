@@ -57,6 +57,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase5/033_hybrid_retrieval_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase6/001_external_source_schema.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase6/006_parliamentary_proceedings_schema.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f implementation/phase6/013_official_gazette_schema.sql
 
       - name: Run real XML PostgreSQL COPY smoke
         run: |
@@ -90,3 +91,6 @@ jobs:
 
       - name: Run Phase 6 parliamentary adapter smoke
         run: python implementation/phase6/011_parliamentary_adapter_smoke.py
+
+      - name: Run Phase 6 official gazette adapter smoke
+        run: python implementation/phase6/018_official_gazette_smoke.py
