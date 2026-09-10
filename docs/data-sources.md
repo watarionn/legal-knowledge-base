@@ -43,6 +43,9 @@ Phase 6では、次を法令本文とは別の`external_document`系列として
 - 国会会議録: https://kokkai.ndl.go.jp/
 - 帝国議会会議録: https://teikokugikai-i.ndl.go.jp/
 - NDLサーチ: https://ndlsearch.ndl.go.jp/
+  - SRUはbounded discoveryに限定し、OAI-PMH `identifier`をlogical document identityに使う。
+  - `dcndl_v3` GetRecord raw XMLをimmutable snapshotとして保持し、削除recordはtombstone observationとして残す。
+  - bulk `ListRecords`は6.4の自動経路では使用しない。
 
 2025-04-01以降の官報は内閣府の官報発行サイト上の電子データが正本です。国会・帝国議会会議録APIでは会議録`issueID`、発言`speechID`をprovider識別子として利用できます。NDLサーチはSRU/OpenSearch/OpenURL/OAI-PMHを提供しており、Phase 6では返却識別子とraw responseを分離して保持します。
 

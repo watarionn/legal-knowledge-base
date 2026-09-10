@@ -1,0 +1,51 @@
+phase: "6.4"
+name: NDL Legislative Metadata Adapter
+provider_code: ndl-search
+source_family: ndl-search
+source_truth_role: bibliographic-metadata
+
+identity:
+  logical_document: OAI-PMH identifier
+  identifier_format: "oai:ndlsearch.ndl.go.jp:R#########-I..."
+  sru_role: discovery-only
+  sru_rank_is_identity: false
+  sru_title_is_identity: false
+
+acquisition:
+  discovery_protocol: SRU 1.2
+  exact_record_protocol: OAI-PMH 2.0 GetRecord
+  default_metadata_prefix: dcndl_v3
+  supported_metadata_prefixes:
+    - oai_dc
+    - dcndl
+    - dcndl_v3
+  bulk_list_records_enabled: false
+  serial_requests: true
+  default_min_interval_seconds: 3.0
+  max_response_bytes: 10485760
+source_truth:
+  raw_getrecord_xml: immutable
+  raw_payload_sha256_required: true
+  metadata_projection_is_source_truth: false
+  sru_response_is_final_metadata_truth: false
+  oai_provider_metadata_is_pre-identification: true
+
+observations:
+  preserve_oai_datestamp_text: true
+  preserve_set_specs: true
+  preserve_deleted_tombstone: true
+  deleted_record_physically_deletes_history: false
+  metadata_xml_sha256_required_when_not_deleted: true
+
+legal_linkage:
+  automatic_relation_creation: false
+  phase: "6.5"
+  search_score_confirms_legal_relation: false
+  metadata_similarity_confirms_legal_relation: false
+
+safety:
+  arbitrary_host_allowed: false
+  required_host: ndlsearch.ndl.go.jp
+  credentials_persisted: false
+  database_url_persisted: false
+  continuous_or_commercial_api_use_requires_terms_review: true
