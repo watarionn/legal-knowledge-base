@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "recorded_on": "2026-09-10",
+  "phase": "7-1",
+  "scope": "Daily Legal Assistant MVP isolated PostgreSQL smoke",
+  "environment": {
+    "device": "local-authorized-windows-pc",
+    "postgresql_major": 16,
+    "container_image": "postgis/postgis:16-3.5",
+    "database_is_ephemeral": true,
+    "database_url_recorded": false,
+    "github_actions_used": false
+  },
+  "fixture": {
+    "source": "existing Phase 4 real XML COPY smoke fixtures",
+    "law_document_count": 4,
+    "provision_node_count": 86,
+    "attachment_count": 1,
+    "xml_parse_issue_count": 0
+  },
+  "prerequisite_smokes": {
+    "phase4_copy_import": "passed",
+    "phase5_temporal_resolution": "passed",
+    "phase5_lexical_structural_search": "passed",
+    "phase5_search_hardening": "passed",
+    "phase5_retrieval_chunk": "passed",
+    "phase5_embedding_adapter": "passed",
+    "phase5_hybrid_retrieval": "passed",
+    "phase5_rag_answer_contract": "passed"
+  },
+  "phase7_query_service_smoke": {
+    "runner": "implementation/phase7/006_query_service_postgres_smoke.py",
+    "status": "passed",
+    "law_discovery": "resolved",
+    "law_id": "503AC0000000004",
+    "law_revision_id": "503AC0000000004_20210203_000000000000000",
+    "document_pk": 1,
+    "chunking_config_sha256": "f4b88bcd71394c290e31b6ae86671092ecd8fa1257e6ce85c7e1021a68afda0b",
+    "retrieval_status": "ok",
+    "lexical_hits": 1,
+    "evidence_count": 1,
+    "strict_revision_scope": true,
+    "provenance_roundtrip": true,
+    "answer_provider_required": false
+  },
+  "phase7_http_smoke": {
+    "status": "passed",
+    "index_http_status": 200,
+    "index_title_present": true,
+    "health_status": "ok",
+    "health_database": "configured",
+    "query_status": "evidence-only",
+    "law_resolution_status": "resolved",
+    "temporal_resolution_status": "resolved",
+    "retrieval_status": "ok",
+    "evidence_count": 3,
+    "answer_status": "provider-not-configured",
+    "citation_truth": "phase3-phase4",
+    "law_id": "503AC0000000004",
+    "law_revision_id": "503AC0000000004_20210203_000000000000000",
+    "source_xml_sha256": "0924a41e2a5d9da98fd8e1c136183ddd3e5d0d666db4b57ffa1b153872ce3944"
+  },
+  "offline_validation": {
+    "application_contract_tests": {
+      "passed": 7,
+      "failed": 0
+    },
+    "query_service_tests": {
+      "passed": 4,
+      "failed": 0
+    },
+    "python_py_compile": "passed"
+  },
+  "cleanup": {
+    "temporary_http_server_stopped": true,
+    "temporary_postgresql_container_removed": true,
+    "temporary_repository_clone_removed": true
+  },
+  "remaining_gate": {
+    "full_corpus_postgresql_smoke": "not-run",
+    "reason": "The previously used full-corpus PostgreSQL instance/volume was not present on the authorized local machine during this run. The MVP was validated against an isolated PostgreSQL 16 instance populated with the repository's real XML smoke fixtures instead."
+  }
+}
