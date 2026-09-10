@@ -69,7 +69,12 @@ jobs:
             implementation/phase6/009_parliamentary_persistence.py \
             implementation/phase6/010_parliamentary_adapter_test.py \
             implementation/phase6/011_parliamentary_adapter_smoke.py \
-            implementation/phase6/012_parliamentary_live_probe.py
+            implementation/phase6/012_parliamentary_live_probe.py \
+            implementation/phase6/015_official_gazette_adapter.py \
+            implementation/phase6/016_official_gazette_persistence.py \
+            implementation/phase6/017_official_gazette_adapter_test.py \
+            implementation/phase6/018_official_gazette_smoke.py \
+            implementation/phase6/019_official_gazette_live_probe.py
 
       - name: Parse PowerShell launchers
         shell: pwsh
@@ -131,6 +136,9 @@ jobs:
 
       - name: Run Phase 6 parliamentary adapter tests
         run: python implementation/phase6/010_parliamentary_adapter_test.py -v
+
+      - name: Run Phase 6 official gazette adapter tests
+        run: python implementation/phase6/017_official_gazette_adapter_test.py -v
 
       - name: Check public-safety boundaries
         shell: python
