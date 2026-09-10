@@ -1,5 +1,9 @@
 # Phase 5.2 full-search one-command launch
 
+> [!IMPORTANT]
+> This GitHub Actions launch path is disabled by the repository cost guard. Use `implementation/phase5/018_run_full_search.ps1` locally instead.
+
+
 ## Purpose
 
 `021_bootstrap_and_dispatch_full_search.ps1` joins the two previously separate host operations:
