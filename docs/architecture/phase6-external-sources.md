@@ -123,3 +123,24 @@ OAI-PMHのidentifier等、providerが返す識別子をlogical document identity
 - real explicit Gazette PDF live probe: passed
 - automatic legal linkage: deferred to 6.5
 - article-level extraction/indexing: deferred
+
+## 6.4 NDL Legislative Metadata Adapter
+
+SRUはprovider recordを発見するためのbounded searchに限定し、logical document identityにはOAI-PMH headerの`identifier`を使う。SRU record projectionを引用正本にはしない。
+
+OAI-PMH `GetRecord`の`dcndl_v3` responseをraw XMLとしてPhase 3 `source_file`へ保存し、`external_document_snapshot`へbacklinkする。bibliographic fieldsは`ndl_metadata_observation`へprojectionする。
+
+OAI repositoryのdeleted recordはtombstone observationとして追加し、既存snapshotを物理削除しない。取得clientは直列実行し、既定3秒以上のrequest間隔を維持する。bulk `ListRecords`は6.4の自動経路では無効とする。
+
+### 6.4 exit gate
+
+- SRU bounded discovery with result cap: implemented
+- OAI `identifier` logical identity: implemented
+- `dcndl_v3` raw XML → Phase 3 `source_file` SHA: implemented
+- metadata observation → immutable snapshot provenance: implemented
+- persistent deleted-record tombstone: implemented
+- serial request throttle: implemented
+- bulk `ListRecords` disabled: implemented
+- fresh PostgreSQL 18 Phase 3→6.4 smoke: passed
+- real SRU exact discovery + OAI GetRecord live probe: passed
+- automatic legal linkage: deferred to 6.5

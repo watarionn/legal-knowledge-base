@@ -140,4 +140,12 @@ embedding/chunkを交換可能な派生層として追加し、RAG回答の根�
 
 冊子PDF・分割PDFをpage range付きassetとして保存し、raw PDF SHAから`source_file` / immutable snapshotへ戻せるようにします。電子署名・タイムスタンプはbyte構造の観測と暗号学的validationを分離し、validator未実行時は`not-checked`です。2026-09-10のlive probeでは本紙第1765号1-32頁を明示取得し、4,750,926 bytes、署名field 1、DocTimeStamp 1、ByteRange 2、CAdES detached 1を観測しました。
 
+状態: **完了**
+
+### Phase 6.4 NDL Legislative Metadata Adapter
+
+NDLサーチのSRUをbounded discovery、OAI-PMH `GetRecord`をmetadata evidence取得に使用します。OAI `identifier`をprovider document identityとし、`dcndl_v3` raw XMLをPhase 3 `source_file`へimmutable snapshotとして保存します。title / creator / issued等は再構築可能なprojectionであり、raw XMLを置換しません。
+
+OAI削除recordはpersistent tombstoneとして観測し、過去snapshotを削除しません。2026-09-10のlive probeではSRU完全一致1件からOAI GetRecord 1件を取得し、raw XML 6,250 bytes、provenance roundtrip、自動legal relation 0を確認しました。
+
 状態: **実装完了・マージ待ち**

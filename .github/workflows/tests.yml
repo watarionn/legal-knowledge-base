@@ -74,7 +74,12 @@ jobs:
             implementation/phase6/016_official_gazette_persistence.py \
             implementation/phase6/017_official_gazette_adapter_test.py \
             implementation/phase6/018_official_gazette_smoke.py \
-            implementation/phase6/019_official_gazette_live_probe.py
+            implementation/phase6/019_official_gazette_live_probe.py \
+            implementation/phase6/022_ndl_metadata_adapter.py \
+            implementation/phase6/023_ndl_metadata_persistence.py \
+            implementation/phase6/024_ndl_metadata_adapter_test.py \
+            implementation/phase6/025_ndl_metadata_smoke.py \
+            implementation/phase6/026_ndl_metadata_live_probe.py
 
       - name: Parse PowerShell launchers
         shell: pwsh
@@ -139,6 +144,9 @@ jobs:
 
       - name: Run Phase 6 official gazette adapter tests
         run: python implementation/phase6/017_official_gazette_adapter_test.py -v
+
+      - name: Run Phase 6 NDL metadata adapter tests
+        run: python implementation/phase6/024_ndl_metadata_adapter_test.py -v
 
       - name: Check public-safety boundaries
         shell: python
