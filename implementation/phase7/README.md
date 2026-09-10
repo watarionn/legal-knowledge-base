@@ -27,6 +27,7 @@ implementation/phase7/
 ├── 003_web_server.py
 ├── 004_application_contract_test.py
 ├── 005_query_service_test.py
+├── 006_query_service_postgres_smoke.py
 └── web/
     ├── index.html
     ├── styles.css
@@ -83,7 +84,7 @@ $env:LEGAL_KB_CHUNKING_CONFIG_SHA256 = '<64-char SHA-256>'
 
 現在のprocessで取得済みEvidenceの詳細を返します。Phase 7-1ではin-memory cacheのため、server再起動後の永続lookupは保証しません。
 
-## テスト
+## Offline test
 
 ```bash
 python implementation/phase7/004_application_contract_test.py -v
@@ -93,6 +94,35 @@ python -m py_compile \
   implementation/phase7/002_query_service.py \
   implementation/phase7/003_web_server.py
 ```
+
+2026-09-10の実測では、application contract 7件、query service 4件の計11件がすべてpassし、3本のPython実装も`py_compile`を通過しました。
+
+## PostgreSQL smoke
+
+Phase 4 / Phase 5 smokeまで実行済みのDBに対して、Phase 7 query serviceを検証できます。
+
+```bash
+python implementation/phase7/006_query_service_postgres_smoke.py
+```
+
+`LEGAL_KB_DATABASE_URL`、`DATABASE_URL`、`LEGAL_KB_DSN`の順で接続先を解決します。
+
+2026-09-10には、既存環境を汚さない一時PostgreSQL 16コンテナへPhase 4の実XML fixtureを投入し、Phase 5のtemporal/search/chunk/embedding/hybrid/Evidence smokeを通した後でPhase 7を検証しました。
+
+確認済み:
+
+- deterministic law discovery: resolved
+- strict temporal resolution: resolved
+- retrieval: ok
+- Evidence Bundle再構築: passed
+- revision / source XML SHA scope維持: passed
+- answer provider未設定のEvidence-only動作: passed
+- HTTP `/`: 200
+- HTTP `/api/v1/health`: ok / database configured
+- HTTP `/api/v1/query`: evidence-only / Evidence 3件
+- citation truth: `phase3-phase4`
+
+機械可読証跡は [`../../docs/validation/phase7-1-mvp-smoke-20260910.json`](../../docs/validation/phase7-1-mvp-smoke-20260910.json) に保存しています。
 
 ## 現在の制約
 
@@ -109,17 +139,18 @@ Phase 5のlexical retrievalはliteral substringを基礎にしているため、
 - Web UIはsource/user textを`textContent`で描画し、HTMLとして直接挿入しない
 - generated answerはsource truthとして扱わない
 
-## 次の検証
+## 次のgate
 
-Phase 7-1 MVPの次のgateは、実際の全量PostgreSQLを使ったlocal smokeです。
+隔離PostgreSQL + 実XML fixtureでMVP経路は通過済みです。次のgateは、過去に構築した全量corpus相当のPostgreSQLを再用意して、実際の法令名・日付・自然言語質問で検索品質を確認することです。
 
-確認項目:
+確認対象:
 
-1. 法令名から`law_id`を一意解決できる
+1. 実法令名から`law_id`を一意解決できる
 2. 指定日がPhase 5 strict temporal resolverへそのまま渡る
 3. resolved revision以外を検索しない
 4. Evidence BundleがPhase 4原文へroundtripする
 5. Web UIで原文・revision・RAW SHAを確認できる
 6. ambiguous / unresolved / no-hitの表示が崩れない
+7. query plannerの実データ上のrecallが日常利用に足りる
 
-このsmokeを通過した後に、answer provider接続の要否とquery planner改善を判断します。
+全量DBが現在のローカル環境に常駐していなかったため、このgateは未実施です。全量DBを再用意する前に、DB dumpや巨大RAWをGitへ追加しない既存方針を維持します。
