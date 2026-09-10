@@ -154,3 +154,47 @@ Phase 5のlexical retrievalはliteral substringを基礎にしているため、
 7. query plannerの実データ上のrecallが日常利用に足りる
 
 全量DBが現在のローカル環境に常駐していなかったため、このgateは未実施です。全量DBを再用意する前に、DB dumpや巨大RAWをGitへ追加しない既存方針を維持します。
+
+## Runtime corpus再構築
+
+Phase 7の日常利用環境では、v1完成時の歴史snapshotをそのまま復元するのではなく、e-Govの最新公式「すべての法令データ / XMLのみ」を新しいruntime snapshotとして取得します。
+
+取得したZIPはGitへ入れず、`007_official_bulk_snapshot.py`でSHA-256、ZIP CRC、XML件数、revision filename、重複を検証してPhase 4互換manifestを生成します。
+
+```powershell
+python implementation/phase7/007_official_bulk_snapshot.py `
+  --archive "<runtime-data>/snapshot-YYYYMMDD/all_xml.zip" `
+  --manifest-out "<runtime-data>/snapshot-YYYYMMDD/manifest.json" `
+  --captured-on YYYY-MM-DD
+```
+
+全量runtime DBは`009_runtime_corpus_builder.py`で構築します。現MVPが必要とするmaterializationは、Phase 3履歴、Phase 4構造、Phase 5.3 retrieval chunkです。`search_unit`全量populationとembedding全量生成はPhase 7-1の必須条件ではありません。
+
+```powershell
+python implementation/phase7/009_runtime_corpus_builder.py `
+  --archive "<runtime-data>/snapshot-YYYYMMDD/all_xml.zip" `
+  --manifest "<runtime-data>/snapshot-YYYYMMDD/manifest.json" `
+  --captured-on YYYY-MM-DD `
+  --work-dir "<runtime-data>/run-YYYYMMDD"
+```
+
+`009_runtime_corpus_builder.py`はPhase 3 / Phase 4 / retrieval chunkをそれぞれresume可能な境界で実行します。chunk text用GIN indexは全chunk投入後に作成し、全量insert中のindex更新コストを避けます。
+
+Phase 7-1ではvector channelを無効化しているため、embedding providerやembedding tableのpopulationがなくてもEvidence-only Web UIを利用できます。後続でvector retrievalを有効化するときは、同じcitation truthを維持したまま派生層として追加します。
+
+runtime snapshotとDBについて:
+
+- RAW ZIP、runtime manifest、Phase 3 RAW API response、DB volumeはGitへコミットしない
+- 公開GitにはSHA-256、件数、検証結果だけを記録する
+- runtime snapshotはv1検証snapshotと別identityとして扱う
+- 新しいsnapshotで件数が変化しても、旧snapshotの記録を上書きしない
+- DB接続情報はreportへ記録しない
+
+全量chunk再構築だけを再実行する場合:
+
+```powershell
+python implementation/phase7/008_retrieval_chunk_full_rebuild.py `
+  --result "<runtime-data>/run-YYYYMMDD/phase7-retrieval-chunks.json"
+```
+
+同一chunking configの既存documentは既定でskipするため、中断後の再開時に完成済みchunkを作り直しません。
