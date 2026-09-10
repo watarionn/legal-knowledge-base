@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "evidence_type": "phase7-runtime-official-xml-snapshot",
+  "captured_on": "2026-09-10",
+  "source": {
+    "provider": "e-Gov法令検索",
+    "download_mode": "all-laws-xml-only",
+    "url": "https://laws.e-gov.go.jp/bulkdownload?file_section=1&only_xml_flag=true"
+  },
+  "archive": {
+    "name": "all_xml.zip",
+    "size_bytes": 324022136,
+    "sha256": "29f6ec453c6637bb216fc40a60a40f780de7eca124ce44d68b4d7c6ed03e42fd",
+    "xml_count": 10686,
+    "unique_revision_id_count": 10686,
+    "unique_law_id_count": 8981,
+    "duplicate_revision_id_count": 0,
+    "duplicate_member_name_count": 0,
+    "unparsed_xml_name_count": 0,
+    "zip_crc": "passed"
+  },
+  "phase4_compatibility_preflight": {
+    "status": "preflight-passed",
+    "input_manifest_sha256": "542e194a958c9e072d144918feefafa24dbc3840db566a853358dfa4e9611197",
+    "archive_count": 1,
+    "document_count": 10686,
+    "all_archive_hashes_match": true,
+    "all_xml_names_parsed": true,
+    "revision_ids_unique": true
+  },
+  "historical_v1_snapshot_comparison": {
+    "historical_snapshot_captured_on": "2026-09-04",
+    "historical_xml_count": 10711,
+    "runtime_xml_count": 10686,
+    "xml_count_delta": -25,
+    "historical_unique_law_id_count": 8981,
+    "runtime_unique_law_id_count": 8981,
+    "interpretation": "The Phase 7 runtime snapshot is a distinct official snapshot. Equal law-ID cardinality does not imply an identical revision set, and the historical v1 snapshot remains immutable evidence."
+  },
+  "storage_policy": {
+    "raw_zip_committed_to_git": false,
+    "runtime_manifest_committed_to_git": false,
+    "credentials_recorded": false,
+    "public_evidence_records_hashes_and_counts_only": true
+  },
+  "verification": {
+    "runner": "implementation/phase7/007_official_bulk_snapshot.py",
+    "phase4_preflight_runner": "implementation/phase4/011_full_relational_import.py",
+    "result": "passed"
+  }
+}
