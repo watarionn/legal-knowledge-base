@@ -24,6 +24,13 @@ PRE_CHUNK_DDL = (
     PHASE5_DIR / "022_retrieval_chunk_schema.sql",
 )
 POST_CHUNK_DDL = (PHASE5_DIR / "033_hybrid_retrieval_schema.sql",)
+PRE_CHUNK_REQUIRED_RELATIONS = (
+    "law",
+    "law_revision",
+    "law_document",
+    "provision_node",
+    "retrieval_chunk",
+)
 
 
 def _load(name: str, path: Path):
@@ -74,6 +81,32 @@ def apply_ddl(database_url: str, paths: tuple[Path, ...]) -> str:
                 cur.execute(path.read_text(encoding="utf-8"))
     return version
 
+
+def classify_pre_chunk_relations(existing: set[str]) -> tuple[str, tuple[str, ...]]:
+    required = set(PRE_CHUNK_REQUIRED_RELATIONS)
+    present = required.intersection(existing)
+    if not present:
+        return "empty", tuple(PRE_CHUNK_REQUIRED_RELATIONS)
+    missing = tuple(name for name in PRE_CHUNK_REQUIRED_RELATIONS if name not in present)
+    if not missing:
+        return "ready", ()
+    return "partial", missing
+
+
+def inspect_pre_chunk_schema(database_url: str) -> tuple[str, tuple[str, ...], str]:
+    import psycopg
+
+    existing: set[str] = set()
+    with psycopg.connect(database_url) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT version()")
+            version = str(cur.fetchone()[0])
+            for name in PRE_CHUNK_REQUIRED_RELATIONS:
+                cur.execute("SELECT to_regclass(%s)", (f"legal_kb.{name}",))
+                if cur.fetchone()[0] is not None:
+                    existing.add(name)
+    state, missing = classify_pre_chunk_relations(existing)
+    return state, missing, version
 
 def run_phase3(
     database_url: str,
@@ -218,12 +251,25 @@ def run_pipeline(
         if skip_ddl:
             result["steps"]["pre_chunk_ddl"] = {"status": "skipped"}
         else:
-            version = apply_ddl(database_url, PRE_CHUNK_DDL)
-            result["steps"]["pre_chunk_ddl"] = {
-                "status": "succeeded",
-                "postgres_version": version,
-            }
-
+            schema_state, missing_relations, detected_version = inspect_pre_chunk_schema(
+                database_url
+            )
+            if schema_state == "empty":
+                version = apply_ddl(database_url, PRE_CHUNK_DDL)
+                result["steps"]["pre_chunk_ddl"] = {
+                    "status": "succeeded",
+                    "postgres_version": version,
+                }
+            elif schema_state == "ready":
+                result["steps"]["pre_chunk_ddl"] = {
+                    "status": "reused-existing",
+                    "postgres_version": detected_version,
+                }
+            else:
+                raise RuntimeError(
+                    "partially initialized Phase 7 schema; missing relations: "
+                    + ", ".join(missing_relations)
+                )
         if skip_phase3:
             result["steps"]["phase3"] = {"status": "skipped"}
         else:
