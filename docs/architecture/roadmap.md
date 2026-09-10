@@ -132,4 +132,12 @@ embedding/chunkを交換可能な派生層として追加し、RAG回答の根�
 
 取得clientは直列実行し、既定3秒以上のrequest間隔を強制します。2026-09-09のlive probeでは国会会議録1会議9発言、帝国議会会議録1会議94発言を取得し、計103 speech observationsをfresh PostgreSQLへ保存しました。全103件でraw `source_file` SHAへのprovenance欠落0を確認しています。
 
+状態: **完了**
+
+### Phase 6.3 Official Gazette Adapter
+
+官報発行サイトの利用条件に従い、一覧crawlやlink discoveryを行わず、operatorが明示した発行日・種別・号数・PDF URLだけを取得します。provider document IDは`derived:{issued_on}:{publication_kind}:{issue_number}`とし、公式IDではないことを明示します。
+
+冊子PDF・分割PDFをpage range付きassetとして保存し、raw PDF SHAから`source_file` / immutable snapshotへ戻せるようにします。電子署名・タイムスタンプはbyte構造の観測と暗号学的validationを分離し、validator未実行時は`not-checked`です。2026-09-10のlive probeでは本紙第1765号1-32頁を明示取得し、4,750,926 bytes、署名field 1、DocTimeStamp 1、ByteRange 2、CAdES detached 1を観測しました。
+
 状態: **実装完了・マージ待ち**

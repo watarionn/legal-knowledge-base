@@ -97,3 +97,29 @@ OAI-PMHのidentifier等、providerが返す識別子をlogical document identity
 - fresh PostgreSQL 18 Phase 3→6.2 smoke: passed
 - real NDL API live probe for both providers: passed
 - cross-source legal linkage automation: deferred to 6.5
+
+## 6.3 Official Gazette Adapter
+
+官報発行サイトは2025-04-01以降、官報の発行面そのものとして扱う。6.3ではサイト全体をcrawlerで巡回せず、operatorが明示した発行日・種別・号数・PDF URLだけを取得する。
+
+官報側に安定した公式document IDが公開されているとはみなさず、`derived:{issued_on}:{publication_kind}:{issue_number}`を内部provider keyとする。これは公式IDではないことをschema・contract・文書で明記する。
+
+冊子PDFまたは分割PDFは`official_gazette_asset`としてpage range付きで保持し、各raw PDFをPhase 3 `source_file`と`external_document_snapshot`へbacklinkする。分割PDFを1つのpayloadへ結合して正本を作り直すことはしない。
+
+電子署名・タイムスタンプは`official_gazette_certificate_observation`へ別観測として保存する。PDF byte構造からsignature field、DocTimeStamp、ByteRange、CAdES detachedの存在を数えても、証明書の暗号学的validityとは判定しない。validation backend未実行時は`not-checked`を維持する。
+
+発行後のプライバシー配慮による閲覧制約を迂回せず、記事単位の大量抽出・indexingは6.3の対象外とする。
+### 6.3 exit gate
+
+- explicit issue identity with derived-key labeling: implemented
+- no crawler / no link discovery: implemented
+- official host/date/PDF URL validation: implemented
+- booklet and split PDF page ranges: implemented
+- raw PDF → Phase 3 `source_file` SHA: implemented
+- Gazette asset → immutable snapshot provenance: implemented
+- signature/timestamp structure observation: implemented
+- structure presence != cryptographic validity: enforced
+- fresh PostgreSQL 18 Phase 3→6.3 smoke: passed
+- real explicit Gazette PDF live probe: passed
+- automatic legal linkage: deferred to 6.5
+- article-level extraction/indexing: deferred
