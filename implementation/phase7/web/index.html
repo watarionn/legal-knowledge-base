@@ -10,7 +10,7 @@
   <main class="shell">
     <header class="masthead">
       <div>
-        <p class="eyebrow">Legal Knowledge Base · Phase 7-1</p>
+        <p class="eyebrow">Legal Knowledge Base · Phase 7-2</p>
         <h1>法令ナレッジベース</h1>
         <p class="lede">法令について質問すると、回答より先に対象時点を確定し、根拠原文まで辿れる形で表示します。</p>
       </div>
@@ -21,7 +21,10 @@
       <h2 id="query-title">質問する</h2>
       <form id="query-form">
         <label for="as-of-date">基準日 <span class="muted">任意</span></label>
-        <input id="as-of-date" name="as_of_date" type="date">
+        <div class="date-row">
+          <input id="as-of-date" name="as_of_date" type="date">
+          <button id="today-button" type="button" class="secondary-button">今日</button>
+        </div>
         <label for="question">質問</label>
         <textarea id="question" name="question" rows="4" maxlength="4000" required placeholder="例: 建設業法で請負契約に関係する規定を教えて"></textarea>
         <input id="law-id" type="hidden" value="">
@@ -53,6 +56,14 @@
           <div id="evidence-list"></div>
         </aside>
       </div>
+      <section id="history-panel" class="history-panel" hidden aria-labelledby="history-title">
+        <div class="panel-heading">
+          <h2 id="history-title">改正履歴</h2>
+          <span id="history-count" class="count"></span>
+        </div>
+        <p id="history-summary" class="history-summary"></p>
+        <div id="history-list" class="history-list"></div>
+      </section>
       <details class="technical">
         <summary>対象版・検索情報</summary>
         <pre id="technical"></pre>

@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0",
+  "phase": "7-2",
+  "feature": "point-in-time-search-and-amendment-history-ui",
+  "generated_on": "2026-09-11",
+  "source_truth": "phase3-phase4",
+  "database_url_recorded": false,
+  "runtime_postgres_observation": {
+    "observed_on": "2026-09-10",
+    "status": "passed",
+    "elapsed_ms": 85.74,
+    "civil_current": {
+      "as_of_date": "2026-09-10",
+      "temporal_status": "resolved",
+      "selected_revision_id": "129AC0000000089_20260624_508AC0000000045",
+      "revision_count": 37,
+      "selected_count": 1,
+      "candidate_count": 1,
+      "selected_content_status": "available"
+    },
+    "civil_ambiguous": {
+      "as_of_date": "2023-04-01",
+      "temporal_status": "ambiguous",
+      "selected_revision_id": null,
+      "candidate_count": 2
+    },
+    "civil_historical_missing": {
+      "as_of_date": "2024-04-01",
+      "temporal_status": "resolved",
+      "selected_revision_id": "129AC0000000089_20240401_504AC0000000102",
+      "content_status": "missing",
+      "fallback_used": false
+    }
+  },
+  "runtime_http_observation": {
+    "observed_on": "2026-09-10",
+    "root_status": 200,
+    "phase72_marker": true,
+    "history_panel_present": true,
+    "health_status": "ok",
+    "app_version": "phase7-2-history",
+    "query_status": "evidence-only",
+    "query_revision": "129AC0000000089_20260624_508AC0000000045",
+    "history_status": "resolved",
+    "history_revision_count": 37,
+    "history_selected_count": 1,
+    "history_selected_content_status": "available",
+    "ambiguous_status": "ambiguous",
+    "ambiguous_candidate_count": 2,
+    "historical_content_status": "missing",
+    "source_truth": "phase3-phase4"
+  },
+  "current_revalidation": {
+    "observed_on": "2026-09-11",
+    "offline_tests": {
+      "application_contract": "7/7",
+      "query_service": "6/6",
+      "runtime_corpus_builder": "4/4",
+      "history_service": "5/5",
+      "history_web_contract": "5/5",
+      "total": "27/27"
+    },
+    "python_compile": "passed",
+    "javascript_syntax": "passed",
+    "git_diff_check": "passed",
+    "http_runner_mock_contract_checks": "10/10",
+    "github_actions_cost_guard": "passed"
+  },
+  "safety_invariants": {
+    "ambiguous_revision_auto_selected": false,
+    "historical_missing_content_fallback": false,
+    "revision_override_from_history_ui": false,
+    "history_research_uses_as_of_date": true,
+    "generated_answer_is_source_truth": false
+  },
+  "status": "passed"
+}

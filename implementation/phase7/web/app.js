@@ -2,6 +2,7 @@ const form = document.querySelector('#query-form');
 const question = document.querySelector('#question');
 const asOfDate = document.querySelector('#as-of-date');
 const lawId = document.querySelector('#law-id');
+const todayButton = document.querySelector('#today-button');
 const selectedLaw = document.querySelector('#selected-law');
 const submitButton = document.querySelector('#submit-button');
 const progress = document.querySelector('#progress');
@@ -11,6 +12,10 @@ const candidatesPanel = document.querySelector('#law-candidates');
 const answer = document.querySelector('#answer');
 const evidenceList = document.querySelector('#evidence-list');
 const evidenceCount = document.querySelector('#evidence-count');
+const historyPanel = document.querySelector('#history-panel');
+const historyCount = document.querySelector('#history-count');
+const historySummary = document.querySelector('#history-summary');
+const historyList = document.querySelector('#history-list');
 const technical = document.querySelector('#technical');
 const dialog = document.querySelector('#source-dialog');
 const dialogClose = document.querySelector('#dialog-close');
@@ -166,6 +171,80 @@ function renderEvidence(data) {
   });
 }
 
+function historyLabel(item) {
+  if (item.selected_for_as_of) return '指定日時点';
+  if (item.candidate_for_as_of) return '指定日の候補';
+  if (item.current_revision_status === 'UnEnforced') return '将来施行';
+  return '';
+}
+
+function renderHistory(data) {
+  clearNode(historyList);
+  historyPanel.hidden = false;
+  historyCount.textContent = String(data.revision_count || 0);
+  const temporal = data.temporal_resolution || {};
+  if (temporal.status === 'resolved') {
+    historySummary.textContent = `${data.as_of_date} 時点で一意に確定したrevisionを強調しています。本文のない履歴は別版で代用しません。`;
+  } else if (temporal.status === 'ambiguous') {
+    historySummary.textContent = `${data.as_of_date} 時点は複数revision候補です。候補を強調し、自動選択しません。`;
+  } else {
+    historySummary.textContent = `${data.as_of_date} 時点のtemporal status: ${valueOrDash(temporal.status)}`;
+  }
+  for (const item of data.revisions || []) {
+    const card = document.createElement('article');
+    card.className = 'history-item';
+    if (item.selected_for_as_of) card.dataset.selected = 'true';
+    if (item.candidate_for_as_of) card.dataset.candidate = 'true';
+
+    const top = document.createElement('div');
+    top.className = 'history-top';
+    const heading = document.createElement('h3');
+    heading.textContent = `${valueOrDash(item.valid_from || item.revision_id_effective_date)} · revision ${valueOrDash(item.revision_sequence)}`;
+    const badge = document.createElement('span');
+    badge.className = 'history-badge';
+    badge.textContent = historyLabel(item) || item.content_status;
+    top.append(heading, badge);
+
+    const amendment = document.createElement('p');
+    amendment.className = 'history-amendment';
+    amendment.textContent = item.amendment_law_title || item.amendment_law_num || '改正法令情報なし';
+    const range = document.createElement('p');
+    range.className = 'mono muted';
+    range.textContent = `有効期間 ${valueOrDash(item.valid_from)} ～ ${valueOrDash(item.valid_to_exclusive)} · quality ${valueOrDash(item.temporal_resolution_quality)} · 本文 ${item.content_status}`;
+
+    const actions = document.createElement('div');
+    actions.className = 'history-actions';
+    if (item.valid_from) {
+      const useDate = document.createElement('button');
+      useDate.type = 'button';
+      useDate.textContent = 'この施行日で再検索';
+      useDate.addEventListener('click', () => {
+        asOfDate.value = item.valid_from;
+        lawId.value = data.law.law_id;
+        selectedLaw.textContent = `選択中: ${data.law.law_title || data.law.law_id} (${data.law.law_id})`;
+        form.requestSubmit();
+      });
+      actions.appendChild(useDate);
+    }
+    card.append(top, amendment, range, actions);
+    historyList.appendChild(card);
+  }
+}
+
+async function loadHistory(queryData) {
+  const selectedId = queryData.law_resolution?.selected_law_id;
+  if (!selectedId) {
+    historyPanel.hidden = true;
+    clearNode(historyList);
+    return;
+  }
+  const params = new URLSearchParams({ as_of_date: queryData.effective_as_of_date });
+  const response = await fetch(`/api/v1/laws/${encodeURIComponent(selectedId)}/history?${params}`);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.message || `history HTTP ${response.status}`);
+  renderHistory(data);
+}
+
 function renderTechnical(data) {
   technical.textContent = JSON.stringify({
     query_id: data.query_id,
@@ -198,6 +277,14 @@ async function submitQuery() {
     renderAnswer(data);
     renderEvidence(data);
     renderTechnical(data);
+    try {
+      await loadHistory(data);
+    } catch (historyError) {
+      historyPanel.hidden = false;
+      historyCount.textContent = '';
+      clearNode(historyList);
+      historySummary.textContent = `改正履歴を取得できませんでした: ${historyError.message}`;
+    }
   } catch (error) {
     result.hidden = false;
     statusBanner.dataset.status = 'error';
@@ -206,6 +293,8 @@ async function submitQuery() {
     clearNode(answer);
     clearNode(evidenceList);
     evidenceCount.textContent = '0';
+    historyPanel.hidden = true;
+    clearNode(historyList);
     technical.textContent = '';
   } finally {
     setBusy(false);
@@ -225,6 +314,14 @@ for (const button of document.querySelectorAll('[data-example]')) {
     question.focus();
   });
 }
+
+todayButton.addEventListener('click', () => {
+  const now = new Date();
+  const year = String(now.getFullYear()).padStart(4, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  asOfDate.value = `${year}-${month}-${day}`;
+});
 
 dialogClose.addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => {
