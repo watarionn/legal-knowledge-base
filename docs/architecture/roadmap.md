@@ -158,4 +158,8 @@ manual reviewは既存assertionを上書きせずconfirmed/rejected evidenceと�
 
 2026-09-10のlive probeでは国会会議録1会議250発言を取得し、「行政手続法」の完全一致言及1件からcandidate relation 1件を生成しました。未review状態ではdefault retrieval 0、candidate citation-ready falseを確認しました。
 
-状態: **実装完了・マージ待ち**
+状態: **完了**
+
+2026-09-10のclosure監査でPhase 6.1〜6.5の全offline回帰、fresh PostgreSQL 18、各実装PRのexact-head CI、live validation inventoryを再確認し、Phase 6全体を完了扱いにしました。詳細は [`../validation/phase6-closure.md`](../validation/phase6-closure.md) を参照してください。
+
+Phase 6全体: **完了**

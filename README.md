@@ -23,7 +23,7 @@
 | 3 | 法令・履歴DB実装 | 完了 |
 | 4 | XML構造DB | **完了** |
 | 5 | 時点検索＋検索/RAG | **完了** |
-| 6 | 官報・議会資料連携 | **進行中（6.5）** |
+| 6 | 官報・議会資料連携 | **完了** |
 
 Phase 5.1では、`law_id + as_of_date`からrevision候補を解決するstrict resolverを実装しました。Phase 3の実データにはsame-day複数revisionとtemporal ambiguityがあるため、**一意に確認できない候補を勝手に1 revisionへ丸めません**。時点revisionの確定とPhase 4本文のavailabilityも分離し、本文未収録時に別revisionへfallbackしません。
 
@@ -38,6 +38,8 @@ Phase 6.3では官報発行サイトのOfficial Gazette Adapterを実装しま�
 Phase 6.4ではNDLサーチのSRUをbounded discovery、OAI-PMH `GetRecord`をmetadata evidence取得に分離しました。OAI `identifier`をlogical document identityとし、`dcndl_v3` raw XMLをimmutable `source_file` snapshotへ保存します。削除済みOAI recordも過去snapshotを消さずtombstone observationとして保持します。live probeの詳細は [`docs/validation/phase6-ndl-metadata-live.md`](docs/validation/phase6-ndl-metadata-live.md) を参照してください。
 
 Phase 6.5ではexternal documentと法令・revisionのrelationをevidence-backed candidateとして生成し、manual/provider-explicit reviewとretrievalを分離します。自動照合は完全一致のみを使用し、candidate/conflicted/rejectedはcitation-readyにしません。live probeの詳細は [`docs/validation/phase6-cross-source-linkage-live.md`](docs/validation/phase6-cross-source-linkage-live.md) を参照してください。
+
+2026-09-10のclosure監査でPhase 6.1〜6.5の全offline回帰、fresh PostgreSQL 18、exact-head CI、live validation inventoryを再確認し、Phase 6を完了扱いにしました。詳細は [`docs/validation/phase6-closure.md`](docs/validation/phase6-closure.md) を参照してください。
 
 ## 実測済みデータ
 

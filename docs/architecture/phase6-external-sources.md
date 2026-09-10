@@ -96,7 +96,7 @@ OAI-PMHのidentifier等、providerが返す識別子をlogical document identity
 - serial request throttle: implemented
 - fresh PostgreSQL 18 Phase 3→6.2 smoke: passed
 - real NDL API live probe for both providers: passed
-- cross-source legal linkage automation: deferred to 6.5
+- cross-source legal linkage automation: implemented in 6.5
 
 ## 6.3 Official Gazette Adapter
 
@@ -164,3 +164,10 @@ relation statusはcandidate / confirmed / rejectedをassertionとして追記し
 - fresh PostgreSQL 18 Phase 3→6.5 smoke: passed
 - real National Diet exact-title live candidate probe: passed
 - Gazette automatic text linkage: deferred until article-level extraction exists
+
+
+## Phase 6 closure
+
+2026-09-10にPhase 6.1〜6.5を最新mainから再監査した。external raw payloadはPhase 3 `source_file` SHAへ戻り、projection・relation evidence・retrieval stateはsource truthと分離されたままである。自動linkageはcandidateから開始し、confirmed-only retrievalとconflict blockingを維持する。
+
+全offline回帰、fresh PostgreSQL 18、各PRのexact-head Tests / PostgreSQL Smoke、既存live validation inventoryを再確認し、blocking gapなしとしてPhase 6を完了した。詳細は [`../validation/phase6-closure.md`](../validation/phase6-closure.md) を参照。
