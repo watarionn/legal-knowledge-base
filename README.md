@@ -2,6 +2,8 @@
 
 日本の法令について、e-Gov法令API・法令XMLなどの一次情報を基盤に、**改正履歴、時点指定、XML構造、出典追跡、検索/RAG**を一貫して扱える法令知識基盤を構築するプロジェクトです。
 
+Phase 1〜6で法令ナレッジベース v1 基盤を完成し、現在はその知識基盤を日常的に使えるWebアプリへ変換する **Phase 7 Daily Legal Assistant Web App** に進んでいます。
+
 ## 目標
 
 単なる「最新法令の全文検索」ではなく、次の問いに根拠付きで答えられる基盤を目指します。
@@ -11,10 +13,11 @@
 - 検索結果がどの原XML・法令履歴・取得時点に由来するか
 - 現行法だけでなく、旧法令、附則、別表、図表、mixed contentを損失なく扱えるか
 - 将来、官報・国会会議録・帝国議会会議録・国立国会図書館の立法資料へ根拠付きで接続できるか
+- 自然言語の質問から、回答・根拠条文・対象revision・RAW provenanceまで一続きで確認できるか
 
 ## 現在地
 
-正式な工程は6 Phaseです。
+v1基盤の正式工程はPhase 1〜6で、すべて完了しています。Phase 7は完成済みv1の上に利用者向けapplication layerを構築するpost-v1フェーズです。
 
 | Phase | 名称 | 状態 |
 | --- | --- | --- |
@@ -24,6 +27,9 @@
 | 4 | XML構造DB | **完了** |
 | 5 | 時点検索＋検索/RAG | **完了** |
 | 6 | 官報・議会資料連携 | **完了** |
+| 7 | Daily Legal Assistant Web App | **Phase 7-1 MVP実装中** |
+
+Phase 7-1では、AIを法令の正本にせず、既存のstrict temporal resolver、hybrid retrieval、Evidence Bundleを薄いWeb application layerから再利用します。自然言語の質問から対象法令を安全に特定し、回答生成providerが未設定でも、根拠原文・revision・XML path・RAW SHAまで確認できるEvidence-only経路を先に完成させます。設計は [`docs/architecture/phase7-daily-legal-assistant.md`](docs/architecture/phase7-daily-legal-assistant.md)、画面構成は [`docs/architecture/phase7-webapp-screen-layout.md`](docs/architecture/phase7-webapp-screen-layout.md)、API境界は [`docs/architecture/phase7-webapp-api.md`](docs/architecture/phase7-webapp-api.md) を参照してください。
 
 Phase 5.1では、`law_id + as_of_date`からrevision候補を解決するstrict resolverを実装しました。Phase 3の実データにはsame-day複数revisionとtemporal ambiguityがあるため、**一意に確認できない候補を勝手に1 revisionへ丸めません**。時点revisionの確定とPhase 4本文のavailabilityも分離し、本文未収録時に別revisionへfallbackしません。
 
@@ -84,7 +90,8 @@ Phase 3の全量bootstrapでは、e-Gov法令API Version 2から9,551法令・53
 │   ├── phase3/             # law / law_revision、API bootstrap
 │   ├── phase4/             # XML parser、構造DB、full importer
 │   ├── phase5/             # temporal resolver、検索/RAG
-│   └── phase6/             # 官報・議会資料・NDL external source foundation
+│   ├── phase6/             # 官報・議会資料・NDL external source foundation
+│   └── phase7/             # Daily Legal Assistant application API / Web UI
 └── .github/workflows/      # 自動テスト・PostgreSQL smoke
 ```
 
@@ -101,7 +108,11 @@ python implementation/phase6/010_parliamentary_adapter_test.py -v
 python implementation/phase6/017_official_gazette_adapter_test.py -v
 python implementation/phase6/024_ndl_metadata_adapter_test.py -v
 python implementation/phase6/031_cross_source_linkage_test.py -v
+python implementation/phase7/004_application_contract_test.py -v
+python implementation/phase7/005_query_service_test.py -v
 ```
+
+Phase 7-1のローカル起動方法とPostgreSQL smoke手順は [`implementation/phase7/README.md`](implementation/phase7/README.md) を参照してください。2026-09-10のMVP smoke証跡は [`docs/validation/phase7-1-mvp-smoke-20260910.json`](docs/validation/phase7-1-mvp-smoke-20260910.json) に保存しています。
 
 PostgreSQL smokeは `.github/workflows/postgres-smoke.yml` を参照してください。Phase 5.1の機械可読証跡は [`docs/validation/phase5_temporal_resolution_smoke_result.json`](docs/validation/phase5_temporal_resolution_smoke_result.json) に保存しています。
 
@@ -121,6 +132,7 @@ PostgreSQL smokeは `.github/workflows/postgres-smoke.yml` を参照してくだ
 - normalized dataから必ずRAW原本とSHA-256へ戻れるようにする
 - ambiguousな時点境界を推測で確定値にしない
 - 本文未収録revisionを別revisionの本文で代用しない
+- AI生成文を法令原文やcitation truthの代替正本にしない
 
 ## ライセンス
 
