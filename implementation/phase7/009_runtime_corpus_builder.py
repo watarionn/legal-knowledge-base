@@ -239,7 +239,7 @@ def run_pipeline(
                 "resume_skipped_law_count": phase3.get(
                     "resume_skipped_law_count"
                 ),
-                "residual_failed_law_count": len(phase3.get("failed_laws", {})),
+                "residual_failed_law_count": len(phase3.get("failed_law_ids", [])),
             }
             if phase3.get("result_status") != "succeeded":
                 raise RuntimeError("Phase 3 runtime bootstrap did not succeed")
