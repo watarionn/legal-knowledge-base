@@ -10,7 +10,7 @@
   <main class="shell">
     <header class="masthead">
       <div>
-        <p class="eyebrow">Legal Knowledge Base · Phase 7-2</p>
+        <p class="eyebrow">Legal Knowledge Base · Phase 7-3</p>
         <h1>法令ナレッジベース</h1>
         <p class="lede">法令について質問すると、回答より先に対象時点を確定し、根拠原文まで辿れる形で表示します。</p>
       </div>
@@ -64,6 +64,27 @@
         <p id="history-summary" class="history-summary"></p>
         <div id="history-list" class="history-list"></div>
       </section>
+      <section id="compare-panel" class="compare-panel" hidden aria-labelledby="compare-title">
+        <div class="panel-heading">
+          <h2 id="compare-title">条文・revision比較</h2>
+          <span id="compare-badge" class="count">Phase 7-3</span>
+        </div>
+        <p class="muted">2つの時点をstrictに解決してから、本則・附則の構造スコープとArticle Numで条文を対応付けます。</p>
+        <form id="compare-form" class="compare-form">
+          <label for="compare-from-date">比較元</label>
+          <input id="compare-from-date" type="date" required>
+          <label for="compare-to-date">比較先</label>
+          <input id="compare-to-date" type="date" required>
+          <label for="compare-article-num">条番号 <span class="muted">任意</span></label>
+          <input id="compare-article-num" type="text" inputmode="numeric" placeholder="例: 90 / 398_2">
+          <input id="compare-scope-key" type="hidden" value="">
+          <button id="compare-button" type="submit">比較する</button>
+        </form>
+        <p id="compare-status" class="compare-status" role="status" aria-live="polite"></p>
+        <div id="compare-overview"></div>
+        <div id="compare-changes" class="compare-changes"></div>
+        <div id="compare-detail"></div>
+      </section>
       <details class="technical">
         <summary>対象版・検索情報</summary>
         <pre id="technical"></pre>
@@ -80,5 +101,6 @@
   </dialog>
 
   <script src="/app.js" defer></script>
+  <script src="/compare.js" defer></script>
 </body>
 </html>

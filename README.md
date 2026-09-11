@@ -27,11 +27,13 @@ v1基盤の正式工程はPhase 1〜6で、すべて完了しています。Phas
 | 4 | XML構造DB | **完了** |
 | 5 | 時点検索＋検索/RAG | **完了** |
 | 6 | 官報・議会資料連携 | **完了** |
-| 7 | Daily Legal Assistant Web App | **Phase 7-2 完了 / 次: Phase 7-3 条文比較** |
+| 7 | Daily Legal Assistant Web App | **Phase 7-3 完了 / 次: Phase 7-4 関連資料探索** |
 
 Phase 7-1では、AIを法令の正本にせず、既存のstrict temporal resolver、hybrid retrieval、Evidence Bundleを薄いWeb application layerから再利用します。自然言語の質問から対象法令を安全に特定し、回答生成providerが未設定でも、根拠原文・revision・XML path・RAW SHAまで確認できるEvidence-only経路を先に完成させます。設計は [`docs/architecture/phase7-daily-legal-assistant.md`](docs/architecture/phase7-daily-legal-assistant.md)、画面構成は [`docs/architecture/phase7-webapp-screen-layout.md`](docs/architecture/phase7-webapp-screen-layout.md)、API境界は [`docs/architecture/phase7-webapp-api.md`](docs/architecture/phase7-webapp-api.md) を参照してください。
 
 Phase 7-2では、選択した法令のrevision履歴、有効期間、改正法令、temporal quality、本文availabilityを同じ画面で確認できるようにします。履歴から施行日を選ぶ場合もrevisionを直接固定せず、`as_of_date`をstrict resolverへ再投入します。設計は [`docs/architecture/phase7-point-in-time-history.md`](docs/architecture/phase7-point-in-time-history.md)、検証証跡は [`docs/validation/phase7-2-history-validation-20260911.json`](docs/validation/phase7-2-history-validation-20260911.json) を参照してください。
+
+Phase 7-3では、2つの時点をstrict resolverで個別に解決し、Phase 4原文からArticleを復元してrevision間の追加・削除・変更を比較します。本則と附則で同じArticle Numが再利用される実データを踏まえ、`main + Num`または`Supplementary.AmendLawNum + Num`を対応キーにし、曖昧な同番号を自動選択しません。設計は [`docs/architecture/phase7-article-revision-compare.md`](docs/architecture/phase7-article-revision-compare.md)、検証証跡は [`docs/validation/phase7-3-compare-validation-20260911.json`](docs/validation/phase7-3-compare-validation-20260911.json) を参照してください。
 
 Phase 5.1では、`law_id + as_of_date`からrevision候補を解決するstrict resolverを実装しました。Phase 3の実データにはsame-day複数revisionとtemporal ambiguityがあるため、**一意に確認できない候補を勝手に1 revisionへ丸めません**。時点revisionの確定とPhase 4本文のavailabilityも分離し、本文未収録時に別revisionへfallbackしません。
 

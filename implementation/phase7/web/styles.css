@@ -80,3 +80,32 @@ dd { margin: 0; overflow-wrap: anywhere; }
   .history-top { display: block; }
   .history-badge { display: inline-block; margin-top: 6px; }
 }
+
+.compare-panel { margin-top: 14px; padding: 22px; background: #fff; border: 1px solid #e0e3e7; border-radius: 16px; }
+.compare-form { display: grid; grid-template-columns: auto minmax(150px, 1fr) auto minmax(150px, 1fr); gap: 8px 12px; align-items: end; }
+.compare-form label { margin: 0; align-self: center; }
+.compare-form input { width: 100%; border: 1px solid #c8ccd1; border-radius: 9px; padding: 9px 10px; background: #fff; color: inherit; }
+#compare-button { grid-column: 4; border: 0; border-radius: 9px; padding: 9px 16px; background: #202124; color: #fff; font-weight: 700; }
+#compare-button:disabled { opacity: .5; cursor: default; }
+.compare-status { min-height: 26px; margin: 14px 0 8px; color: #5f6368; }
+.compare-count-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.compare-count-card { border: 1px solid #e0e3e7; border-radius: 10px; padding: 10px; display: grid; gap: 2px; }
+.compare-count-card strong { font-size: 1.3rem; }
+.compare-count-card span { color: #73777d; font-size: .78rem; }
+.compare-changes { display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 0; }
+.compare-changes h3 { flex-basis: 100%; margin: 0 0 4px; }
+.compare-change-button { border: 1px solid #d6d9dd; border-radius: 999px; padding: 6px 10px; background: #fff; color: inherit; }
+.compare-change-button[data-status="changed"] { border-color: #b06000; }
+.compare-change-button[data-status="added"] { border-color: #137333; }
+.compare-change-button[data-status="removed"] { border-color: #b3261e; }
+.compare-text-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.compare-side { min-width: 0; border: 1px solid #e0e3e7; border-radius: 12px; padding: 14px; }
+.compare-side h4 { margin: 0 0 8px; }
+.compare-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; font-family: inherit; background: #f6f7f8; border-radius: 8px; padding: 12px; }
+.compare-text span[data-op="replace"], .compare-text span[data-op="delete"], .compare-text span[data-op="insert"] { text-decoration: underline; text-decoration-thickness: 2px; }
+@media (max-width: 800px) {
+  .compare-form { grid-template-columns: 1fr; }
+  .compare-form label, .compare-form input, #compare-button { grid-column: 1; }
+  .compare-count-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .compare-text-grid { grid-template-columns: 1fr; }
+}
