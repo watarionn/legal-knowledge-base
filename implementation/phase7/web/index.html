@@ -10,7 +10,7 @@
   <main class="shell">
     <header class="masthead">
       <div>
-        <p class="eyebrow">Legal Knowledge Base · Phase 7-4</p>
+        <p class="eyebrow">Legal Knowledge Base · Phase 7-5</p>
         <h1>法令ナレッジベース</h1>
         <p class="lede">法令について質問すると、回答より先に対象時点を確定し、根拠原文まで辿れる形で表示します。</p>
       </div>
@@ -36,6 +36,27 @@
       <div class="examples" aria-label="例示質問">
         <button type="button" data-example="建設業法で請負契約に関係する規定を教えて">建設業法と請負契約</button>
         <button type="button" data-example="民法の第90条を確認したい">民法 第90条</button>
+      </div>
+    </section>
+
+    <section id="daily-panel" class="daily-panel" aria-labelledby="daily-title">
+      <div class="panel-heading">
+        <h2 id="daily-title">マイリスト</h2>
+        <span class="count">Phase 7-5</span>
+      </div>
+      <p id="daily-status" class="muted" role="status" aria-live="polite"></p>
+      <div class="daily-actions">
+        <button id="favorite-current" type="button" class="secondary-button" hidden>この法令をお気に入り</button>
+        <form id="save-theme-form" class="save-theme-form">
+          <input id="theme-title" type="text" maxlength="120" placeholder="保存テーマ名" required>
+          <button type="submit" class="secondary-button">現在の質問を保存</button>
+        </form>
+      </div>
+      <div class="daily-grid">
+        <article><h3>お気に入り法令</h3><div id="favorite-list" class="daily-list"></div></article>
+        <article><div class="daily-subhead"><h3>最近見た法令</h3><button id="clear-recent" type="button">クリア</button></div><div id="recent-list" class="daily-list"></div></article>
+        <article><div class="daily-subhead"><h3>検索履歴</h3><button id="clear-history" type="button">クリア</button></div><div id="search-history-list" class="daily-list"></div></article>
+        <article><h3>保存テーマ</h3><div id="saved-theme-list" class="daily-list"></div></article>
       </div>
     </section>
 
@@ -125,5 +146,6 @@
   <script src="/app.js" defer></script>
   <script src="/compare.js" defer></script>
   <script src="/related.js" defer></script>
+  <script src="/daily.js" defer></script>
 </body>
 </html>
