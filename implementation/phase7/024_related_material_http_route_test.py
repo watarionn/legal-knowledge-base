@@ -99,11 +99,11 @@ class RouteTest(unittest.TestCase):
             exc.close()
             return status, body, headers
 
-    def test_health_reports_phase74(self):
+    def test_health_keeps_phase74_after_later_phase(self):
         status, body, _ = self.request("/api/v1/health")
         payload = json.loads(body)
         self.assertEqual(status, 200)
-        self.assertEqual(payload["app_version"], "phase7-4-related-materials")
+        self.assertEqual(payload["app_version"], "phase7-5-daily-use")
 
     def test_index_contains_related_panel(self):
         status, body, _ = self.request("/")

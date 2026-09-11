@@ -1,0 +1,83 @@
+{
+  "validation_date": "2026-09-11",
+  "phase": "7-5",
+  "status": "passed",
+  "branch": "phase7/daily-use-features",
+  "base_main_sha": "fe3db86702e107bb44f0472e502d0c9576ebee4a",
+  "architecture": "docs/architecture/phase7-daily-use-features.md",
+  "application_state": {
+    "workspace_model": "single-local-workspace",
+    "source_truth": "phase7-application-state",
+    "law_text_truth": "phase3-phase4",
+    "relations": [
+      "application_favorite_law",
+      "application_recent_law",
+      "application_search_history",
+      "application_saved_theme"
+    ],
+    "stores_evidence_body": false,
+    "stores_generated_answer": false,
+    "replay_strategy": "resubmit-saved-inputs-through-current-query-pipeline"
+  },
+  "runtime": {
+    "schema_materialized": true,
+    "corpus_counts_after_materialization": {
+      "law": 9551,
+      "law_revision": 53718,
+      "law_document": 10680,
+      "retrieval_chunk": 6070516
+    },
+    "state_counts_after_smoke_rollback": {
+      "favorite": 0,
+      "recent": 0,
+      "history": 0,
+      "theme": 0
+    },
+    "transactional_smoke": {
+      "favorite_rows": 1,
+      "recent_rows": 1,
+      "history_rows": 1,
+      "theme_rows": 1,
+      "recent_view_count": 2,
+      "rollback_confirmed": true
+    }
+  },
+  "behavior": {
+    "favorites": "law-id navigation shortcut",
+    "recent_laws": "resolved-law navigation history",
+    "search_history": "query inputs and result status only",
+    "saved_themes": "title + question + optional law_id + optional as_of_date",
+    "query_activity_persistence": "best-effort and isolated from query success",
+    "phase7_6_input": "saved themes"
+  },
+  "tests": {
+    "total": 103,
+    "phase7_1": 17,
+    "phase7_2": 10,
+    "phase7_3": 21,
+    "phase7_4": 26,
+    "phase7_5": {
+      "total": 29,
+      "daily_use_service": 7,
+      "application_state_bootstrap": 6,
+      "daily_use_http_route": 9,
+      "daily_use_web_contract": 7
+    },
+    "python_compile": "passed",
+    "javascript_node_check": "passed"
+  },
+  "security": {
+    "browser_user_text_rendering": "textContent",
+    "query_persistence_failure_isolated": true,
+    "database_url_recorded": false,
+    "phase3_to_phase6_source_truth_modified": false
+  },
+  "final_gate": {
+    "git_diff_check": "passed",
+    "secret_and_local_path_scan": "passed",
+    "github_actions_cost_guard": "passed",
+    "repository_actions_disabled": true,
+    "active_workflow_yaml": 0,
+    "active_workflow_runs": 0
+  }
+}

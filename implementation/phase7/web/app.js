@@ -313,6 +313,11 @@ async function submitQuery() {
       clearRelatedMaterials();
       relatedStatus.textContent = `関連資料を取得できませんでした: ${relatedError.message}`;
     }
+    try {
+      await refreshDailyUse(data);
+    } catch (dailyError) {
+      dailyStatus.textContent = `マイリストを更新できませんでした: ${dailyError.message}`;
+    }
   } catch (error) {
     result.hidden = false;
     statusBanner.dataset.status = 'error';

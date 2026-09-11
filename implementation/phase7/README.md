@@ -25,6 +25,9 @@ Phase 1〜6で完成した法令ナレッジベース v1 を、日常利用で�
 - Phase 7-4: Phase 6の官報・議会資料・NDL関連資料を探索
 - Phase 7-4: confirmed-only既定表示、候補は明示opt-inかつ引用不可
 - Phase 7-4: relation assertion・snapshot・RAW SHA provenanceを表示
+- Phase 7-5: お気に入り法令・最近見た法令・検索履歴・保存テーマ
+- Phase 7-5: application-state保存失敗を法令検索から分離
+- Phase 7-5: 履歴・テーマは保存済み回答ではなくquery入力を再実行
 
 ## 構成
 
@@ -52,12 +55,20 @@ implementation/phase7/
 ├── 025_runtime_external_source_bootstrap.py
 ├── 026_runtime_external_source_bootstrap_test.py
 ├── 027_related_material_web_contract_test.py
+├── 028_application_state_schema.sql
+├── 029_daily_use_service.py
+├── 030_daily_use_service_test.py
+├── 031_application_state_bootstrap.py
+├── 032_application_state_bootstrap_test.py
+├── 033_daily_use_http_route_test.py
+├── 034_daily_use_web_contract_test.py
 └── web/
     ├── index.html
     ├── styles.css
     ├── app.js
     ├── compare.js
-    └── related.js
+    ├── related.js
+    └── daily.js
 ```
 
 ## 起動
@@ -127,6 +138,21 @@ law-level relationは常に検索し、revision-level relationはstrict temporal
 ### `GET /api/v1/source-relations/{source_relation_id}`
 
 relation assertionのstatus/basis/evidence、snapshot、source_file、RAW SHA-256まで返します。外部資料のrelation evidenceを法令本文のcitation truthとは別系列で確認するためのAPIです。
+
+### `GET /api/v1/daily-state`
+
+Phase 7-5の日常利用状態を返します。お気に入り、最近見た法令、検索履歴、保存テーマを1 responseにまとめます。
+
+### Phase 7-5 write API
+
+- `PUT /api/v1/favorites/{law_id}`
+- `DELETE /api/v1/favorites/{law_id}`
+- `POST /api/v1/saved-themes`
+- `DELETE /api/v1/saved-themes/{theme_id}`
+- `DELETE /api/v1/search-history`
+- `DELETE /api/v1/recent-laws`
+
+これらはPhase 7 application-state表だけを書き換え、Phase 3〜6 source truthは変更しません。検索履歴・テーマは回答本文やEvidenceを保存せず、再利用時はquery APIを再実行します。
 
 ### `GET /api/v1/evidence/{evidence_id}`
 
@@ -285,3 +311,11 @@ HTTP routeは`020_article_compare_http_route_test.py`で実`003_web_server.py`�
 実runtime DBではtransaction内にcandidate/confirmed、law/revision relationを投入し、`external_relation_retrieval`と`external_relation_provenance()`を確認しました。candidateはcitation-ready=false、confirmedはtrue、RAW SHA provenance欠落0を確認し、最後にROLLBACKしてsmoke資料が0件へ戻ることを確認しています。
 
 設計は [`../../docs/architecture/phase7-related-materials.md`](../../docs/architecture/phase7-related-materials.md)、機械可読証跡は [`../../docs/validation/phase7-4-related-material-validation-20260911.json`](../../docs/validation/phase7-4-related-material-validation-20260911.json) を参照してください。
+
+## Phase 7-5 validation
+
+2026-09-11に日常利用runtimeへapplication-state 4表を追加し、適用前後でlaw 9,551 / law_revision 53,718 / law_document 10,680 / retrieval_chunk 6,070,516が不変であることを確認しました。
+
+transaction内でお気に入り、最近見た法令、検索履歴、保存テーマを作成し、最近見た法令のview_count更新まで確認した後にROLLBACKしました。テスト用application stateは4表すべて0件へ戻っています。
+
+設計は [`../../docs/architecture/phase7-daily-use-features.md`](../../docs/architecture/phase7-daily-use-features.md)、機械可読証跡は [`../../docs/validation/phase7-5-daily-use-validation-20260911.json`](../../docs/validation/phase7-5-daily-use-validation-20260911.json) を参照してください。

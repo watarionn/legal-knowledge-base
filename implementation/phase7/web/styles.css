@@ -130,3 +130,19 @@ dd { margin: 0; overflow-wrap: anywhere; }
   .related-relation { align-items: flex-start; }
   .related-card .history-actions { display: grid; }
 }
+
+.daily-panel { margin: 1rem 0; padding: 1rem; border: 1px solid var(--border); border-radius: 14px; }
+.daily-actions { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+.save-theme-form { display: flex; gap: .5rem; flex: 1; min-width: 280px; }
+.save-theme-form input { flex: 1; min-width: 160px; }
+.daily-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.daily-grid article { padding: .85rem; border: 1px solid var(--border); border-radius: 12px; min-width: 0; }
+.daily-grid h3 { margin-top: 0; }
+.daily-subhead { display: flex; justify-content: space-between; gap: .5rem; align-items: center; }
+.daily-list { display: grid; gap: .5rem; }
+.daily-item { display: flex; gap: .5rem; align-items: center; }
+.daily-item-button { text-align: left; width: 100%; overflow-wrap: anywhere; }
+.daily-history-item { border-bottom: 1px solid var(--border); padding-bottom: .5rem; }
+.daily-history-item:last-child { border-bottom: 0; }
+.daily-history-item p { margin: .25rem 0 0; }
+@media (max-width: 760px) { .daily-grid { grid-template-columns: 1fr; } .save-theme-form { min-width: 100%; } }
