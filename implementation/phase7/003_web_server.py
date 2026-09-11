@@ -28,6 +28,7 @@ def _load(name: str, path: Path):
 SERVICE = _load("legal_kb_phase7_query_service", HERE / "002_query_service.py")
 HISTORY = _load("legal_kb_phase7_history_service", HERE / "012_law_history_service.py")
 COMPARE = _load("legal_kb_phase7_article_compare", HERE / "017_article_compare_service.py")
+RELATED = _load("legal_kb_phase7_related_material", HERE / "022_related_material_service.py")
 
 
 class AppState:
@@ -118,6 +119,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/compare.js":
             self._serve_static("compare.js", "text/javascript; charset=utf-8")
             return
+        if path == "/related.js":
+            self._serve_static("related.js", "text/javascript; charset=utf-8")
+            return
         if path == "/api/v1/health":
             self._send_json(
                 200,
@@ -126,9 +130,89 @@ class Handler(BaseHTTPRequestHandler):
                     "database": "configured" if self.state.database_url else "not-configured",
                     "answer_provider": "not-configured",
                     "vector_provider": "not-configured",
-                    "app_version": "phase7-3-compare",
+                    "app_version": "phase7-4-related-materials",
                 },
             )
+            return
+        related_prefix = "/api/v1/laws/"
+        related_suffix = "/related-materials"
+        if path.startswith(related_prefix) and path.endswith(related_suffix):
+            law_id = path[len(related_prefix):-len(related_suffix)].strip("/")
+            if not self.state.database_url:
+                self._send_error_json(503, "DATABASE_NOT_CONFIGURED", "LEGAL_KB_DATABASE_URL is not configured")
+                return
+            params = parse_qs(urlsplit(self.path).query)
+            try:
+                as_of = HISTORY.parse_as_of_date(params.get("as_of_date", [None])[-1])
+                raw_flag = (params.get("include_nonconfirmed", ["false"])[-1] or "false").lower()
+                if raw_flag not in {"true", "false"}:
+                    raise ValueError("include_nonconfirmed must be true or false")
+                include_nonconfirmed = raw_flag == "true"
+            except ValueError as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+                return
+            try:
+                import psycopg
+                conn = psycopg.connect(self.state.database_url)
+            except ImportError:
+                self._send_error_json(503, "PSYCOPG_NOT_INSTALLED", "psycopg is required for database queries")
+                return
+            except Exception:
+                self._send_error_json(503, "DATABASE_UNAVAILABLE", "database connection failed")
+                return
+            try:
+                with conn:
+                    with conn.cursor() as cur:
+                        cur.execute("SET TRANSACTION READ ONLY")
+                    related = RELATED.get_related_materials(
+                        conn,
+                        law_id,
+                        as_of_date=as_of,
+                        include_nonconfirmed=include_nonconfirmed,
+                    )
+                if related is None:
+                    self._send_error_json(404, "LAW_NOT_FOUND", "law was not found")
+                else:
+                    self._send_json(200, related)
+            except ValueError as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+            except Exception as exc:
+                self.log_error("related material query failed: %s", exc.__class__.__name__)
+                self._send_error_json(500, "RELATED_MATERIAL_QUERY_FAILED", "related material query failed")
+            finally:
+                conn.close()
+            return
+        relation_prefix = "/api/v1/source-relations/"
+        if path.startswith(relation_prefix):
+            source_relation_id = path[len(relation_prefix):].strip("/")
+            if not self.state.database_url:
+                self._send_error_json(503, "DATABASE_NOT_CONFIGURED", "LEGAL_KB_DATABASE_URL is not configured")
+                return
+            try:
+                import psycopg
+                conn = psycopg.connect(self.state.database_url)
+            except ImportError:
+                self._send_error_json(503, "PSYCOPG_NOT_INSTALLED", "psycopg is required for database queries")
+                return
+            except Exception:
+                self._send_error_json(503, "DATABASE_UNAVAILABLE", "database connection failed")
+                return
+            try:
+                with conn:
+                    with conn.cursor() as cur:
+                        cur.execute("SET TRANSACTION READ ONLY")
+                    detail = RELATED.get_relation_detail(conn, source_relation_id)
+                if detail is None:
+                    self._send_error_json(404, "SOURCE_RELATION_NOT_FOUND", "source relation was not found")
+                else:
+                    self._send_json(200, detail)
+            except ValueError as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+            except Exception as exc:
+                self.log_error("source relation detail failed: %s", exc.__class__.__name__)
+                self._send_error_json(500, "SOURCE_RELATION_DETAIL_FAILED", "source relation detail failed")
+            finally:
+                conn.close()
             return
         compare_prefix = "/api/v1/laws/"
         compare_suffix = "/compare"

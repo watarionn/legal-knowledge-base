@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0",
+  "phase": "7-4",
+  "feature": "related-material-explorer",
+  "generated_on": "2026-09-11",
+  "source_truth": {
+    "law_text": "phase3-phase4",
+    "external_materials": "phase6-external-provenance"
+  },
+  "runtime_schema_materialization": {
+    "status": "passed",
+    "database_url_recorded": false,
+    "phase6_steps": [
+      "external-source-foundation",
+      "parliamentary-proceedings",
+      "official-gazette",
+      "ndl-metadata",
+      "cross-source-linkage"
+    ],
+    "retrieval_view_present": true
+  },
+  "runtime_counts_before_and_after": {
+    "law": 9551,
+    "law_revision": 53718,
+    "law_document": 10680,
+    "retrieval_chunk": 6070516,
+    "unchanged": true
+  },
+  "runtime_transactional_smoke": {
+    "status": "passed",
+    "target_law_id": "405AC0000000088",
+    "target_revision_id": "405AC0000000088_20260724_508AC0000000066",
+    "candidate_relation": {
+      "effective_state": "candidate",
+      "citation_ready": false,
+      "raw_sha_present": true
+    },
+    "confirmed_law_relation": {
+      "effective_state": "confirmed",
+      "citation_ready": true,
+      "raw_sha_present": true
+    },
+    "confirmed_revision_relation": {
+      "effective_state": "confirmed",
+      "citation_ready": true,
+      "raw_sha_present": true
+    },
+    "provenance_function_checked": true,
+    "rollback_confirmed": true,
+    "smoke_external_documents_after_rollback": 0
+  },
+  "offline_regression": {
+    "status": "passed",
+    "total_tests": 74,
+    "failed_tests": 0,
+    "related_material_service": "7/7",
+    "related_material_http_route": "8/8",
+    "runtime_external_source_bootstrap": "5/5",
+    "related_material_web_contract": "6/6"
+  },
+  "syntax_checks": {
+    "python_compile": "passed",
+    "javascript_node_check": "passed"
+  },
+  "safety_invariants": {
+    "confirmed_only_default": true,
+    "nonconfirmed_requires_opt_in": true,
+    "nonconfirmed_citation_ready": false,
+    "temporal_ambiguity_does_not_select_revision_scope": true,
+    "provider_text_rendered_with_text_content": true,
+    "external_url_protocol_limited_to_http_https": true,
+    "related_material_failure_isolated_from_query_evidence": true,
+    "runtime_bootstrap_partial_state_fails_closed": true,
+    "bootstrap_does_not_ingest_external_documents": true
+  },
+  "git_checks": {
+    "diff_check": "passed",
+    "secret_and_local_path_scan": "passed",
+    "github_actions_cost_guard": "passed"
+  },
+  "notes": [
+    "Runtime Phase 6 schema was absent before Phase 7-4 and was materialized without changing Phase 3-5 corpus counts.",
+    "No historical validation fixture was promoted into runtime as a real external document.",
+    "Real external material ingestion remains delegated to the existing Phase 6 provider adapter/persistence/linkage path."
+  ],
+  "status": "passed"
+}

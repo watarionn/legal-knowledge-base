@@ -10,7 +10,7 @@
   <main class="shell">
     <header class="masthead">
       <div>
-        <p class="eyebrow">Legal Knowledge Base · Phase 7-3</p>
+        <p class="eyebrow">Legal Knowledge Base · Phase 7-4</p>
         <h1>法令ナレッジベース</h1>
         <p class="lede">法令について質問すると、回答より先に対象時点を確定し、根拠原文まで辿れる形で表示します。</p>
       </div>
@@ -85,6 +85,20 @@
         <div id="compare-changes" class="compare-changes"></div>
         <div id="compare-detail"></div>
       </section>
+      <section id="related-panel" class="related-panel" hidden aria-labelledby="related-title">
+        <div class="panel-heading">
+          <h2 id="related-title">関連資料</h2>
+          <span class="count">Phase 7-4</span>
+        </div>
+        <p class="muted">官報・国会会議録・帝国議会会議録・NDL資料を、Phase 6のrelation evidenceから辿ります。</p>
+        <div class="related-controls">
+          <label><input id="related-include-nonconfirmed" type="checkbox"> 候補も表示</label>
+          <span class="muted">候補・conflicted・rejectedは引用不可です。</span>
+          <span id="related-count" class="count"></span>
+        </div>
+        <p id="related-status" class="related-status" role="status" aria-live="polite"></p>
+        <div id="related-list" class="related-list"></div>
+      </section>
       <details class="technical">
         <summary>対象版・検索情報</summary>
         <pre id="technical"></pre>
@@ -100,7 +114,16 @@
     <dl id="dialog-meta"></dl>
   </dialog>
 
+  <dialog id="relation-dialog">
+    <button id="relation-dialog-close" class="dialog-close" type="button">閉じる</button>
+    <h2 id="relation-dialog-title">関連付けの根拠</h2>
+    <p id="relation-dialog-state" class="muted"></p>
+    <dl id="relation-dialog-meta"></dl>
+    <div id="relation-assertions" class="relation-assertions"></div>
+  </dialog>
+
   <script src="/app.js" defer></script>
   <script src="/compare.js" defer></script>
+  <script src="/related.js" defer></script>
 </body>
 </html>

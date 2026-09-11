@@ -306,6 +306,13 @@ async function submitQuery() {
       clearNode(historyList);
       historySummary.textContent = `改正履歴を取得できませんでした: ${historyError.message}`;
     }
+    try {
+      await loadRelatedMaterials(data);
+    } catch (relatedError) {
+      relatedPanel.hidden = false;
+      clearRelatedMaterials();
+      relatedStatus.textContent = `関連資料を取得できませんでした: ${relatedError.message}`;
+    }
   } catch (error) {
     result.hidden = false;
     statusBanner.dataset.status = 'error';
@@ -318,6 +325,8 @@ async function submitQuery() {
     clearNode(historyList);
     comparePanel.hidden = true;
     clearComparisonOutput();
+    relatedPanel.hidden = true;
+    clearRelatedMaterials();
     technical.textContent = '';
   } finally {
     setBusy(false);
