@@ -109,3 +109,24 @@ dd { margin: 0; overflow-wrap: anywhere; }
   .compare-count-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .compare-text-grid { grid-template-columns: 1fr; }
 }
+
+.related-panel { margin-top: 14px; padding: 22px; background: #fff; border: 1px solid #e0e3e7; border-radius: 16px; }
+.related-controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 10px 0; }
+.related-controls label { display: flex; gap: 7px; align-items: center; margin: 0; }
+.related-status { min-height: 26px; margin: 10px 0; color: #5f6368; }
+.related-list { display: grid; gap: 10px; }
+.related-card { border: 1px solid #e0e3e7; border-radius: 12px; padding: 14px; background: #fff; }
+.related-card[data-citation-ready="false"] { box-shadow: inset 4px 0 0 #b06000; }
+.related-card h3 { margin: 0 0 4px; font-size: .98rem; }
+.related-relations { display: grid; gap: 7px; margin-top: 10px; }
+.related-relation { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.related-relation[data-citation-ready="false"] .history-badge { border-color: #b06000; }
+.related-relation button, .history-actions a { border: 1px solid #c8ccd1; border-radius: 8px; background: #fff; padding: 6px 10px; color: inherit; text-decoration: none; }
+.related-card .history-actions { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.relation-assertions { display: grid; gap: 10px; margin-top: 16px; }
+.relation-assertion { border: 1px solid #e0e3e7; border-radius: 10px; padding: 12px; }
+.relation-evidence { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; padding: 10px; background: #f6f7f8; border-radius: 8px; font-size: .78rem; }
+@media (max-width: 800px) {
+  .related-relation { align-items: flex-start; }
+  .related-card .history-actions { display: grid; }
+}

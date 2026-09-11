@@ -22,6 +22,9 @@ Phase 1〜6で完成した法令ナレッジベース v1 を、日常利用で�
 - Phase 7-3: 2つの時点をstrictに解決してArticle単位でrevision比較
 - Phase 7-3: 本則と附則の同番号を構造スコープで区別
 - Phase 7-3: 変更Article一覧と個別文字diffを表示
+- Phase 7-4: Phase 6の官報・議会資料・NDL関連資料を探索
+- Phase 7-4: confirmed-only既定表示、候補は明示opt-inかつ引用不可
+- Phase 7-4: relation assertion・snapshot・RAW SHA provenanceを表示
 
 ## 構成
 
@@ -43,11 +46,18 @@ implementation/phase7/
 ├── 019_article_compare_postgres_smoke.py
 ├── 020_article_compare_http_route_test.py
 ├── 021_article_compare_snapshot_smoke.py
+├── 022_related_material_service.py
+├── 023_related_material_service_test.py
+├── 024_related_material_http_route_test.py
+├── 025_runtime_external_source_bootstrap.py
+├── 026_runtime_external_source_bootstrap_test.py
+├── 027_related_material_web_contract_test.py
 └── web/
     ├── index.html
     ├── styles.css
     ├── app.js
-    └── compare.js
+    ├── compare.js
+    └── related.js
 ```
 
 ## 起動
@@ -107,6 +117,16 @@ Phase 7-2の改正履歴APIです。Phase 3のrevision履歴、Phase 5.1 strict 
 Phase 7-3の条文比較APIです。両側の日付をPhase 5.1 strict temporal resolverへ通し、Phase 4原文からArticleを復元します。
 
 任意で`article_num`と`scope_key`を指定できます。本則は`main + Num`、附則は`Supplementary.AmendLawNum + Num`で対応付けし、同番号が複数スコープに存在するときは自動選択しません。本文missing時にも別revisionへfallbackしません。
+
+### `GET /api/v1/laws/{law_id}/related-materials?as_of_date=YYYY-MM-DD&include_nonconfirmed=false`
+
+Phase 7-4の関連資料APIです。Phase 6 `external_relation_retrieval`を使い、confirmed relationだけを既定取得します。`include_nonconfirmed=true`を明示した場合だけcandidate/conflicted/rejectedも返しますが、citation-readyへ昇格させません。
+
+law-level relationは常に検索し、revision-level relationはstrict temporal resolverが一意にresolvedした場合だけ追加します。
+
+### `GET /api/v1/source-relations/{source_relation_id}`
+
+relation assertionのstatus/basis/evidence、snapshot、source_file、RAW SHA-256まで返します。外部資料のrelation evidenceを法令本文のcitation truthとは別系列で確認するためのAPIです。
 
 ### `GET /api/v1/evidence/{evidence_id}`
 
@@ -250,3 +270,18 @@ python implementation/phase7/008_retrieval_chunk_full_rebuild.py `
 HTTP routeは`020_article_compare_http_route_test.py`で実`003_web_server.py`を起動して検証します。DB接続とcompare serviceだけをfakeに分離し、health、静的UI、`scope_key`伝搬、範囲Num、400/503境界を確認します。
 
 設計は [`../../docs/architecture/phase7-article-revision-compare.md`](../../docs/architecture/phase7-article-revision-compare.md)、機械可読証跡は [`../../docs/validation/phase7-3-compare-validation-20260911.json`](../../docs/validation/phase7-3-compare-validation-20260911.json) を参照してください。
+
+## Phase 7-4 validation
+
+2026-09-11に日常利用runtimeへPhase 6.1〜6.5 schemaをmaterializeしました。適用前後でPhase 3〜5の主要件数は不変です。
+
+- law: 9,551
+- law_revision: 53,718
+- law_document: 10,680
+- retrieval_chunk: 6,070,516
+
+`025_runtime_external_source_bootstrap.py`はPhase 6 schemaをstep単位で`empty / ready / partial`に分類し、partial状態では自動修復せず停止します。schema materializeだけでは外部資料を取得せず、実資料は既存Phase 6 provider ingestion/linkage経路を使います。
+
+実runtime DBではtransaction内にcandidate/confirmed、law/revision relationを投入し、`external_relation_retrieval`と`external_relation_provenance()`を確認しました。candidateはcitation-ready=false、confirmedはtrue、RAW SHA provenance欠落0を確認し、最後にROLLBACKしてsmoke資料が0件へ戻ることを確認しています。
+
+設計は [`../../docs/architecture/phase7-related-materials.md`](../../docs/architecture/phase7-related-materials.md)、機械可読証跡は [`../../docs/validation/phase7-4-related-material-validation-20260911.json`](../../docs/validation/phase7-4-related-material-validation-20260911.json) を参照してください。
