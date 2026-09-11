@@ -19,6 +19,9 @@ Phase 1〜6で完成した法令ナレッジベース v1 を、日常利用で�
 - 1画面のresponsive Web UI
 - Phase 7-2: 法令revision履歴タイムライン
 - Phase 7-2: 履歴上の施行日から同じ質問をstrict再検索
+- Phase 7-3: 2つの時点をstrictに解決してArticle単位でrevision比較
+- Phase 7-3: 本則と附則の同番号を構造スコープで区別
+- Phase 7-3: 変更Article一覧と個別文字diffを表示
 
 ## 構成
 
@@ -35,10 +38,16 @@ implementation/phase7/
 ├── 014_law_history_postgres_smoke.py
 ├── 015_history_web_contract_test.py
 ├── 016_history_http_smoke.py
+├── 017_article_compare_service.py
+├── 018_article_compare_service_test.py
+├── 019_article_compare_postgres_smoke.py
+├── 020_article_compare_http_route_test.py
+├── 021_article_compare_snapshot_smoke.py
 └── web/
     ├── index.html
     ├── styles.css
-    └── app.js
+    ├── app.js
+    └── compare.js
 ```
 
 ## 起動
@@ -92,6 +101,12 @@ $env:LEGAL_KB_CHUNKING_CONFIG_SHA256 = '<64-char SHA-256>'
 Phase 7-2の改正履歴APIです。Phase 3のrevision履歴、Phase 5.1 strict temporal result、Phase 4本文availabilityを1つのread responseとして返します。
 
 `ambiguous`を1 revisionへ丸めず、historical body missing時にも別revisionへfallbackしません。UIの「この施行日で再検索」もrevision IDを直接固定せず、日付をquery APIへ渡してstrict resolverを再実行します。
+
+### `GET /api/v1/laws/{law_id}/compare?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD`
+
+Phase 7-3の条文比較APIです。両側の日付をPhase 5.1 strict temporal resolverへ通し、Phase 4原文からArticleを復元します。
+
+任意で`article_num`と`scope_key`を指定できます。本則は`main + Num`、附則は`Supplementary.AmendLawNum + Num`で対応付けし、同番号が複数スコープに存在するときは自動選択しません。本文missing時にも別revisionへfallbackしません。
 
 ### `GET /api/v1/evidence/{evidence_id}`
 
@@ -219,3 +234,19 @@ python implementation/phase7/008_retrieval_chunk_full_rebuild.py `
 2026-09-10の全量runtime DBで、民法の現時点resolved、2023-04-01の同日2 revision ambiguous、2024-04-01の本文missing非fallbackを確認しています。設計は [`../../docs/architecture/phase7-point-in-time-history.md`](../../docs/architecture/phase7-point-in-time-history.md) を参照してください。
 
 公開用の統合証跡は [`../../docs/validation/phase7-2-history-validation-20260911.json`](../../docs/validation/phase7-2-history-validation-20260911.json) に保存しています。offline回帰27/27、history HTTP runnerの契約チェック10/10、GitHub Actions cost guard passedを記録しています。
+
+## Phase 7-3 validation
+
+2026-09-11に全量runtime DBから民法2 revisionのPhase 4ノード33,033件を抽出し、`021_article_compare_snapshot_smoke.py`で比較しました。
+
+- 左16,462ノード / 1,374 Article
+- 右16,571ノード / 1,377 Article
+- スコープ重複0 / スコープ欠落0
+- added 3 / changed 14 / unchanged 1,360
+- 本則第891条: changed、文字diff 5 segment
+- Article Num `1`をスコープなしで指定: 39候補のambiguousとして停止
+- `155:157`等のe-Gov範囲Numを原値のまま扱う
+
+HTTP routeは`020_article_compare_http_route_test.py`で実`003_web_server.py`を起動して検証します。DB接続とcompare serviceだけをfakeに分離し、health、静的UI、`scope_key`伝搬、範囲Num、400/503境界を確認します。
+
+設計は [`../../docs/architecture/phase7-article-revision-compare.md`](../../docs/architecture/phase7-article-revision-compare.md)、機械可読証跡は [`../../docs/validation/phase7-3-compare-validation-20260911.json`](../../docs/validation/phase7-3-compare-validation-20260911.json) を参照してください。

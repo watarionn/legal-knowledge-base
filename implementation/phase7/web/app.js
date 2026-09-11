@@ -16,6 +16,18 @@ const historyPanel = document.querySelector('#history-panel');
 const historyCount = document.querySelector('#history-count');
 const historySummary = document.querySelector('#history-summary');
 const historyList = document.querySelector('#history-list');
+const comparePanel = document.querySelector('#compare-panel');
+const compareForm = document.querySelector('#compare-form');
+const compareFromDate = document.querySelector('#compare-from-date');
+const compareToDate = document.querySelector('#compare-to-date');
+const compareArticleNum = document.querySelector('#compare-article-num');
+const compareScopeKey = document.querySelector('#compare-scope-key');
+const compareButton = document.querySelector('#compare-button');
+const compareStatus = document.querySelector('#compare-status');
+const compareOverview = document.querySelector('#compare-overview');
+const compareChanges = document.querySelector('#compare-changes');
+const compareDetail = document.querySelector('#compare-detail');
+let compareLawId = '';
 const technical = document.querySelector('#technical');
 const dialog = document.querySelector('#source-dialog');
 const dialogClose = document.querySelector('#dialog-close');
@@ -182,6 +194,7 @@ function renderHistory(data) {
   clearNode(historyList);
   historyPanel.hidden = false;
   historyCount.textContent = String(data.revision_count || 0);
+  prepareComparison(data);
   const temporal = data.temporal_resolution || {};
   if (temporal.status === 'resolved') {
     historySummary.textContent = `${data.as_of_date} 時点で一意に確定したrevisionを強調しています。本文のない履歴は別版で代用しません。`;
@@ -225,6 +238,13 @@ function renderHistory(data) {
         form.requestSubmit();
       });
       actions.appendChild(useDate);
+      for (const [side, label] of [['from', '比較元にする'], ['to', '比較先にする']]) {
+        const compareDate = document.createElement('button');
+        compareDate.type = 'button';
+        compareDate.textContent = label;
+        compareDate.addEventListener('click', () => selectCompareDate(side, item.valid_from, data.law.law_id));
+        actions.appendChild(compareDate);
+      }
     }
     card.append(top, amendment, range, actions);
     historyList.appendChild(card);
@@ -277,6 +297,7 @@ async function submitQuery() {
     renderAnswer(data);
     renderEvidence(data);
     renderTechnical(data);
+    prepareComparisonFromQuery(data);
     try {
       await loadHistory(data);
     } catch (historyError) {
@@ -295,6 +316,8 @@ async function submitQuery() {
     evidenceCount.textContent = '0';
     historyPanel.hidden = true;
     clearNode(historyList);
+    comparePanel.hidden = true;
+    clearComparisonOutput();
     technical.textContent = '';
   } finally {
     setBusy(false);

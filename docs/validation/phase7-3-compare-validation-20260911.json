@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0",
+  "phase": "7-3",
+  "feature": "article-and-revision-compare",
+  "generated_on": "2026-09-11",
+  "source_truth": "phase3-phase4",
+  "runtime_postgres_snapshot_observation": {
+    "status": "passed",
+    "law_id": "129AC0000000089",
+    "left_revision_id": "129AC0000000089_20260624_508AC0000000045",
+    "right_revision_id": "129AC0000000089_20270623_508AC0000000045",
+    "left_document_pk": 10131,
+    "right_document_pk": 1777,
+    "left_node_count": 16462,
+    "right_node_count": 16571,
+    "left_article_count": 1374,
+    "right_article_count": 1377,
+    "left_duplicate_scope_keys": 0,
+    "right_duplicate_scope_keys": 0,
+    "left_missing_scope_count": 0,
+    "right_missing_scope_count": 0,
+    "counts": {
+      "added": 3,
+      "removed": 0,
+      "changed": 14,
+      "unchanged": 1360
+    },
+    "changed_article_count": 17,
+    "warnings": []
+  },
+  "runtime_compare_checks": {
+    "snapshot_runner": "021_article_compare_snapshot_smoke.py",
+    "snapshot_runner_status": "passed",
+    "article_891_scope_key": "main",
+    "article_891_status": "changed",
+    "article_891_diff_segment_count": 5,
+    "article_1_without_scope_status": "ambiguous",
+    "article_1_candidate_count": 39,
+    "range_article_num_examples": [
+      "155:157",
+      "170:174",
+      "367:368",
+      "38:84",
+      "516:517",
+      "534:535",
+      "638:640",
+      "753:754"
+    ],
+    "direct_database_runner": "019_article_compare_postgres_smoke.py",
+    "direct_database_runner_current_host_status": "not-run-docker-host-port-unavailable",
+    "database_url_recorded": false
+  },
+  "http_route_contract": {
+    "runner": "020_article_compare_http_route_test.py",
+    "status": "passed",
+    "tests": "8/8",
+    "real_http_handler": true,
+    "database_connection": "fake",
+    "compare_service": "fake-for-route-isolation"
+  },
+  "current_revalidation": {
+    "observed_on": "2026-09-11",
+    "offline_tests": {
+      "application_contract": "7/7",
+      "query_service": "6/6",
+      "runtime_corpus_builder": "4/4",
+      "history_service": "5/5",
+      "history_web_contract": "5/5",
+      "article_compare_service": "13/13",
+      "article_compare_http_route": "8/8",
+      "total": "48/48"
+    },
+    "python_compile": "passed",
+    "javascript_syntax": "passed",
+    "git_diff_check": "passed",
+    "github_actions_cost_guard": "passed"
+  },
+  "safety_invariants": {
+    "both_dates_use_strict_temporal_resolver": true,
+    "historical_missing_content_fallback": false,
+    "main_and_supplementary_same_num_mixed": false,
+    "ambiguous_article_scope_auto_selected": false,
+    "retrieval_chunk_is_diff_source_truth": false,
+    "generated_answer_is_diff_source_truth": false,
+    "source_truth": "phase3-phase4"
+  },
+  "status": "passed"
+}

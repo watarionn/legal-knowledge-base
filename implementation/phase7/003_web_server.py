@@ -27,6 +27,7 @@ def _load(name: str, path: Path):
 
 SERVICE = _load("legal_kb_phase7_query_service", HERE / "002_query_service.py")
 HISTORY = _load("legal_kb_phase7_history_service", HERE / "012_law_history_service.py")
+COMPARE = _load("legal_kb_phase7_article_compare", HERE / "017_article_compare_service.py")
 
 
 class AppState:
@@ -114,6 +115,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/app.js":
             self._serve_static("app.js", "text/javascript; charset=utf-8")
             return
+        if path == "/compare.js":
+            self._serve_static("compare.js", "text/javascript; charset=utf-8")
+            return
         if path == "/api/v1/health":
             self._send_json(
                 200,
@@ -122,9 +126,56 @@ class Handler(BaseHTTPRequestHandler):
                     "database": "configured" if self.state.database_url else "not-configured",
                     "answer_provider": "not-configured",
                     "vector_provider": "not-configured",
-                    "app_version": "phase7-2-history",
+                    "app_version": "phase7-3-compare",
                 },
             )
+            return
+        compare_prefix = "/api/v1/laws/"
+        compare_suffix = "/compare"
+        if path.startswith(compare_prefix) and path.endswith(compare_suffix):
+            law_id = path[len(compare_prefix):-len(compare_suffix)].strip("/")
+            if not self.state.database_url:
+                self._send_error_json(503, "DATABASE_NOT_CONFIGURED", "LEGAL_KB_DATABASE_URL is not configured")
+                return
+            params = parse_qs(urlsplit(self.path).query)
+            from_raw = params.get("from_date", [None])[-1]
+            to_raw = params.get("to_date", [None])[-1]
+            article_num = params.get("article_num", [None])[-1]
+            scope_key = params.get("scope_key", [None])[-1]
+            try:
+                if not from_raw or not to_raw:
+                    raise ValueError("from_date and to_date are required")
+                from_date = HISTORY.parse_as_of_date(from_raw)
+                to_date = HISTORY.parse_as_of_date(to_raw)
+                article_num = COMPARE.parse_article_num(article_num)
+                scope_key = COMPARE.parse_scope_key(scope_key)
+            except ValueError as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+                return
+            try:
+                import psycopg
+                conn = psycopg.connect(self.state.database_url)
+            except ImportError:
+                self._send_error_json(503, "PSYCOPG_NOT_INSTALLED", "psycopg is required for database queries")
+                return
+            except Exception:
+                self._send_error_json(503, "DATABASE_UNAVAILABLE", "database connection failed")
+                return
+            try:
+                with conn:
+                    with conn.cursor() as cur:
+                        cur.execute("SET TRANSACTION READ ONLY")
+                    comparison = COMPARE.get_article_comparison(
+                        conn, law_id, from_date=from_date, to_date=to_date, article_num=article_num, scope_key=scope_key
+                    )
+                self._send_json(200, comparison)
+            except ValueError as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+            except Exception as exc:
+                self.log_error("article comparison failed: %s", exc.__class__.__name__)
+                self._send_error_json(500, "ARTICLE_COMPARE_FAILED", "article comparison failed")
+            finally:
+                conn.close()
             return
         history_prefix = "/api/v1/laws/"
         history_suffix = "/history"
