@@ -30,12 +30,23 @@ HISTORY = _load("legal_kb_phase7_history_service", HERE / "012_law_history_servi
 COMPARE = _load("legal_kb_phase7_article_compare", HERE / "017_article_compare_service.py")
 RELATED = _load("legal_kb_phase7_related_material", HERE / "022_related_material_service.py")
 DAILY = _load("legal_kb_phase7_daily_use", HERE / "029_daily_use_service.py")
+OLLAMA = _load("legal_kb_phase7_ollama_answer_provider", HERE / "035_ollama_answer_provider.py")
+
+
+def _answer_provider_from_environment() -> Any | None:
+    provider_name = (os.environ.get("LEGAL_KB_ANSWER_PROVIDER") or "").strip().lower()
+    if provider_name in {"", "none", "off", "disabled"}:
+        return None
+    if provider_name != "ollama":
+        raise RuntimeError("LEGAL_KB_ANSWER_PROVIDER must be 'ollama' or unset")
+    return OLLAMA.OllamaAnswerProvider()
 
 
 class AppState:
     def __init__(self) -> None:
         self.database_url = os.environ.get("LEGAL_KB_DATABASE_URL") or None
         self.query_service = SERVICE.QueryService()
+        self.answer_provider = _answer_provider_from_environment()
         self.evidence_cache: dict[str, dict[str, Any]] = {}
 
     def remember_evidence(self, response: dict[str, Any]) -> None:
@@ -132,9 +143,16 @@ class Handler(BaseHTTPRequestHandler):
                 {
                     "status": "ok",
                     "database": "configured" if self.state.database_url else "not-configured",
-                    "answer_provider": "not-configured",
+                    "answer_provider": (
+                        self.state.answer_provider.metadata.provider
+                        if self.state.answer_provider is not None else "not-configured"
+                    ),
+                    "answer_model": (
+                        self.state.answer_provider.metadata.model
+                        if self.state.answer_provider is not None else None
+                    ),
                     "vector_provider": "not-configured",
-                    "app_version": "phase7-5-daily-use",
+                    "app_version": "phase7-local-rag",
                 },
             )
             return
@@ -448,7 +466,9 @@ class Handler(BaseHTTPRequestHandler):
             with conn:
                 with conn.cursor() as cur:
                     cur.execute("SET TRANSACTION READ ONLY")
-                response = self.state.query_service.query(conn, payload)
+                response = self.state.query_service.query(
+                    conn, payload, answer_provider=self.state.answer_provider
+                )
             self.state.remember_evidence(response)
             try:
                 with conn:
@@ -547,7 +567,7 @@ def main() -> None:
         raise SystemExit("LEGAL_KB_PORT must be in 1..65535")
     state = AppState()
     server = LegalKbHttpServer((host, port), Handler, state)
-    print(f"Legal KB Phase 7-5: http://{host}:{port}")
+    print(f"Legal KB Phase 7 Local RAG: http://{host}:{port}")
     print("Database:", "configured" if state.database_url else "not configured")
     try:
         server.serve_forever()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from functools import lru_cache
 from datetime import date
 import importlib.util
@@ -272,6 +272,129 @@ def _load_phase5_modules() -> tuple[Any, Any]:
     return hybrid, rag
 
 
+def _supplement_article_scope_contexts(
+    conn: Any,
+    hybrid: Any,
+    retrieval_result: Any,
+    structural_data: Mapping[str, str | None],
+    *,
+    chunking_config_sha256: str,
+    max_contexts: int,
+    character_budget: int,
+) -> tuple[Any, int]:
+    """Add descendant chunks for exact Article hits without changing citation truth."""
+    if retrieval_result.status != "ok":
+        return retrieval_result, 0
+    if structural_data.get("tag_name") != "Article" or not structural_data.get("structural_num"):
+        return retrieval_result, 0
+    contexts = list(retrieval_result.contexts)
+    if len(contexts) >= max_contexts:
+        return retrieval_result, 0
+    known_ids = {context.chunk_id for context in contexts}
+    used_chars = sum(len(context.retrieval_text) for context in contexts)
+    structural_num = structural_data["structural_num"]
+    original_contexts = tuple(contexts)
+
+    for article_context in original_contexts:
+        if len(contexts) >= max_contexts:
+            break
+        remaining_slots = max_contexts - len(contexts)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                WITH article AS (
+                    SELECT c.document_pk, c.law_revision_id, c.source_xml_sha256,
+                           c.anchor_document_order AS article_order, p.depth
+                    FROM legal_kb.retrieval_chunk c
+                    JOIN legal_kb.provision_node p
+                      ON p.document_pk=c.document_pk
+                     AND p.document_order=c.anchor_document_order
+                    WHERE c.chunk_id=%s
+                      AND c.anchor_tag_name='Article'
+                      AND c.anchor_structural_num=%s
+                ), boundary AS (
+                    SELECT a.*,
+                           coalesce((
+                               SELECT min(n.document_order)
+                               FROM legal_kb.provision_node n
+                               WHERE n.document_pk=a.document_pk
+                                 AND n.document_order>a.article_order
+                                 AND n.depth<=a.depth
+                           ), 2147483647) AS end_order
+                    FROM article a
+                )
+                SELECT c.chunk_id, c.law_id, c.law_revision_id, c.document_pk,
+                       c.context_prefix, c.retrieval_text, c.source_xml_sha256,
+                       c.retrieval_text_sha256, c.source_document_orders,
+                       legal_kb.provision_node_xml_path(c.document_pk, c.anchor_document_order),
+                       legal_kb.provision_node_xml_path(c.document_pk, c.start_document_order),
+                       legal_kb.provision_node_xml_path(c.document_pk, c.end_document_order)
+                FROM legal_kb.retrieval_chunk c
+                JOIN boundary b
+                  ON b.document_pk=c.document_pk
+                 AND b.law_revision_id=c.law_revision_id
+                 AND b.source_xml_sha256=c.source_xml_sha256
+                WHERE c.anchor_document_order>b.article_order
+                  AND c.anchor_document_order<b.end_order
+                  AND c.chunking_config_sha256=%s
+                ORDER BY c.anchor_document_order, c.start_document_order, c.chunk_id
+                LIMIT %s
+                """,
+                (article_context.chunk_id, structural_num, chunking_config_sha256, remaining_slots * 3),
+            )
+            rows = cur.fetchall()
+        for row in rows:
+            chunk_id = str(row[0])
+            if chunk_id in known_ids:
+                continue
+            if str(row[1]) != retrieval_result.resolution.law_id:
+                raise AssertionError("article scope supplement leaked across law_id")
+            if str(row[2]) != retrieval_result.resolution.selected_revision_id:
+                raise AssertionError("article scope supplement leaked across revision")
+            if int(row[3]) != retrieval_result.resolution.selected_document_pk:
+                raise AssertionError("article scope supplement leaked across document")
+            if str(row[6]).lower() != retrieval_result.resolution.source_xml_sha256.lower():
+                raise AssertionError("article scope supplement leaked across source XML SHA")
+            text = str(row[5])
+            if contexts and used_chars + len(text) > character_budget:
+                continue
+            contexts.append(hybrid.ContextEnvelope(
+                retrieval_rank=len(contexts) + 1,
+                chunk_id=chunk_id,
+                fused_score=0.0,
+                channels=("structural-scope",),
+                channel_ranks=(("structural-scope", 1),),
+                law_id=str(row[1]),
+                law_revision_id=str(row[2]),
+                document_pk=int(row[3]),
+                source_xml_sha256=str(row[6]),
+                retrieval_text_sha256=str(row[7]),
+                context_prefix=row[4],
+                retrieval_text=text,
+                source_document_orders=tuple(int(value) for value in row[8]),
+                anchor_xml_path=str(row[9]),
+                start_xml_path=str(row[10]),
+                end_xml_path=str(row[11]),
+                budget_overflow=False,
+            ))
+            known_ids.add(chunk_id)
+            used_chars += len(text)
+            if len(contexts) >= max_contexts:
+                break
+
+    added = len(contexts) - len(original_contexts)
+    if not added:
+        return retrieval_result, 0
+    return replace(retrieval_result, contexts=tuple(contexts)), added
+
+
+def _select_generation_evidence(answer_provider: Any, evidence_bundles: Any) -> tuple[Any, ...]:
+    selector = getattr(answer_provider, "select_generation_evidence", None)
+    if callable(selector):
+        return tuple(selector(evidence_bundles))
+    return tuple(evidence_bundles)
+
+
 def _base_response(query_id: str, request: Any, law_resolution: Any) -> dict[str, Any]:
     return {
         "api_version": "1",
@@ -372,6 +495,15 @@ class QueryService:
             config=retrieval_config,
             structural_filter=structural_filter,
         )
+        retrieval_result, scope_supplement_count = _supplement_article_scope_contexts(
+            conn,
+            hybrid,
+            retrieval_result,
+            structural_data,
+            chunking_config_sha256=chunking_config,
+            max_contexts=retrieval_config.max_contexts,
+            character_budget=retrieval_config.character_budget,
+        )
         retrieval_ms = round((perf_counter() - stage_started) * 1000, 3)
         response["temporal_resolution"] = retrieval_result.resolution.to_dict()
         response["retrieval"] = {
@@ -382,6 +514,8 @@ class QueryService:
             "query_text": retrieval_query_text,
             "structural_filter": structural_data,
             "channel_counts": dict(retrieval_result.channel_counts),
+            "context_count": len(retrieval_result.contexts),
+            "scope_supplement_count": scope_supplement_count,
             "warnings": list(retrieval_result.warnings),
         }
         response["timing_ms"]["temporal_and_retrieval"] = retrieval_ms
@@ -426,9 +560,31 @@ class QueryService:
             response["status"] = "evidence-only"
         else:
             stage_started = perf_counter()
+            generation_evidence = _select_generation_evidence(
+                answer_provider, evidence_bundles
+            )
+            if not generation_evidence:
+                response["answer"] = {
+                    "status": "skipped-no-substantive-evidence",
+                    "answer_text": "",
+                    "claims": [],
+                    "provider": None,
+                    "citation_ready": False,
+                    "semantic_entailment_verified": False,
+                    "generated_answer_is_source_truth": False,
+                }
+                response["status"] = "evidence-only"
+                response["warnings"].append("ANSWER_SKIPPED_NO_SUBSTANTIVE_EVIDENCE")
+                response["timing_ms"]["answer"] = round(
+                    (perf_counter() - stage_started) * 1000, 3
+                )
+                response["timing_ms"]["total"] = round(
+                    (perf_counter() - total_started) * 1000, 3
+                )
+                return response
             try:
                 answer_envelope = rag.generate_and_finalize(
-                    answer_provider, request.question, evidence_bundles
+                    answer_provider, request.question, generation_evidence
                 )
                 response["answer"] = answer_envelope.to_dict()
                 response["status"] = (

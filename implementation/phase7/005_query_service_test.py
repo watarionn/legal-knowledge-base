@@ -102,6 +102,27 @@ class QueryPlannerTest(unittest.TestCase):
             SERVICE.QueryServiceConfig(chunking_config_sha256="bad").validate()
 
 
+class GenerationEvidenceGateTest(unittest.TestCase):
+    def test_provider_gate_can_suppress_generation(self):
+        class Provider:
+            def select_generation_evidence(self, evidence_bundles):
+                return ()
+
+        self.assertEqual(
+            SERVICE._select_generation_evidence(Provider(), ("heading-only",)),
+            (),
+        )
+
+    def test_provider_without_gate_keeps_all_evidence(self):
+        class Provider:
+            pass
+
+        self.assertEqual(
+            SERVICE._select_generation_evidence(Provider(), ("e1", "e2")),
+            ("e1", "e2"),
+        )
+
+
 class EvidenceProjectionTest(unittest.TestCase):
     def test_projection_keeps_source_truth_fields(self):
         sha = "a" * 64

@@ -41,9 +41,14 @@ class DailyUseWebContractTest(unittest.TestCase):
         self.assertIn("as_of_date: dailyAsOfDate.value || null", DAILY)
         self.assertNotIn("evidence", DAILY.lower())
 
-    def test_phase75_marker(self):
-        self.assertIn("Legal Knowledge Base · Phase 7-5", INDEX)
-        self.assertIn("Phase 7-5", INDEX)
+    def test_generated_answer_is_labeled_as_ai_explanation(self):
+        self.assertIn("AI生成の説明です", APP)
+        self.assertIn("法的根拠は「根拠」に表示された法令原文です", APP)
+        self.assertIn("skipped-no-substantive-evidence", APP)
+
+    def test_local_rag_marker(self):
+        self.assertIn("Legal Knowledge Base · Phase 7 Local RAG", INDEX)
+        self.assertIn("Phase 7 Local RAG", INDEX)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 Phase 1〜6で完成した法令ナレッジベース v1 を、日常利用できるWebアプリへ接続する最小実装です。
 
-現段階ではLLMを必須にせず、まず **質問 → 対象法令 → strict temporal resolution → hybrid retrieval → Evidence Bundle → Phase 4原文** の経路をWeb UIから確認できることを目的とします。
+LLMを必須にせず **質問 → 対象法令 → strict temporal resolution → hybrid retrieval → Evidence Bundle → Phase 4原文** を基本経路とし、任意でローカルOllamaによるEvidence限定の説明生成を追加できます。
 
 ## 現在の機能
 
@@ -15,6 +15,9 @@ Phase 1〜6で完成した法令ナレッジベース v1 を、日常利用で�
 - Phase 5.3 hybrid retrievalの再利用
 - Evidence BundleからPhase 4 source node・XML path・RAW SHAへ戻る根拠表示
 - Evidence-only動作。answer providerは未接続でも利用可能
+- Phase 7 Local RAG: local OllamaによるEvidence限定の説明生成
+- Phase 7 Local RAG: Article本文補完とsubstantive Evidence gate
+- Phase 7 Local RAG: 生成文をsource truthとして扱わないfail-closed境界
 - read-only DB transaction
 - 1画面のresponsive Web UI
 - Phase 7-2: 法令revision履歴タイムライン
@@ -62,6 +65,8 @@ implementation/phase7/
 ├── 032_application_state_bootstrap_test.py
 ├── 033_daily_use_http_route_test.py
 ├── 034_daily_use_web_contract_test.py
+├── 035_ollama_answer_provider.py
+├── 036_ollama_answer_provider_test.py
 └── web/
     ├── index.html
     ├── styles.css
@@ -78,7 +83,7 @@ implementation/phase7/
 PowerShell例:
 
 ```powershell
-$env:LEGAL_KB_DATABASE_URL = 'postgresql://USER:PASSWORD@HOST:PORT/DATABASE'
+$env:LEGAL_KB_DATABASE_URL = '<PostgreSQL DSN>'
 python implementation/phase7/003_web_server.py
 ```
 
@@ -94,9 +99,21 @@ http://127.0.0.1:8765
 $env:LEGAL_KB_HOST = '127.0.0.1'
 $env:LEGAL_KB_PORT = '8765'
 $env:LEGAL_KB_CHUNKING_CONFIG_SHA256 = '<64-char SHA-256>'
+$env:LEGAL_KB_ANSWER_PROVIDER = 'ollama'
+$env:LEGAL_KB_OLLAMA_MODEL = 'gemma3:4b'
+$env:LEGAL_KB_OLLAMA_BASE_URL = 'http://127.0.0.1:11434'
 ```
 
 `LEGAL_KB_CHUNKING_CONFIG_SHA256`未指定時、DB内の`retrieval_chunk`に存在するchunking configが1種類だけなら自動利用します。複数存在する場合は勝手に選ばず、明示設定を要求します。
+
+
+### Phase 7 Local RAG
+
+`LEGAL_KB_ANSWER_PROVIDER=ollama` のときだけローカルAnswer Providerを有効化します。未設定時は従来どおりEvidence-onlyです。
+Ollama接続先はloopback hostに限定し、生成には実質的な本文Evidenceだけを渡します。ArticleTitle / ArticleCaptionだけでは生成しません。
+本文Evidenceが不足する場合はOllamaを呼ばずEvidence-onlyへ戻ります。生成文は常に派生説明であり、法的source truthはPhase 3〜4の法令原文・revision・source XML SHAです。
+
+設計は `docs/architecture/phase7-local-rag.md`、ローカル検証証跡は `docs/validation/phase7-local-rag-validation-20260912.json` を参照してください。
 
 ## API
 
