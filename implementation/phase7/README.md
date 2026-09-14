@@ -111,6 +111,7 @@ $env:LEGAL_KB_OLLAMA_BASE_URL = 'http://127.0.0.1:11434'
 
 `LEGAL_KB_ANSWER_PROVIDER=ollama` のときだけローカルAnswer Providerを有効化します。未設定時は従来どおりEvidence-onlyです。
 Ollama接続先はloopback hostに限定し、生成には実質的な本文Evidenceだけを渡します。ArticleTitle / ArticleCaptionだけでは生成しません。
+明示的な第○条を含む質問ではlexical channelを無効化し、exact Articleのstructural retrievalを決定論的に優先します。
 本文Evidenceが不足する場合はOllamaを呼ばずEvidence-onlyへ戻ります。生成文は常に派生説明であり、法的source truthはPhase 3〜4の法令原文・revision・source XML SHAです。
 
 設計は `docs/architecture/phase7-local-rag.md`、ローカル検証証跡は `docs/validation/phase7-local-rag-validation-20260912.json` を参照してください。

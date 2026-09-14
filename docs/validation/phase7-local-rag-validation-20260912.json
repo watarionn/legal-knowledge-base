@@ -40,7 +40,7 @@
     "generated_answer_is_source_truth": false
   },
   "tests": {
-    "query_service": 8,
+    "query_service": 10,
     "ollama_provider": 8,
     "related_material_http": 8,
     "daily_use_http": 9,
@@ -62,7 +62,17 @@
     "current_8876_server_replaced": false,
     "tailscale_route_changed": false,
     "main_changed": false,
-    "branch_pushed": false,
-    "pull_request_created": false
+    "branch_pushed": true,
+    "pull_request_created": true,
+    "pull_request_number": 33
+  },
+  "review_hardening_date": "2026-09-14",
+  "exact_article_precedence": {
+    "lexical_disabled_when_article_explicit": true,
+    "regression_question": "民法第90条で無効になるのは？",
+    "lexical_risk_term": "無効",
+    "lexical_hits_checked": 20,
+    "target_article_paragraph_lexical_rank_observed": 9,
+    "structural_exact_article_verified": "Article:90"
   }
 }

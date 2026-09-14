@@ -97,6 +97,29 @@ class QueryPlannerTest(unittest.TestCase):
         self.assertEqual(value["tag_name"], "Article")
         self.assertEqual(value["structural_num"], "90")
 
+    def test_exact_article_disables_lexical_channel(self):
+        resolution = Resolution(
+            selected_law_id="129AC0000000089",
+            candidates=(Candidate("129AC0000000089", "民法"),),
+        )
+        query_text, structural = SERVICE.plan_retrieval_channels(
+            "民法第90条で無効になるのは？", resolution
+        )
+        self.assertEqual(query_text, "")
+        self.assertEqual(structural["tag_name"], "Article")
+        self.assertEqual(structural["structural_num"], "90")
+
+    def test_non_article_keeps_lexical_channel(self):
+        resolution = Resolution(
+            selected_law_id="129AC0000000089",
+            candidates=(Candidate("129AC0000000089", "民法"),),
+        )
+        query_text, structural = SERVICE.plan_retrieval_channels(
+            "民法で意思表示について確認したい", resolution
+        )
+        self.assertEqual(query_text, "意思表示")
+        self.assertIsNone(structural["tag_name"])
+
     def test_bad_chunking_sha_is_rejected(self):
         with self.assertRaisesRegex(SERVICE.Phase7ConfigurationError, "SHA-256"):
             SERVICE.QueryServiceConfig(chunking_config_sha256="bad").validate()

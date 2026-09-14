@@ -41,6 +41,12 @@ Ollamaが未設定、停止、不正JSON、未知Evidence参照、本文Evidence
 
 境界外や別revisionの本文を代用しない。
 
+### exact Articleの検索優先順位
+
+質問に明示的な `第○条` がある場合、lexical channelは実行せずstructural Article検索を優先する。
+一般語（例: `無効`）のlexical hitがcontext上限を先に埋め、指定Articleが脱落することを防ぐためである。
+質問原文はAnswer Providerへそのまま渡すため、ユーザーの説明意図は保持する。
+
 ## substantive Evidence gate
 
 LLM生成用Evidenceは、実質的な本文ノードを含むBundleだけに限定する。

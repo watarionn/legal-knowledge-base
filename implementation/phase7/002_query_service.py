@@ -116,6 +116,16 @@ def plan_retrieval_text(question: str, law_resolution: Any) -> str:
     return fallback if fallback else question.strip()
 
 
+def plan_retrieval_channels(
+    question: str, law_resolution: Any
+) -> tuple[str, dict[str, str | None]]:
+    structural_data = structural_filter_from_question(question)
+    query_text = plan_retrieval_text(question, law_resolution)
+    if structural_data.get("tag_name") == "Article" and structural_data.get("structural_num"):
+        query_text = ""
+    return query_text, structural_data
+
+
 def evidence_to_api(bundle: Any) -> dict[str, Any]:
     nodes = [asdict(node) for node in bundle.source_nodes]
     texts = [
@@ -470,8 +480,9 @@ class QueryService:
             response["timing_ms"]["total"] = round((perf_counter() - total_started) * 1000, 3)
             return response
 
-        retrieval_query_text = plan_retrieval_text(request.question, law_resolution)
-        structural_data = structural_filter_from_question(request.question)
+        retrieval_query_text, structural_data = plan_retrieval_channels(
+            request.question, law_resolution
+        )
         chunking_config = _discover_chunking_config(
             conn, self.config.chunking_config_sha256
         )
