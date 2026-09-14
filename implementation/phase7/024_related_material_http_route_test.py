@@ -103,7 +103,7 @@ class RouteTest(unittest.TestCase):
         status, body, _ = self.request("/api/v1/health")
         payload = json.loads(body)
         self.assertEqual(status, 200)
-        self.assertEqual(payload["app_version"], "phase7-5-daily-use")
+        self.assertEqual(payload["app_version"], "phase7-local-rag")
 
     def test_index_contains_related_panel(self):
         status, body, _ = self.request("/")

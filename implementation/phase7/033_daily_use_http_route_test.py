@@ -76,7 +76,7 @@ class RouteTest(unittest.TestCase):
 
         state = SERVER.AppState()
         state.database_url = "mock://database"
-        state.query_service = types.SimpleNamespace(query=lambda conn, payload: {
+        state.query_service = types.SimpleNamespace(query=lambda conn, payload, answer_provider=None: {
             'api_version': '1', 'query_id': 'c' * 32,
             'question': payload.get('question', ''),
             'requested_as_of_date': payload.get('as_of_date'),
@@ -129,7 +129,7 @@ class RouteTest(unittest.TestCase):
         status, body, _ = self.request("/api/v1/health")
         payload = json.loads(body)
         self.assertEqual(status, 200)
-        self.assertEqual(payload["app_version"], "phase7-5-daily-use")
+        self.assertEqual(payload["app_version"], "phase7-local-rag")
 
     def test_daily_js_is_served(self):
         status, body, headers = self.request("/daily.js")

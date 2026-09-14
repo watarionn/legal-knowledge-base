@@ -1,0 +1,78 @@
+{
+  "validation_date": "2026-09-12",
+  "feature": "phase7-local-rag",
+  "status": "passed-local",
+  "branch": "phase7/ollama-answer-provider",
+  "base_main_sha": "967d79163ec97f58fcaf3e832422efa2f063ff02",
+  "architecture": "docs/architecture/phase7-local-rag.md",
+  "provider": {
+    "type": "ollama-local",
+    "model": "gemma3:4b",
+    "loopback_only": true,
+    "enabled_only_by_environment": true
+  },
+  "source_truth": {
+    "law_text": "phase3-phase4",
+    "generated_answer_is_source_truth": false,
+    "semantic_entailment_machine_verified": false
+  },
+  "article_scope_supplement": {
+    "law_id_guard": true,
+    "law_revision_id_guard": true,
+    "document_pk_guard": true,
+    "source_xml_sha256_guard": true,
+    "chunking_config_guard": true
+  },
+  "substantive_evidence_gate": {
+    "heading_only_excluded_from_generation": true,
+    "no_substantive_evidence_skips_provider": true,
+    "unknown_evidence_id_rejected": true,
+    "invalid_json_rejected": true
+  },
+  "runtime_positive_case": {
+    "question": "民法第90条について教えて",
+    "status": "answered",
+    "temporal_status": "resolved",
+    "top_level_evidence_count": 2,
+    "substantive_evidence_count": 1,
+    "claim_evidence_ids_are_substantive": true,
+    "citation_ready": true,
+    "generated_answer_is_source_truth": false
+  },
+  "tests": {
+    "query_service": 10,
+    "ollama_provider": 8,
+    "related_material_http": 8,
+    "daily_use_http": 9,
+    "web_contract": 8,
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "runtime_fallback_case": {
+    "live_database_recheck": "not-run-due-to-credential-tool-boundary",
+    "unit_gate_verified": true
+  },
+  "security": {
+    "database_url_recorded": false,
+    "ollama_external_host_rejected": true,
+    "browser_labels_generated_text_as_ai": true,
+    "github_actions_invoked": false
+  },
+  "deployment": {
+    "current_8876_server_replaced": false,
+    "tailscale_route_changed": false,
+    "main_changed": false,
+    "branch_pushed": true,
+    "pull_request_created": true,
+    "pull_request_number": 33
+  },
+  "review_hardening_date": "2026-09-14",
+  "exact_article_precedence": {
+    "lexical_disabled_when_article_explicit": true,
+    "regression_question": "民法第90条で無効になるのは？",
+    "lexical_risk_term": "無効",
+    "lexical_hits_checked": 20,
+    "target_article_paragraph_lexical_rank_observed": 9,
+    "structural_exact_article_verified": "Article:90"
+  }
+}
