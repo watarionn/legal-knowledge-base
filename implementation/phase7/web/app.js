@@ -65,6 +65,8 @@ function renderStatus(data) {
     text = `${data.effective_as_of_date} 時点の対象版を確定し、根拠原文に基づくAI生成説明を表示しています。法的根拠は右側の原文です。`;
   } else if (data.status === 'evidence-only') {
     text = `${data.effective_as_of_date} 時点の対象版を確定しました。現在は生成回答を使わず、一次根拠を表示しています。`;
+  } else if (data.status === 'answer-failed') {
+    text = '根拠原文は取得できましたが、AI説明の生成に失敗しました。根拠原文を確認できます。';
   } else {
     text = `status: ${valueOrDash(data.status)}`;
   }
@@ -140,6 +142,8 @@ function renderAnswer(data) {
     p.textContent = payload.status === 'skipped-no-substantive-evidence'
       ? '生成に使える本文Evidenceが不足しているため、AI生成を行わず根拠原文だけを表示しています。'
       : '生成回答プロバイダーはまだ接続していません。右側の根拠原文を直接確認できます。';
+  } else if (data.status === 'answer-failed') {
+    p.textContent = 'AI説明の生成に失敗しました。根拠原文は取得済みです。';
   } else {
     p.textContent = 'この状態では回答生成を実行していません。';
   }

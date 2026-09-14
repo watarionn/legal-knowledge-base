@@ -65,6 +65,11 @@ class DailyUseWebContractTest(unittest.TestCase):
         self.assertLess(INDEX.index('id="result"'), INDEX.index('id="daily-panel"'))
         self.assertIn(".daily-panel-body", STYLES)
 
+    def test_answer_failure_is_human_readable(self):
+        self.assertIn("根拠原文は取得できましたが、AI説明の生成に失敗しました", APP)
+        self.assertIn("AI説明の生成に失敗しました。根拠原文は取得済みです", APP)
+        self.assertNotIn("status: answer-failed", APP)
+
     def test_local_rag_marker(self):
         self.assertIn("Legal Knowledge Base · Phase 7 Local RAG", INDEX)
         self.assertIn("Phase 7 Local RAG", INDEX)
