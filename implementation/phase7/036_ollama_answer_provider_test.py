@@ -89,7 +89,7 @@ class ProviderTest(unittest.TestCase):
                 "claims": [
                     {
                         "text": "この条文は、公序良俗に反する法律行為を無効と定めています。",
-                        "evidence_ids": ["evidence-1"],
+                        "evidence_ids": ["E1"],
                     }
                 ]
             }
@@ -107,15 +107,19 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(captured["timeout"], 12)
         serialized = json.dumps(captured["payload"], ensure_ascii=False)
         self.assertIn("公の秩序又は善良の風俗", serialized)
-        self.assertIn("EVIDENCE_ID: evidence-1", serialized)
+        self.assertIn("EVIDENCE_ID: E1", serialized)
+        self.assertNotIn("EVIDENCE_ID: evidence-1", serialized)
+        self.assertIsInstance(captured["payload"]["format"], dict)
+        enum_values = captured["payload"]["format"]["properties"]["claims"]["items"]["properties"]["evidence_ids"]["items"]["enum"]
+        self.assertEqual(enum_values, ["E1"])
 
     def test_unknown_evidence_id_fails_closed(self):
         def transport(url, payload, timeout):
-            content = {"claims": [{"text": "推測です。", "evidence_ids": ["invented"]}]}
+            content = {"claims": [{"text": "推測です。", "evidence_ids": ["E9"]}]}
             return {"message": {"content": json.dumps(content, ensure_ascii=False)}}
 
         provider = PROVIDER.OllamaAnswerProvider(transport=transport)
-        with self.assertRaisesRegex(PROVIDER.OllamaAnswerProviderError, "unknown evidence"):
+        with self.assertRaisesRegex(PROVIDER.OllamaAnswerProviderError, "unknown evidence alias"):
             provider.generate("質問", [evidence()])
 
     def test_non_json_response_fails_closed(self):
@@ -131,8 +135,8 @@ class ProviderTest(unittest.TestCase):
         def transport(url, payload, timeout):
             content = {
                 "claims": [
-                    {"text": "主張A", "evidence_ids": ["evidence-1"]},
-                    {"text": "主張B", "evidence_ids": ["evidence-1"]},
+                    {"text": "主張A", "evidence_ids": ["E1"]},
+                    {"text": "主張B", "evidence_ids": ["E1"]},
                 ]
             }
             return {"message": {"content": json.dumps(content, ensure_ascii=False)}}
