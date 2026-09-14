@@ -453,7 +453,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            conn = psycopg.connect(self.state.database_url)
+            query_conn = psycopg.connect(self.state.database_url)
         except Exception:
             self._send_error_json(
                 503,
@@ -463,17 +463,21 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            with conn:
-                with conn.cursor() as cur:
+            with query_conn:
+                with query_conn.cursor() as cur:
                     cur.execute("SET TRANSACTION READ ONLY")
                 response = self.state.query_service.query(
-                    conn, payload, answer_provider=self.state.answer_provider
+                    query_conn, payload, answer_provider=self.state.answer_provider
                 )
             self.state.remember_evidence(response)
             try:
-                with conn:
-                    if DAILY.application_state_ready(conn):
-                        DAILY.record_query_activity(conn, response)
+                activity_conn = psycopg.connect(self.state.database_url)
+                try:
+                    with activity_conn:
+                        if DAILY.application_state_ready(activity_conn):
+                            DAILY.record_query_activity(activity_conn, response)
+                finally:
+                    activity_conn.close()
             except Exception as activity_exc:
                 self.log_error("daily activity persistence failed: %s", activity_exc.__class__.__name__)
             self._send_json(200, response)
@@ -485,7 +489,7 @@ class Handler(BaseHTTPRequestHandler):
             self.log_error("query failed: %s", exc.__class__.__name__)
             self._send_error_json(500, "QUERY_FAILED", "query processing failed")
         finally:
-            conn.close()
+            query_conn.close()
 
     def do_PUT(self) -> None:
         path = self.path.split("?", 1)[0]
