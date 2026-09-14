@@ -30,6 +30,7 @@ HISTORY = _load("legal_kb_phase7_history_service", HERE / "012_law_history_servi
 COMPARE = _load("legal_kb_phase7_article_compare", HERE / "017_article_compare_service.py")
 RELATED = _load("legal_kb_phase7_related_material", HERE / "022_related_material_service.py")
 DAILY = _load("legal_kb_phase7_daily_use", HERE / "029_daily_use_service.py")
+WATCH = _load("legal_kb_phase76_law_watch", HERE / "038_law_watch_service.py")
 OLLAMA = _load("legal_kb_phase7_ollama_answer_provider", HERE / "035_ollama_answer_provider.py")
 
 
@@ -155,6 +156,41 @@ class Handler(BaseHTTPRequestHandler):
                     "app_version": "phase7-local-rag",
                 },
             )
+            return
+        if path == "/api/v1/watches":
+            if not self.state.database_url:
+                self._send_error_json(503, "DATABASE_NOT_CONFIGURED", "LEGAL_KB_DATABASE_URL is not configured")
+                return
+            try:
+                import psycopg
+                conn = psycopg.connect(self.state.database_url)
+            except ImportError:
+                self._send_error_json(503, "PSYCOPG_NOT_INSTALLED", "psycopg is required for database queries")
+                return
+            except Exception:
+                self._send_error_json(503, "DATABASE_UNAVAILABLE", "database connection failed")
+                return
+            try:
+                with conn:
+                    with conn.cursor() as cur:
+                        cur.execute("SET TRANSACTION READ ONLY")
+                    if not WATCH.watch_state_ready(conn):
+                        self._send_error_json(503, "WATCH_STATE_NOT_CONFIGURED", "Phase 7-6 law watch schema is not configured")
+                        return
+                    watches = WATCH.list_watches(conn)
+                self._send_json(200, {
+                    "api_version": "1",
+                    "watches": watches,
+                    "source_truth": "phase7-application-state",
+                    "law_text_truth": "phase3-phase4",
+                })
+            except ValueError as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+            except Exception as exc:
+                self.log_error("law watch list failed: %s", exc.__class__.__name__)
+                self._send_error_json(500, "LAW_WATCH_LIST_FAILED", "law watch list failed")
+            finally:
+                conn.close()
             return
         if path == "/api/v1/daily-state":
             if not self.state.database_url:
@@ -376,6 +412,75 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = self.path.split("?", 1)[0]
+        if path == "/api/v1/watches" or path == "/api/v1/watches/evaluate" or (path.startswith("/api/v1/watches/") and path.endswith("/evaluate")):
+            raw_length = self.headers.get("Content-Length")
+            try:
+                content_length = int(raw_length or "0")
+                if content_length < 0 or content_length > MAX_REQUEST_BYTES:
+                    raise ValueError("invalid request body length")
+                if path == "/api/v1/watches" and content_length <= 0:
+                    raise ValueError("request body is required")
+                payload = {}
+                if content_length:
+                    payload = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                    if not isinstance(payload, dict):
+                        raise ValueError("request body must be a JSON object")
+                evaluation_date = None
+                if path != "/api/v1/watches":
+                    evaluation_date = HISTORY.parse_as_of_date(payload.get("evaluation_date"))
+            except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+                return
+            if not self.state.database_url:
+                self._send_error_json(503, "DATABASE_NOT_CONFIGURED", "LEGAL_KB_DATABASE_URL is not configured")
+                return
+            conn = None
+            try:
+                import psycopg
+                conn = psycopg.connect(self.state.database_url)
+                with conn:
+                    if not WATCH.watch_state_ready(conn):
+                        self._send_error_json(503, "WATCH_STATE_NOT_CONFIGURED", "Phase 7-6 law watch schema is not configured")
+                        return
+                    if path == "/api/v1/watches":
+                        watch = WATCH.create_watch(
+                            conn,
+                            law_id=str(payload.get("law_id") or ""),
+                            theme_id=payload.get("theme_id"),
+                        )
+                        response_status = 201
+                        response_payload = watch
+                    elif path == "/api/v1/watches/evaluate":
+                        results = WATCH.evaluate_all_watches(
+                            conn, evaluation_date=evaluation_date
+                        )
+                        response_status = 200
+                        response_payload = {
+                            "api_version": "1",
+                            "evaluation_date": evaluation_date.isoformat(),
+                            "result_count": len(results),
+                            "results": results,
+                            "source_truth": "phase3-phase5",
+                        }
+                    else:
+                        watch_id = path[len("/api/v1/watches/"):-len("/evaluate")].strip("/")
+                        result = WATCH.evaluate_watch(
+                            conn, watch_id, evaluation_date=evaluation_date
+                        )
+                        if result is None:
+                            self._send_error_json(404, "WATCH_NOT_FOUND", "watch was not found")
+                            return
+                        response_status = 200
+                        response_payload = result
+                self._send_json(response_status, response_payload)
+            except ValueError as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+            except Exception as exc:
+                self.log_error("law watch mutation failed: %s", exc.__class__.__name__)
+                self._send_error_json(500, "LAW_WATCH_MUTATION_FAILED", "law watch operation failed")
+            finally:
+                if conn is not None: conn.close()
+            return
         if path == "/api/v1/saved-themes":
             raw_length = self.headers.get("Content-Length")
             try:
@@ -532,6 +637,17 @@ class Handler(BaseHTTPRequestHandler):
             import psycopg
             conn = psycopg.connect(self.state.database_url)
             with conn:
+                if path.startswith("/api/v1/watches/"):
+                    if not WATCH.watch_state_ready(conn):
+                        self._send_error_json(503, "WATCH_STATE_NOT_CONFIGURED", "Phase 7-6 law watch schema is not configured")
+                        return
+                    watch_id = path[len("/api/v1/watches/"):].strip("/")
+                    removed = WATCH.delete_watch(conn, watch_id)
+                    if not removed:
+                        self._send_error_json(404, "WATCH_NOT_FOUND", "watch was not found")
+                    else:
+                        self._send_json(200, {"removed": True})
+                    return
                 if not DAILY.application_state_ready(conn):
                     self._send_error_json(503, "APPLICATION_STATE_NOT_CONFIGURED", "Phase 7 application state schema is not configured")
                     return

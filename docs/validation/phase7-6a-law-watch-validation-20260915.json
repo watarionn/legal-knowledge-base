@@ -1,0 +1,30 @@
+{
+  "phase": "7-6a-watch-core",
+  "validated_on": "2026-09-15",
+  "status": "passed",
+  "scope": [
+    "watch schema and separate fail-closed bootstrap",
+    "watch create/list/delete",
+    "manual single/all evaluation HTTP routes",
+    "deterministic initialized/no-change/effective-change/temporal-blocked state machine"
+  ],
+  "offline_regression": {
+    "test_files": 19,
+    "tests_passed": 145,
+    "tests_failed": 0,
+    "compileall": "passed",
+    "git_diff_check": "passed"
+  },
+  "postgres_transactional_smoke": {
+    "law_id": "129AC0000000089",
+    "evaluation_date": "2026-09-15",
+    "schema_was_present_before": false,
+    "first_state": "initialized",
+    "first_baseline_revision_id": "129AC0000000089_20260624_508AC0000000045",
+    "second_state": "no-change",
+    "schema_restored_after_rollback": true
+  },
+  "production_changed": false,
+  "github_actions_used": false,
+  "database_url_recorded": false
+}
