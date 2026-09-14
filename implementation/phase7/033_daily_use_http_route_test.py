@@ -26,17 +26,32 @@ class FakeCursor:
 
 
 class FakeConnection:
-    def __enter__(self): return self
-    def __exit__(self, *args): return False
-    def cursor(self): return FakeCursor()
-    def close(self): pass
+    def __init__(self):
+        self.closed = False
+    def __enter__(self):
+        if self.closed:
+            raise RuntimeError("connection is closed")
+        return self
+    def __exit__(self, *args):
+        self.closed = True
+        return False
+    def cursor(self):
+        if self.closed:
+            raise RuntimeError("connection is closed")
+        return FakeCursor()
+    def close(self): self.closed = True
 
 
 class RouteTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.calls = []
-        fake_psycopg = types.SimpleNamespace(connect=lambda url: FakeConnection())
+        cls.connections = []
+        def connect(url):
+            conn = FakeConnection()
+            cls.connections.append(conn)
+            return conn
+        fake_psycopg = types.SimpleNamespace(connect=connect)
         cls.old_psycopg = sys.modules.get("psycopg")
         sys.modules["psycopg"] = fake_psycopg
 
@@ -69,8 +84,10 @@ class RouteTest(unittest.TestCase):
         SERVER.DAILY.clear_search_history = lambda conn: 3
         SERVER.DAILY.clear_recent_laws = lambda conn: 2
         cls.activity_calls = []
+        cls.activity_connections = []
         def failing_record(conn, response):
             cls.activity_calls.append(response['query_id'])
+            cls.activity_connections.append(conn)
             raise RuntimeError('simulated application-state failure')
         SERVER.DAILY.record_query_activity = failing_record
 
@@ -185,14 +202,21 @@ class RouteTest(unittest.TestCase):
 
     def test_query_succeeds_when_activity_persistence_fails(self):
         self.activity_calls.clear()
+        self.activity_connections.clear()
+        before = len(self.connections)
         status, body, _ = self.request(
             "/api/v1/query", method="POST",
             payload={"question": "民法の第90条を確認したい", "as_of_date": "2026-09-11"},
         )
         payload = json.loads(body)
+        created = self.connections[before:]
         self.assertEqual(status, 200)
         self.assertEqual(payload["status"], "evidence-only")
         self.assertEqual(self.activity_calls, ["c" * 32])
+        self.assertEqual(len(created), 2)
+        self.assertIsNot(created[0], created[1])
+        self.assertEqual(self.activity_connections, [created[1]])
+        self.assertTrue(all(conn.closed for conn in created))
 
     def test_database_not_configured_is_503(self):
         old = self.server.state.database_url
