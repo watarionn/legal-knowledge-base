@@ -53,15 +53,17 @@ class DailyUseWebContractTest(unittest.TestCase):
         self.assertIn("refs.append('参照根拠: ')", APP)
         self.assertIn("link.textContent = `E${index}`", APP)
 
-    def test_evidence_path_is_separate_from_mobile_heading(self):
+    def test_evidence_card_hides_internal_details(self):
         self.assertIn("heading.textContent = `E${index + 1}`", APP)
-        self.assertIn("path.className = 'evidence-path mono muted'", APP)
+        self.assertNotIn("evidence-path mono muted", APP)
+        self.assertNotIn("source_xml_sha256_short", APP)
+        self.assertIn("card.append(heading, quote, actions)", APP)
 
-    def test_long_mobile_paths_wrap_without_widening_panel(self):
-        self.assertIn(".evidence-path", STYLES)
-        self.assertIn("overflow-wrap: anywhere", STYLES)
-        self.assertIn("word-break: break-word", STYLES)
-        self.assertIn("min-width: 0", STYLES)
+    def test_my_list_is_collapsed_and_after_results(self):
+        self.assertIn('<details id="daily-panel" class="daily-panel">', INDEX)
+        self.assertIn('class="daily-summary"', INDEX)
+        self.assertLess(INDEX.index('id="result"'), INDEX.index('id="daily-panel"'))
+        self.assertIn(".daily-panel-body", STYLES)
 
     def test_local_rag_marker(self):
         self.assertIn("Legal Knowledge Base · Phase 7 Local RAG", INDEX)

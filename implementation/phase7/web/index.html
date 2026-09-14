@@ -39,27 +39,6 @@
       </div>
     </section>
 
-    <section id="daily-panel" class="daily-panel" aria-labelledby="daily-title">
-      <div class="panel-heading">
-        <h2 id="daily-title">マイリスト</h2>
-        <span class="count">Phase 7-5</span>
-      </div>
-      <p id="daily-status" class="muted" role="status" aria-live="polite"></p>
-      <div class="daily-actions">
-        <button id="favorite-current" type="button" class="secondary-button" hidden>この法令をお気に入り</button>
-        <form id="save-theme-form" class="save-theme-form">
-          <input id="theme-title" type="text" maxlength="120" placeholder="保存テーマ名" required>
-          <button type="submit" class="secondary-button">現在の質問を保存</button>
-        </form>
-      </div>
-      <div class="daily-grid">
-        <article><h3>お気に入り法令</h3><div id="favorite-list" class="daily-list"></div></article>
-        <article><div class="daily-subhead"><h3>最近見た法令</h3><button id="clear-recent" type="button">クリア</button></div><div id="recent-list" class="daily-list"></div></article>
-        <article><div class="daily-subhead"><h3>検索履歴</h3><button id="clear-history" type="button">クリア</button></div><div id="search-history-list" class="daily-list"></div></article>
-        <article><h3>保存テーマ</h3><div id="saved-theme-list" class="daily-list"></div></article>
-      </div>
-    </section>
-
     <p id="progress" class="progress" role="status" aria-live="polite"></p>
     <section id="result" hidden>
       <div id="status-banner" class="status-banner"></div>
@@ -125,6 +104,29 @@
         <pre id="technical"></pre>
       </details>
     </section>
+
+    <details id="daily-panel" class="daily-panel">
+      <summary class="daily-summary">
+        <span>マイリスト</span>
+        <span class="muted">お気に入り・最近見た法令・検索履歴・保存テーマ</span>
+      </summary>
+      <div class="daily-panel-body">
+      <p id="daily-status" class="muted" role="status" aria-live="polite"></p>
+      <div class="daily-actions">
+        <button id="favorite-current" type="button" class="secondary-button" hidden>この法令をお気に入り</button>
+        <form id="save-theme-form" class="save-theme-form">
+          <input id="theme-title" type="text" maxlength="120" placeholder="保存テーマ名" required>
+          <button type="submit" class="secondary-button">現在の質問を保存</button>
+        </form>
+      </div>
+      <div class="daily-grid">
+        <article><h3>お気に入り法令</h3><div id="favorite-list" class="daily-list"></div></article>
+        <article><div class="daily-subhead"><h3>最近見た法令</h3><button id="clear-recent" type="button">クリア</button></div><div id="recent-list" class="daily-list"></div></article>
+        <article><div class="daily-subhead"><h3>検索履歴</h3><button id="clear-history" type="button">クリア</button></div><div id="search-history-list" class="daily-list"></div></article>
+        <article><h3>保存テーマ</h3><div id="saved-theme-list" class="daily-list"></div></article>
+      </div>
+      </div>
+    </details>
   </main>
 
   <dialog id="source-dialog">

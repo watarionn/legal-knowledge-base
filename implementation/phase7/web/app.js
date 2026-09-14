@@ -186,15 +186,9 @@ function renderEvidence(data) {
     card.id = `evidence-${index + 1}`;
     const heading = document.createElement('h3');
     heading.textContent = `E${index + 1}`;
-    const path = document.createElement('p');
-    path.className = 'evidence-path mono muted';
-    path.textContent = item.display_path || '構造参照';
     const quote = document.createElement('p');
     quote.className = 'quote';
     quote.textContent = item.quote || '原文テキストなし';
-    const meta = document.createElement('p');
-    meta.className = 'mono muted';
-    meta.textContent = `revision ${item.law_revision_id} · SHA ${item.source_xml_sha256_short}`;
     const actions = document.createElement('div');
     actions.className = 'evidence-actions';
     const open = document.createElement('button');
@@ -202,7 +196,7 @@ function renderEvidence(data) {
     open.textContent = '原文を見る';
     open.addEventListener('click', () => showSource(item));
     actions.appendChild(open);
-    card.append(heading, path, quote, meta, actions);
+    card.append(heading, quote, actions);
     evidenceList.appendChild(card);
   });
 }
