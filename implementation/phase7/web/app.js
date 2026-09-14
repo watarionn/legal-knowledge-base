@@ -110,12 +110,27 @@ function renderAnswer(data) {
     notice.textContent = 'AI生成の説明です。法的根拠は「根拠」に表示された法令原文です。';
     answer.appendChild(notice);
     const p = document.createElement('p');
+    p.className = 'answer-text';
     p.textContent = payload.answer_text;
     answer.appendChild(p);
-    for (const claim of payload.claims || []) {
-      const item = document.createElement('p');
-      item.textContent = `${claim.text} [${(claim.evidence_ids || []).join(', ')}]`;
-      answer.appendChild(item);
+    const evidenceIndex = new Map((data.evidence || []).map(
+      (item, index) => [String(item.evidence_id), index + 1]
+    ));
+    const cited = [...new Set((payload.claims || []).flatMap(
+      claim => claim.evidence_ids || []
+    ))].map(value => evidenceIndex.get(String(value))).filter(Boolean);
+    if (cited.length) {
+      const refs = document.createElement('p');
+      refs.className = 'answer-citations';
+      refs.append('参照根拠: ');
+      cited.forEach((index, position) => {
+        if (position) refs.append(' · ');
+        const link = document.createElement('a');
+        link.href = `#evidence-${index}`;
+        link.textContent = `E${index}`;
+        refs.appendChild(link);
+      });
+      answer.appendChild(refs);
     }
     return;
   }
@@ -170,7 +185,10 @@ function renderEvidence(data) {
     card.className = 'evidence-card';
     card.id = `evidence-${index + 1}`;
     const heading = document.createElement('h3');
-    heading.textContent = `E${index + 1} · ${item.display_path || '構造参照'}`;
+    heading.textContent = `E${index + 1}`;
+    const path = document.createElement('p');
+    path.className = 'evidence-path mono muted';
+    path.textContent = item.display_path || '構造参照';
     const quote = document.createElement('p');
     quote.className = 'quote';
     quote.textContent = item.quote || '原文テキストなし';
@@ -184,7 +202,7 @@ function renderEvidence(data) {
     open.textContent = '原文を見る';
     open.addEventListener('click', () => showSource(item));
     actions.appendChild(open);
-    card.append(heading, quote, meta, actions);
+    card.append(heading, path, quote, meta, actions);
     evidenceList.appendChild(card);
   });
 }

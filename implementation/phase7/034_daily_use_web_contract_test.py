@@ -8,6 +8,7 @@ WEB = HERE / "web"
 INDEX = (WEB / "index.html").read_text(encoding="utf-8")
 APP = (WEB / "app.js").read_text(encoding="utf-8-sig")
 DAILY = (WEB / "daily.js").read_text(encoding="utf-8-sig")
+STYLES = (WEB / "styles.css").read_text(encoding="utf-8-sig")
 
 
 class DailyUseWebContractTest(unittest.TestCase):
@@ -45,6 +46,22 @@ class DailyUseWebContractTest(unittest.TestCase):
         self.assertIn("AI生成の説明です", APP)
         self.assertIn("法的根拠は「根拠」に表示された法令原文です", APP)
         self.assertIn("skipped-no-substantive-evidence", APP)
+
+    def test_generated_answer_is_not_duplicated_as_claim_text(self):
+        self.assertIn("p.className = 'answer-text'", APP)
+        self.assertNotIn("item.textContent = `${claim.text}", APP)
+        self.assertIn("refs.append('参照根拠: ')", APP)
+        self.assertIn("link.textContent = `E${index}`", APP)
+
+    def test_evidence_path_is_separate_from_mobile_heading(self):
+        self.assertIn("heading.textContent = `E${index + 1}`", APP)
+        self.assertIn("path.className = 'evidence-path mono muted'", APP)
+
+    def test_long_mobile_paths_wrap_without_widening_panel(self):
+        self.assertIn(".evidence-path", STYLES)
+        self.assertIn("overflow-wrap: anywhere", STYLES)
+        self.assertIn("word-break: break-word", STYLES)
+        self.assertIn("min-width: 0", STYLES)
 
     def test_local_rag_marker(self):
         self.assertIn("Legal Knowledge Base · Phase 7 Local RAG", INDEX)
