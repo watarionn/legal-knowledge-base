@@ -18,7 +18,7 @@ LLMを必須にせず **質問 → 対象法令 → strict temporal resolution �
 - Phase 7 Local RAG: local OllamaによるEvidence限定の説明生成
 - Phase 7 Local RAG: Article本文補完とsubstantive Evidence gate
 - Phase 7 Local RAG: 生成文をsource truthとして扱わないfail-closed境界
-- read-only DB transaction
+- 法令source truth参照はread-only DB transaction。application-state書込みは別transaction
 - 1画面のresponsive Web UI
 - Phase 7-2: 法令revision履歴タイムライン
 - Phase 7-2: 履歴上の施行日から同じ質問をstrict再検索
@@ -31,6 +31,10 @@ LLMを必須にせず **質問 → 対象法令 → strict temporal resolution �
 - Phase 7-5: お気に入り法令・最近見た法令・検索履歴・保存テーマ
 - Phase 7-5: application-state保存失敗を法令検索から分離
 - Phase 7-5: 履歴・テーマは保存済み回答ではなくquery入力を再実行
+- Phase 7-6a: Watch専用schema/bootstrapをPhase 7-5 application stateから分離
+- Phase 7-6a: watch作成・一覧・削除と単体/全件の手動evaluate API
+- Phase 7-6a: initialized / no-change / effective-change / temporal blockedを決定論的に分類
+- Phase 7-6a: 初回baselineは過去revisionを新着イベント化せず確立
 
 ## 構成
 
@@ -67,6 +71,13 @@ implementation/phase7/
 ├── 034_daily_use_web_contract_test.py
 ├── 035_ollama_answer_provider.py
 ├── 036_ollama_answer_provider_test.py
+├── 037_law_watch_schema.sql
+├── 038_law_watch_service.py
+├── 039_law_watch_service_test.py
+├── 040_law_watch_bootstrap.py
+├── 041_law_watch_bootstrap_test.py
+├── 042_law_watch_http_route_test.py
+├── 043_law_watch_postgres_smoke.py
 └── web/
     ├── index.html
     ├── styles.css
@@ -172,6 +183,16 @@ Phase 7-5の日常利用状態を返します。お気に入り、最近見た�
 
 これらはPhase 7 application-state表だけを書き換え、Phase 3〜6 source truthは変更しません。検索履歴・テーマは回答本文やEvidenceを保存せず、再利用時はquery APIを再実行します。
 
+### Phase 7-6a Watch Core API
+
+- `GET /api/v1/watches`
+- `POST /api/v1/watches`
+- `DELETE /api/v1/watches/{watch_id}`
+- `POST /api/v1/watches/{watch_id}/evaluate`
+- `POST /api/v1/watches/evaluate`
+
+Watch表は`040_law_watch_bootstrap.py`でPhase 7-5 application stateとは別にbootstrapします。初回evaluateは現在のstrict resolver結果をbaselineとして`initialized`を返し、過去revisionを新着イベントとして作成しません。`ambiguous` / `unresolved` / `not-found`ではbaselineを前進させません。
+
 ### `GET /api/v1/evidence/{evidence_id}`
 
 現在のprocessで取得済みEvidenceの詳細を返します。Phase 7-1ではin-memory cacheのため、server再起動後の永続lookupは保証しません。
@@ -226,7 +247,7 @@ Phase 5のlexical retrievalはliteral substringを基礎にしているため、
 
 - DB接続情報やAPI keyをrepositoryへ保存しない
 - browser入力からSQL文字列を直接組み立てない
-- DB queryはread-only transactionで実行する
+- Phase 3〜6 source truthへのqueryはread-only transactionで実行し、書込みはPhase 7 application-state表に限定する
 - browserへtraceback、DATABASE_URL、filesystem pathを返さない
 - Web UIはsource/user textを`textContent`で描画し、HTMLとして直接挿入しない
 - generated answerはsource truthとして扱わない
@@ -337,3 +358,11 @@ HTTP routeは`020_article_compare_http_route_test.py`で実`003_web_server.py`�
 transaction内でお気に入り、最近見た法令、検索履歴、保存テーマを作成し、最近見た法令のview_count更新まで確認した後にROLLBACKしました。テスト用application stateは4表すべて0件へ戻っています。
 
 設計は [`../../docs/architecture/phase7-daily-use-features.md`](../../docs/architecture/phase7-daily-use-features.md)、機械可読証跡は [`../../docs/validation/phase7-5-daily-use-validation-20260911.json`](../../docs/validation/phase7-5-daily-use-validation-20260911.json) を参照してください。
+
+## Phase 7-6a validation
+
+2026-09-15にWatch専用schemaをtransaction内だけ作成し、民法で`initialized`から`no-change`への遷移を実PostgreSQL / strict resolverで確認しました。smoke終了後はROLLBACKし、Watch表が存在しない元のruntime状態へ戻ることを確認しています。
+
+offline回帰はPhase 7の19 test files / 145 testsがすべてpassし、`compileall`と`git diff --check`も通過しました。本番runtimeへのschema適用・server再起動はこの実装工程では行っていません。
+
+設計は [`../../docs/architecture/phase7-law-watch.md`](../../docs/architecture/phase7-law-watch.md)、機械可読証跡は [`../../docs/validation/phase7-6a-law-watch-validation-20260915.json`](../../docs/validation/phase7-6a-law-watch-validation-20260915.json) を参照してください。
