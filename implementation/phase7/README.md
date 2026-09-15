@@ -1,4 +1,4 @@
-# Phase 7 Daily Legal Assistant
+﻿# Phase 7 Daily Legal Assistant
 
 Phase 1〜6で完成した法令ナレッジベース v1 を、日常利用できるWebアプリへ接続する最小実装です。
 
@@ -363,6 +363,7 @@ transaction内でお気に入り、最近見た法令、検索履歴、保存テ
 
 2026-09-15にWatch専用schemaをtransaction内だけ作成し、民法で`initialized`から`no-change`への遷移を実PostgreSQL / strict resolverで確認しました。smoke終了後はROLLBACKし、Watch表が存在しない元のruntime状態へ戻ることを確認しています。
 
-offline回帰はPhase 7の19 test files / 143 testsがすべてpassし、`compileall`と`git diff --check`も通過しました。本番runtimeへのschema適用・server再起動はこの実装工程では行っていません。
+offline回帰はPhase 7の19 test files / 145 testsがすべてpassし、`compileall`と`git diff --check`も通過しました。本番runtimeへのschema適用・server再起動はこの実装工程では行っていません。
 
 設計は [`../../docs/architecture/phase7-law-watch.md`](../../docs/architecture/phase7-law-watch.md)、機械可読証跡は [`../../docs/validation/phase7-6a-law-watch-validation-20260915.json`](../../docs/validation/phase7-6a-law-watch-validation-20260915.json) を参照してください。
+
