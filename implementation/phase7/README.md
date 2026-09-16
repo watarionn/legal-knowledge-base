@@ -204,6 +204,12 @@ Watch表は`040_law_watch_bootstrap.py`でPhase 7-5 application stateとは別�
 
 手動evaluate responseの`change_evidence`には、今回新たに観測した`observed_changes`、適用revisionが変わった場合の`effective_change`、将来施行予定日の`scheduled_changes`を分離して返します。application eventは検知記録であり、revisionと重要日付のsource truthはPhase 3です。`scheduled_changes[].legal_deadline`は常に`false`で、予定施行日を法的な対応期限へ読み替えません。
 
+### Phase 7-6c Diff / Related Navigation API
+
+- `POST /api/v1/watch-events/{event_id}/acknowledge`
+
+Watch eventには`navigation.history`、`navigation.compare`、`navigation.confirmed_related_materials`を再構築して返します。compare導線はeffective-changeのfrom/to revisionの`valid_from`を既存Phase 7-3 APIへ渡し、曖昧な時点はcompare側でfail-closedします。関連資料導線は`include_nonconfirmed`を付けず、Phase 7-4のconfirmed-only既定経路を使用します。acknowledgeは`acknowledged_at = COALESCE(acknowledged_at, now())`で冪等です。
+
 ### `GET /api/v1/evidence/{evidence_id}`
 
 現在のprocessで取得済みEvidenceの詳細を返します。Phase 7-1ではin-memory cacheのため、server再起動後の永続lookupは保証しません。
@@ -383,3 +389,9 @@ offline回帰はPhase 7の19 test files / 145 testsがすべてpassし、`compil
 2026-09-16にobserved-change / effective-change / scheduled-changeの分離、event provenance再構築、watch event HTTP routeをoffline回帰で検証しました。Phase 7全体は20 test files / 154 testsがすべてpassし、`compileall`と`git diff --check`も通過しています。
 
 実PostgreSQLでは`045_law_watch_change_evidence_postgres_smoke.py`をtransactionで実行し、observed-change 1件、再評価時の重複0件、effective-change、将来施行予定日を確認しました。ROLLBACK後はWatch/Event件数、synthetic ingestion runの消失、revision provenanceの復元を確認しています。55432はWindows側のbind拒否があるため、既存volumeを一時検証コンテナから45432へ公開して実行し、検証後に一時コンテナは削除しました。production code/dataへの変更は行っていません。検証証跡は [`../../docs/validation/phase7-6b-law-watch-change-evidence-validation-20260916.json`](../../docs/validation/phase7-6b-law-watch-change-evidence-validation-20260916.json) を参照してください。
+
+## Phase 7-6c validation
+
+2026-09-16に変更eventから改正履歴、Phase 7-3条文比較、Phase 7-4 confirmed関連資料へのnavigation metadataと、確認済みevent管理を追加しました。Phase 7全体は21 test files / 161 testsがすべてpassし、`compileall`と`git diff --check`も通過しています。
+
+実PostgreSQLでは`047_law_watch_navigation_postgres_smoke.py`をtransactionで実行し、effective-changeのcompare導線がfrom/to revisionへ正確に再解決されること、関連資料導線が`include_nonconfirmed=false`であること、acknowledgeの冪等性、ROLLBACK後のWatch/Event件数保持を確認しました。検証証跡は [`../../docs/validation/phase7-6c-law-watch-navigation-validation-20260916.json`](../../docs/validation/phase7-6c-law-watch-navigation-validation-20260916.json) を参照してください。

@@ -460,6 +460,46 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = self.path.split("?", 1)[0]
+        acknowledge_prefix = "/api/v1/watch-events/"
+        acknowledge_suffix = "/acknowledge"
+        if path.startswith(acknowledge_prefix) and path.endswith(acknowledge_suffix):
+            event_id = path[len(acknowledge_prefix):-len(acknowledge_suffix)].strip("/")
+            raw_length = self.headers.get("Content-Length")
+            try:
+                content_length = int(raw_length or "0")
+                if content_length < 0 or content_length > MAX_REQUEST_BYTES:
+                    raise ValueError("invalid request body length")
+                if content_length:
+                    payload = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                    if not isinstance(payload, dict):
+                        raise ValueError("request body must be a JSON object")
+            except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+                return
+            if not self.state.database_url:
+                self._send_error_json(503, "DATABASE_NOT_CONFIGURED", "LEGAL_KB_DATABASE_URL is not configured")
+                return
+            conn = None
+            try:
+                import psycopg
+                conn = psycopg.connect(self.state.database_url)
+                with conn:
+                    if not WATCH.watch_state_ready(conn):
+                        self._send_error_json(503, "WATCH_STATE_NOT_CONFIGURED", "Phase 7-6 law watch schema is not configured")
+                        return
+                    event = WATCH.acknowledge_watch_event(conn, event_id)
+                    if event is None:
+                        self._send_error_json(404, "WATCH_EVENT_NOT_FOUND", "watch event was not found")
+                        return
+                self._send_json(200, event)
+            except ValueError as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+            except Exception as exc:
+                self.log_error("watch event acknowledge failed: %s", exc.__class__.__name__)
+                self._send_error_json(500, "WATCH_EVENT_ACKNOWLEDGE_FAILED", "watch event acknowledge failed")
+            finally:
+                if conn is not None: conn.close()
+            return
         if path == "/api/v1/watches" or path == "/api/v1/watches/evaluate" or (path.startswith("/api/v1/watches/") and path.endswith("/evaluate")):
             raw_length = self.headers.get("Content-Length")
             try:
