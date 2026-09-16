@@ -204,6 +204,7 @@ class ChangeEvidenceTest(unittest.TestCase):
             None, None, "Test Law", self.today, "amendment-enforcement",
             self.today, None, date(2027, 4, 1), None, "Law No. 1",
             "Amendment Law", "run-2",
+            "129AC0000000089", None, self.today,
         )
         item = WATCH._event_dict(row)
         self.assertEqual(item["event_type"], "observed-change")
@@ -212,6 +213,11 @@ class ChangeEvidenceTest(unittest.TestCase):
         self.assertEqual(item["to_revision"]["law_revision_id"], "rev-2")
         self.assertEqual(item["to_revision"]["amendment_scheduled_enforcement_date"], "2027-04-01")
         self.assertEqual(item["law_revision_truth"], "phase3-law-revision")
+        self.assertIsNone(item["navigation"]["compare"])
+        self.assertEqual(
+            item["navigation"]["confirmed_related_materials"]["relation_status"],
+            "confirmed",
+        )
 
 
 if __name__ == "__main__":

@@ -43,6 +43,7 @@ class RouteTest(unittest.TestCase):
         cls.old_ready = SERVER.WATCH.watch_state_ready
         cls.old_list = SERVER.WATCH.list_watches
         cls.old_list_events = SERVER.WATCH.list_watch_events
+        cls.old_acknowledge = SERVER.WATCH.acknowledge_watch_event
         cls.old_create = SERVER.WATCH.create_watch
         cls.old_eval = SERVER.WATCH.evaluate_watch
         cls.old_eval_all = SERVER.WATCH.evaluate_all_watches
@@ -57,6 +58,12 @@ class RouteTest(unittest.TestCase):
             "event_type": "observed-change",
             "source_truth": "phase7-application-event",
         }]
+        SERVER.WATCH.acknowledge_watch_event = lambda conn, event_id: {
+            "event_id": event_id,
+            "event_type": "effective-change",
+            "acknowledged": True,
+            "acknowledged_at": "2026-09-16T12:00:00+00:00",
+        }
         SERVER.WATCH.create_watch = lambda conn, **kw: {
             "watch_id": "b" * 32, "law_id": kw["law_id"], "theme_id": kw.get("theme_id")
         }
@@ -90,6 +97,7 @@ class RouteTest(unittest.TestCase):
         SERVER.WATCH.watch_state_ready = cls.old_ready
         SERVER.WATCH.list_watches = cls.old_list
         SERVER.WATCH.list_watch_events = cls.old_list_events
+        SERVER.WATCH.acknowledge_watch_event = cls.old_acknowledge
         SERVER.WATCH.create_watch = cls.old_create
         SERVER.WATCH.evaluate_watch = cls.old_eval
         SERVER.WATCH.evaluate_all_watches = cls.old_eval_all
@@ -150,6 +158,29 @@ class RouteTest(unittest.TestCase):
         )
         self.assertEqual(status, 400)
         self.assertEqual(json.loads(body)["error"]["code"], "INVALID_REQUEST")
+
+    def test_acknowledge_watch_event(self):
+        status, body, _ = self.request(
+            "/api/v1/watch-events/" + "e" * 32 + "/acknowledge",
+            method="POST",
+        )
+        payload = json.loads(body)
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["acknowledged"])
+        self.assertEqual(payload["event_id"], "e" * 32)
+
+    def test_acknowledge_missing_event_is_404(self):
+        old = SERVER.WATCH.acknowledge_watch_event
+        SERVER.WATCH.acknowledge_watch_event = lambda conn, event_id: None
+        try:
+            status, body, _ = self.request(
+                "/api/v1/watch-events/" + "f" * 32 + "/acknowledge",
+                method="POST",
+            )
+        finally:
+            SERVER.WATCH.acknowledge_watch_event = old
+        self.assertEqual(status, 404)
+        self.assertEqual(json.loads(body)["error"]["code"], "WATCH_EVENT_NOT_FOUND")
 
     def test_create_watch(self):
         status, body, _ = self.request(

@@ -7,6 +7,7 @@ import re
 import sys
 import uuid
 from typing import Any
+from urllib.parse import urlencode
 
 HERE = Path(__file__).resolve().parent
 PHASE5_DIR = HERE.parent / "phase5"
@@ -376,7 +377,9 @@ SELECT e.event_id, e.watch_id, e.event_type,
        to_rev.amendment_enforcement_date,
        to_rev.amendment_scheduled_enforcement_date,
        to_rev.amendment_law_id, to_rev.amendment_law_num,
-       to_rev.amendment_law_title, to_rev.first_seen_run_id
+       to_rev.amendment_law_title, to_rev.first_seen_run_id,
+       w.law_id, from_rev.valid_from AS from_valid_from,
+       to_rev.valid_from AS to_valid_from
 FROM legal_kb.application_law_watch_event e
 JOIN legal_kb.application_law_watch w ON w.watch_id = e.watch_id
 LEFT JOIN legal_kb.ingestion_run source_run
@@ -386,6 +389,36 @@ LEFT JOIN legal_kb.law_revision from_rev
 LEFT JOIN legal_kb.law_revision to_rev
   ON to_rev.law_revision_id = e.to_revision_id
 """
+
+
+def _event_navigation(row: tuple[Any, ...]) -> dict[str, Any]:
+    law_id = str(row[26])
+    from_date = _iso(row[27])
+    to_date = _iso(row[28])
+    history = None
+    related = None
+    compare = None
+    if to_date:
+        history = {
+            "path": f"/api/v1/laws/{law_id}/history?" + urlencode({"as_of_date": to_date}),
+            "as_of_date": to_date,
+        }
+        related = {
+            "path": f"/api/v1/laws/{law_id}/related-materials?" + urlencode({"as_of_date": to_date}),
+            "as_of_date": to_date,
+            "relation_status": "confirmed",
+        }
+    if row[2] == "effective-change" and from_date and to_date:
+        compare = {
+            "path": f"/api/v1/laws/{law_id}/compare?" + urlencode({"from_date": from_date, "to_date": to_date}),
+            "from_date": from_date,
+            "to_date": to_date,
+        }
+    return {
+        "history": history,
+        "compare": compare,
+        "confirmed_related_materials": related,
+    }
 
 
 def _event_dict(row: tuple[Any, ...]) -> dict[str, Any]:
@@ -399,6 +432,9 @@ def _event_dict(row: tuple[Any, ...]) -> dict[str, Any]:
         "effective_date": _iso(row[6]),
         "temporal_status": row[8],
         "acknowledged_at": _iso(row[9]),
+        "acknowledged": row[9] is not None,
+        "law_id": row[26],
+        "navigation": _event_navigation(row),
         "source_ingestion_run": {
             "ingestion_run_id": row[7],
             "started_at": _iso(row[10]),
@@ -438,6 +474,27 @@ def get_watch_event(conn: Any, event_id: str) -> dict[str, Any] | None:
         )
         row = cur.fetchone()
     return None if row is None else _event_dict(row)
+
+
+def acknowledge_watch_event(conn: Any, event_id: str) -> dict[str, Any] | None:
+    _validate_hex32(event_id, field="event_id")
+    with conn.cursor() as cur:
+        cur.execute("""
+            UPDATE legal_kb.application_law_watch_event e
+            SET acknowledged_at = COALESCE(e.acknowledged_at, now())
+            FROM legal_kb.application_law_watch w
+            WHERE e.watch_id = w.watch_id
+              AND w.workspace_id = %s
+              AND e.event_id = %s
+            RETURNING e.event_id
+        """, (WORKSPACE_ID, event_id))
+        row = cur.fetchone()
+    if row is None:
+        return None
+    event = get_watch_event(conn, event_id)
+    if event is None:
+        raise RuntimeError("acknowledged event could not be reconstructed")
+    return event
 
 
 def list_watch_events(
