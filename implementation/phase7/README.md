@@ -415,3 +415,17 @@ offline回帰はPhase 7の19 test files / 145 testsがすべてpassし、`compil
 書込みを伴うlive refreshはこの実装工程では実行していません。Phase 3/4/5への公式データ更新とRAW保存を伴うため、マージ・本番反映後の明示運用テストで初回live refreshを行います。refreshが`partial` / `failed`の場合はevaluateしない契約をoffline testで固定しています。
 
 機械可読証跡は [`../../docs/validation/phase7-6d-law-watch-refresh-validation-20260916.json`](../../docs/validation/phase7-6d-law-watch-refresh-validation-20260916.json) を参照してください。
+
+## Phase 8 Public Demo local validation
+
+2026-09-17に匿名利用者向けのread-only Public Demo surfaceを追加しました。`LEGAL_KB_PUBLIC_DEMO=1`のときだけ専用UIへ切り替わり、個人用runtimeの既定挙動は変わりません。
+
+公開対象はQuery、法令履歴、条文比較、confirmed関連資料、sanitized healthです。favorites、recent laws、search history、saved themes、law watch、refresh、acknowledge、relation detail、Evidence lookupは公開しません。公開QueryではLLM providerを無効化し、Evidence-onlyで実行し、検索履歴も保存しません。
+
+公開側ではrequest body 8 KiB、question 800文字、Query 30回/分、同時Query 2件、request timeout 15秒を既定値としています。CSP、X-Frame-Options、Permissions-Policy等も公開/非公開共通の安全ヘッダとして返します。CORSは開放しません。
+
+全回帰は26 test files / 200 testsがfailure 0で、`compileall`、Public Demo JavaScriptの`node --check`、`git diff --check`も通過しました。localhost:8878で実DB smokeを実施し、Evidence-only Query、履歴、比較、confirmed-only関連資料、private API遮断を確認しています。試験前後で個人用8877のsearch history件数は不変でした。
+
+この段階ではInternet公開していません。Phase 8-5で公開用read-only DB role、別runtime、Internet-facing reverse proxy、proxy側per-client rate limitを構築してからCompletion Gateへ進みます。
+
+設計は [`../../docs/architecture/phase8-public-demo.md`](../../docs/architecture/phase8-public-demo.md)、検証証跡は [`../../docs/validation/phase8-public-demo-local-validation-20260917.json`](../../docs/validation/phase8-public-demo-local-validation-20260917.json) を参照してください。
