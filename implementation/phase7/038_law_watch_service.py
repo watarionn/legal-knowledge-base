@@ -194,10 +194,18 @@ def _scheduled_change_dict(row: dict[str, Any]) -> dict[str, Any]:
 WATCH_SELECT = """
 SELECT w.watch_id, w.theme_id, w.law_id, l.law_num, latest.law_title,
        theme.title, w.baseline_revision_id, w.baseline_ingestion_run_id,
-       w.enabled, w.last_evaluated_at, w.created_at, w.updated_at
+       w.enabled, w.last_evaluated_at, w.created_at, w.updated_at,
+       COALESCE(event_state.unacknowledged_event_count, 0),
+       event_state.last_unacknowledged_at
 FROM legal_kb.application_law_watch w
 JOIN legal_kb.law l ON l.law_id = w.law_id
 LEFT JOIN legal_kb.application_saved_theme theme ON theme.theme_id = w.theme_id
+LEFT JOIN LATERAL (
+    SELECT count(*) FILTER (WHERE e.acknowledged_at IS NULL) AS unacknowledged_event_count,
+           max(e.detected_at) FILTER (WHERE e.acknowledged_at IS NULL) AS last_unacknowledged_at
+    FROM legal_kb.application_law_watch_event e
+    WHERE e.watch_id = w.watch_id
+) event_state ON true
 LEFT JOIN LATERAL (
     SELECT r.law_title FROM legal_kb.law_revision r
     WHERE r.law_id = w.law_id
@@ -221,6 +229,8 @@ def _watch_dict(row: tuple[Any, ...]) -> dict[str, Any]:
         "last_evaluated_at": _iso(row[9]),
         "created_at": _iso(row[10]),
         "updated_at": _iso(row[11]),
+        "unacknowledged_event_count": int(row[12] or 0),
+        "last_unacknowledged_at": _iso(row[13]),
     }
 
 

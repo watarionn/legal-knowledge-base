@@ -31,6 +31,7 @@ COMPARE = _load("legal_kb_phase7_article_compare", HERE / "017_article_compare_s
 RELATED = _load("legal_kb_phase7_related_material", HERE / "022_related_material_service.py")
 DAILY = _load("legal_kb_phase7_daily_use", HERE / "029_daily_use_service.py")
 WATCH = _load("legal_kb_phase76_law_watch", HERE / "038_law_watch_service.py")
+REFRESH = _load("legal_kb_phase76d_refresh", HERE / "048_law_watch_refresh_service.py")
 OLLAMA = _load("legal_kb_phase7_ollama_answer_provider", HERE / "035_ollama_answer_provider.py")
 
 
@@ -46,6 +47,8 @@ def _answer_provider_from_environment() -> Any | None:
 class AppState:
     def __init__(self) -> None:
         self.database_url = os.environ.get("LEGAL_KB_DATABASE_URL") or None
+        raw_dir = (os.environ.get("LEGAL_KB_WATCH_RAW_DIR") or "").strip()
+        self.watch_raw_dir = Path(raw_dir) if raw_dir else None
         self.query_service = SERVICE.QueryService()
         self.answer_provider = _answer_provider_from_environment()
         self.evidence_cache: dict[str, dict[str, Any]] = {}
@@ -499,6 +502,45 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_error_json(500, "WATCH_EVENT_ACKNOWLEDGE_FAILED", "watch event acknowledge failed")
             finally:
                 if conn is not None: conn.close()
+            return
+        if path == "/api/v1/watches/refresh":
+            raw_length = self.headers.get("Content-Length")
+            try:
+                content_length = int(raw_length or "0")
+                if content_length < 0 or content_length > MAX_REQUEST_BYTES:
+                    raise ValueError("invalid request body length")
+                payload = {}
+                if content_length:
+                    payload = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                    if not isinstance(payload, dict):
+                        raise ValueError("request body must be a JSON object")
+                evaluation_date = HISTORY.parse_as_of_date(payload.get("evaluation_date"))
+            except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+                return
+            if not self.state.database_url:
+                self._send_error_json(503, "DATABASE_NOT_CONFIGURED", "LEGAL_KB_DATABASE_URL is not configured")
+                return
+            if self.state.watch_raw_dir is None:
+                self._send_error_json(503, "WATCH_REFRESH_NOT_CONFIGURED", "LEGAL_KB_WATCH_RAW_DIR is not configured")
+                return
+            try:
+                result = REFRESH.run_refresh_cycle(
+                    self.state.database_url, self.state.watch_raw_dir,
+                    evaluation_date=evaluation_date,
+                )
+                refresh_status = result["refresh"]["refresh_status"]
+                if refresh_status == "busy":
+                    self._send_json(409, result)
+                elif refresh_status == "failed":
+                    self._send_json(502, result)
+                else:
+                    self._send_json(200, result)
+            except REFRESH.WatchStateNotConfiguredError:
+                self._send_error_json(503, "WATCH_STATE_NOT_CONFIGURED", "Phase 7-6 law watch schema is not configured")
+            except Exception as exc:
+                self.log_error("law watch refresh failed: %s", exc.__class__.__name__)
+                self._send_error_json(500, "LAW_WATCH_REFRESH_FAILED", "law watch refresh failed")
             return
         if path == "/api/v1/watches" or path == "/api/v1/watches/evaluate" or (path.startswith("/api/v1/watches/") and path.endswith("/evaluate")):
             raw_length = self.headers.get("Content-Length")

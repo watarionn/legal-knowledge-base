@@ -153,3 +153,12 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .daily-history-item:last-child { border-bottom: 0; }
 .daily-history-item p { margin: .25rem 0 0; }
 @media (max-width: 760px) { .daily-grid { grid-template-columns: 1fr; } .save-theme-form { min-width: 100%; } }
+
+.watch-count { font-size: .78rem; font-weight: 600; }
+.watch-event-list { display: grid; gap: .5rem; margin-top: .5rem; }
+.watch-event { border-left: 3px solid var(--border); padding: .45rem .6rem; background: #f8f9fa; border-radius: 6px; }
+.watch-event-title { margin: 0; font-weight: 700; }
+.watch-nav { display: flex; flex-wrap: wrap; gap: .5rem; margin: .35rem 0; }
+.watch-nav-link { font-size: .82rem; }
+.watch-item .daily-item { align-items: flex-start; }
+@media (max-width: 760px) { .watch-item .daily-item { flex-wrap: wrap; } }

@@ -210,6 +210,12 @@ Watch表は`040_law_watch_bootstrap.py`でPhase 7-5 application stateとは別�
 
 Watch eventには`navigation.history`、`navigation.compare`、`navigation.confirmed_related_materials`を再構築して返します。compare導線はeffective-changeのfrom/to revisionの`valid_from`を既存Phase 7-3 APIへ渡し、曖昧な時点はcompare側でfail-closedします。関連資料導線は`include_nonconfirmed`を付けず、Phase 7-4のconfirmed-only既定経路を使用します。acknowledgeは`acknowledged_at = COALESCE(acknowledged_at, now())`で冪等です。
 
+### Phase 7-6d Local Refresh / Scheduling API
+
+- `POST /api/v1/watches/refresh`
+
+enabled watchの`law_id`だけをPhase 3 importerの`/law_revisions/{law_id}`経路で更新します。refreshとevaluateは別transactionで、refreshが`partial` / `failed` / `busy`ならevaluateを実行しません。`050_law_watch_local_scheduler.py`はローカル専用で、既定24時間・最低1時間間隔です。GitHub Actionsをschedulerには使用しません。Web UIは未確認event件数を表示します。
+
 ### `GET /api/v1/evidence/{evidence_id}`
 
 現在のprocessで取得済みEvidenceの詳細を返します。Phase 7-1ではin-memory cacheのため、server再起動後の永続lookupは保証しません。
@@ -395,3 +401,13 @@ offline回帰はPhase 7の19 test files / 145 testsがすべてpassし、`compil
 2026-09-16に変更eventから改正履歴、Phase 7-3条文比較、Phase 7-4 confirmed関連資料へのnavigation metadataと、確認済みevent管理を追加しました。Phase 7全体は21 test files / 161 testsがすべてpassし、`compileall`と`git diff --check`も通過しています。
 
 実PostgreSQLでは`047_law_watch_navigation_postgres_smoke.py`をtransactionで実行し、effective-changeのcompare導線がfrom/to revisionへ正確に再解決されること、関連資料導線が`include_nonconfirmed=false`であること、acknowledgeの冪等性、ROLLBACK後のWatch/Event件数保持を確認しました。検証証跡は [`../../docs/validation/phase7-6c-law-watch-navigation-validation-20260916.json`](../../docs/validation/phase7-6c-law-watch-navigation-validation-20260916.json) を参照してください。
+
+## Phase 7-6d validation
+
+2026-09-16にwatched-law限定refresh、成功refresh後だけのWatch評価、ローカルscheduler、未確認event件数を含むWeb UIを追加しました。新しく観測されPhase 4本文またはPhase 5 retrieval chunkが不足するrevisionだけを補完し、公式`law_data/{law_revision_id}`のRAW responseと抽出`Law` XMLをSHA付きで保存してから、そのdocumentだけを構造化・chunk化します。既存本文・chunkが揃うrevisionはAPI再取得しません。Phase 7全体は24 test files / 183 testsがすべてpassし、`compileall`、`node --check web/daily.js`、`git diff --check`も通過しています。
+
+実PostgreSQLでは`052_law_watch_refresh_postgres_smoke.py`をtransactionで実行し、enabled watchのlaw ID抽出、未確認event件数、advisory lockによる並行refresh拒否、ROLLBACK後のWatch/Event件数保持を確認しました。e-Gov Version 2へは既知の民法revisionを読み取り専用probeし、revision一致・`Law`ルート・本文抽出を確認しています。
+
+書込みを伴うlive refreshはこの実装工程では実行していません。Phase 3/4/5への公式データ更新とRAW保存を伴うため、マージ・本番反映後の明示運用テストで初回live refreshを行います。refreshが`partial` / `failed`の場合はevaluateしない契約をoffline testで固定しています。
+
+機械可読証跡は [`../../docs/validation/phase7-6d-law-watch-refresh-validation-20260916.json`](../../docs/validation/phase7-6d-law-watch-refresh-validation-20260916.json) を参照してください。

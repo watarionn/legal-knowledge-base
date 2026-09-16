@@ -1,0 +1,58 @@
+{
+  "phase": "7-6d Local Refresh / Scheduling",
+  "date": "2026-09-16",
+  "status": "passed",
+  "scope": {
+    "watched_law_only_refresh": true,
+    "refresh_and_evaluate_separate_transactions": true,
+    "evaluate_only_after_succeeded_refresh": true,
+    "local_scheduler": true,
+    "github_actions_scheduler": false,
+    "web_unacknowledged_counts": true,
+    "phase4_content_refresh": true,
+    "phase5_retrieval_chunk_refresh": true
+  },
+  "offline_regression": {
+    "test_files": 24,
+    "tests": 183,
+    "failed": 0,
+    "compileall": "passed",
+    "javascript_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "postgres_transaction_smoke": {
+    "script": "implementation/phase7/052_law_watch_refresh_postgres_smoke.py",
+    "status": "passed",
+    "enabled_watch_selected": true,
+    "unacknowledged_event_count": 1,
+    "advisory_lock_conflict_rejected": true,
+    "rollback_preserved_application_state_counts": true
+  },
+  "live_external_refresh": {
+    "executed": false,
+    "reason": "Reserved for the explicitly authorized post-merge production operation; pre-merge probe was read-only."
+  },
+  "safety": {
+    "full_law_catalog_refresh_used": false,
+    "enabled_watch_law_ids_only": true,
+    "partial_refresh_evaluation_skipped": true,
+    "failed_refresh_evaluation_skipped": true,
+    "refresh_lock": "PostgreSQL advisory lock",
+    "minimum_scheduler_interval_seconds": 3600,
+    "default_scheduler_interval_seconds": 86400,
+    "database_url_recorded": false,
+    "production_changed": false,
+    "github_actions_used": false,
+    "content_refresh_missing_revision_only": true,
+    "existing_content_reused_without_api_fetch": true,
+    "raw_content_addressed_paths": true
+  },
+  "next": "Phase 7-6 final integration and completion gate",
+  "live_external_probe": {
+    "executed": true,
+    "write_operations": false,
+    "law_revision_id": "129AC0000000089_20260624_508AC0000000045",
+    "law_root": "Law",
+    "status": "passed"
+  }
+}
