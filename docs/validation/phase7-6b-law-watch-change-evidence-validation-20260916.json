@@ -1,0 +1,31 @@
+{
+  "phase": "7-6b-change-evidence",
+  "validated_on": "2026-09-16",
+  "status": "offline-passed-postgres-smoke-pending",
+  "scope": [
+    "observed-change from ingestion provenance",
+    "effective-change from strict temporal resolver",
+    "scheduled enforcement dates from Phase 3 law_revision",
+    "watch event evidence reconstruction",
+    "GET /api/v1/watches/{watch_id}/events"
+  ],
+  "offline_regression": {
+    "test_files": 20,
+    "tests_passed": 154,
+    "tests_failed": 0,
+    "compileall": "passed",
+    "git_diff_check": "passed"
+  },
+  "postgres_transactional_smoke": {
+    "status": "not-run",
+    "reason_code": "DOCKER_ENGINE_UNAVAILABLE",
+    "smoke_script": "implementation/phase7/045_law_watch_change_evidence_postgres_smoke.py",
+    "rollback_designed": true
+  },
+  "safety": {
+    "scheduled_dates_are_legal_deadlines": false,
+    "production_changed": false,
+    "github_actions_used": false,
+    "database_url_recorded": false
+  }
+}

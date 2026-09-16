@@ -27,7 +27,7 @@ v1基盤の正式工程はPhase 1〜6で、すべて完了しています。Phas
 | 4 | XML構造DB | **完了** |
 | 5 | 時点検索＋検索/RAG | **完了** |
 | 6 | 官報・議会資料連携 | **完了** |
-| 7 | Daily Legal Assistant Web App | **Phase 7-6a Watch Core 実装済み / 次: Phase 7-6b Change Evidence** |
+| 7 | Daily Legal Assistant Web App | **Phase 7-6b Change Evidence 実装済み / 実DB smoke保留** |
 
 Phase 7-1では、AIを法令の正本にせず、既存のstrict temporal resolver、hybrid retrieval、Evidence Bundleを薄いWeb application layerから再利用します。自然言語の質問から対象法令を安全に特定し、回答生成providerが未設定でも、根拠原文・revision・XML path・RAW SHAまで確認できるEvidence-only経路を先に完成させます。設計は [`docs/architecture/phase7-daily-legal-assistant.md`](docs/architecture/phase7-daily-legal-assistant.md)、画面構成は [`docs/architecture/phase7-webapp-screen-layout.md`](docs/architecture/phase7-webapp-screen-layout.md)、API境界は [`docs/architecture/phase7-webapp-api.md`](docs/architecture/phase7-webapp-api.md) を参照してください。
 
@@ -39,7 +39,7 @@ Phase 7-4では、Phase 6の官報・国会/帝国議会会議録・NDL external
 
 Phase 7-5では、お気に入り法令、最近見た法令、検索履歴、保存テーマをapplication-state層として追加します。検索履歴や保存テーマにEvidence本文や生成回答を複製せず、再利用時は現在のstrict resolver / Evidence経路で再検索します。設計は [`docs/architecture/phase7-daily-use-features.md`](docs/architecture/phase7-daily-use-features.md)、検証証跡は [`docs/validation/phase7-5-daily-use-validation-20260911.json`](docs/validation/phase7-5-daily-use-validation-20260911.json) を参照してください。
 
-Phase 7-6では、保存テーマを入口にした法令ウォッチを追加します。新revisionをDBで初観測した事実と、strict resolverで適用revisionが変わった事実を分離し、改正差分・重要日付・confirmed関連資料へ接続します。施行日を自動で法的な対応期限と断定せず、AIを変更判定のsource truthにも使用しません。設計は [`docs/architecture/phase7-law-watch.md`](docs/architecture/phase7-law-watch.md) を参照してください。 Phase 7-6aではWatch専用schema/bootstrap、CRUD、手動evaluate、deterministic state machineを実装しました。検証証跡は [`docs/validation/phase7-6a-law-watch-validation-20260915.json`](docs/validation/phase7-6a-law-watch-validation-20260915.json) を参照してください。
+Phase 7-6では、保存テーマを入口にした法令ウォッチを追加します。新revisionをDBで初観測した事実と、strict resolverで適用revisionが変わった事実を分離し、改正差分・重要日付・confirmed関連資料へ接続します。施行日を自動で法的な対応期限と断定せず、AIを変更判定のsource truthにも使用しません。設計は [`docs/architecture/phase7-law-watch.md`](docs/architecture/phase7-law-watch.md) を参照してください。 Phase 7-6aではWatch専用schema/bootstrap、CRUD、手動evaluate、deterministic state machineを実装しました。検証証跡は [`docs/validation/phase7-6a-law-watch-validation-20260915.json`](docs/validation/phase7-6a-law-watch-validation-20260915.json) を参照してください。 Phase 7-6bではingestion provenanceによる`observed-change`とstrict resolverによる`effective-change`を別イベントとして保持し、将来施行予定日はPhase 3 `law_revision`のAPI原値から再構築して表示します。予定施行日は法的な対応期限として扱いません。実DB smokeはDocker Engine停止のため保留し、offline回帰と実行スクリプトまで固定しています。 検証証跡は [`docs/validation/phase7-6b-law-watch-change-evidence-validation-20260916.json`](docs/validation/phase7-6b-law-watch-change-evidence-validation-20260916.json) を参照してください。
 
 Phase 5.1では、`law_id + as_of_date`からrevision候補を解決するstrict resolverを実装しました。Phase 3の実データにはsame-day複数revisionとtemporal ambiguityがあるため、**一意に確認できない候補を勝手に1 revisionへ丸めません**。時点revisionの確定とPhase 4本文のavailabilityも分離し、本文未収録時に別revisionへfallbackしません。
 

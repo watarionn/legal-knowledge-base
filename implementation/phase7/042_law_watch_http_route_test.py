@@ -42,6 +42,7 @@ class RouteTest(unittest.TestCase):
 
         cls.old_ready = SERVER.WATCH.watch_state_ready
         cls.old_list = SERVER.WATCH.list_watches
+        cls.old_list_events = SERVER.WATCH.list_watch_events
         cls.old_create = SERVER.WATCH.create_watch
         cls.old_eval = SERVER.WATCH.evaluate_watch
         cls.old_eval_all = SERVER.WATCH.evaluate_all_watches
@@ -50,6 +51,12 @@ class RouteTest(unittest.TestCase):
         cls.calls = []
         SERVER.WATCH.watch_state_ready = lambda conn: True
         SERVER.WATCH.list_watches = lambda conn: [{"watch_id": "a" * 32, "law_id": "129AC0000000089"}]
+        SERVER.WATCH.list_watch_events = lambda conn, watch_id, limit=100: [{
+            "event_id": "e" * 32,
+            "watch_id": watch_id,
+            "event_type": "observed-change",
+            "source_truth": "phase7-application-event",
+        }]
         SERVER.WATCH.create_watch = lambda conn, **kw: {
             "watch_id": "b" * 32, "law_id": kw["law_id"], "theme_id": kw.get("theme_id")
         }
@@ -82,6 +89,7 @@ class RouteTest(unittest.TestCase):
         cls.server.server_close()
         SERVER.WATCH.watch_state_ready = cls.old_ready
         SERVER.WATCH.list_watches = cls.old_list
+        SERVER.WATCH.list_watch_events = cls.old_list_events
         SERVER.WATCH.create_watch = cls.old_create
         SERVER.WATCH.evaluate_watch = cls.old_eval
         SERVER.WATCH.evaluate_all_watches = cls.old_eval_all
@@ -113,6 +121,35 @@ class RouteTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(payload["watches"][0]["watch_id"], "a" * 32)
         self.assertEqual(payload["source_truth"], "phase7-application-state")
+
+    def test_list_watch_events(self):
+        status, body, _ = self.request(
+            "/api/v1/watches/" + "a" * 32 + "/events?limit=10"
+        )
+        payload = json.loads(body)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["events"][0]["event_type"], "observed-change")
+        self.assertEqual(payload["source_truth"], "phase7-application-event")
+        self.assertEqual(payload["law_revision_truth"], "phase3-law-revision")
+
+    def test_watch_events_missing_watch_is_404(self):
+        old = SERVER.WATCH.list_watch_events
+        SERVER.WATCH.list_watch_events = lambda conn, watch_id, limit=100: None
+        try:
+            status, body, _ = self.request(
+                "/api/v1/watches/" + "f" * 32 + "/events"
+            )
+        finally:
+            SERVER.WATCH.list_watch_events = old
+        self.assertEqual(status, 404)
+        self.assertEqual(json.loads(body)["error"]["code"], "WATCH_NOT_FOUND")
+
+    def test_watch_events_invalid_limit_is_400(self):
+        status, body, _ = self.request(
+            "/api/v1/watches/" + "a" * 32 + "/events?limit=abc"
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(body)["error"]["code"], "INVALID_REQUEST")
 
     def test_create_watch(self):
         status, body, _ = self.request(
