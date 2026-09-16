@@ -382,4 +382,4 @@ offline回帰はPhase 7の19 test files / 145 testsがすべてpassし、`compil
 
 2026-09-16にobserved-change / effective-change / scheduled-changeの分離、event provenance再構築、watch event HTTP routeをoffline回帰で検証しました。Phase 7全体は20 test files / 154 testsがすべてpassし、`compileall`と`git diff --check`も通過しています。
 
-実PostgreSQL用の`045_law_watch_change_evidence_postgres_smoke.py`も追加しましたが、検証時点ではDocker Desktop Linux Engineが起動できず実行保留です。production DB・8876番runtimeへの変更は行っていません。検証証跡は [`../../docs/validation/phase7-6b-law-watch-change-evidence-validation-20260916.json`](../../docs/validation/phase7-6b-law-watch-change-evidence-validation-20260916.json) を参照してください。
+実PostgreSQLでは`045_law_watch_change_evidence_postgres_smoke.py`をtransactionで実行し、observed-change 1件、再評価時の重複0件、effective-change、将来施行予定日を確認しました。ROLLBACK後はWatch/Event件数、synthetic ingestion runの消失、revision provenanceの復元を確認しています。55432はWindows側のbind拒否があるため、既存volumeを一時検証コンテナから45432へ公開して実行し、検証後に一時コンテナは削除しました。production code/dataへの変更は行っていません。検証証跡は [`../../docs/validation/phase7-6b-law-watch-change-evidence-validation-20260916.json`](../../docs/validation/phase7-6b-law-watch-change-evidence-validation-20260916.json) を参照してください。

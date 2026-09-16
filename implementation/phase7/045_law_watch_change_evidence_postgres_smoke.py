@@ -115,6 +115,9 @@ def run(database_url: str, *, law_id: str, evaluation_date: date) -> dict:
         conn.rollback()
 
     result: dict[str, object] = {}
+    observed_revision_id = None
+    original_first_seen_run_id = None
+    synthetic_run_id = None
     with psycopg.connect(database_url) as conn:
         created = service.create_watch(conn, law_id=law_id)
         initialized = service.evaluate_watch(
@@ -128,6 +131,8 @@ def run(database_url: str, *, law_id: str, evaluation_date: date) -> dict:
         synthetic_run_id = _insert_synthetic_success_run(conn, baseline_run_id)
         observed_revision_id = _pick_other_revision(conn, law_id, selected_revision_id)
         with conn.cursor() as cur:
+            cur.execute("SELECT first_seen_run_id FROM legal_kb.law_revision WHERE law_revision_id = %s", (observed_revision_id,))
+            original_first_seen_run_id = cur.fetchone()[0]
             cur.execute("""
                 UPDATE legal_kb.law_revision
                 SET first_seen_run_id = %s
@@ -203,9 +208,20 @@ def run(database_url: str, *, law_id: str, evaluation_date: date) -> dict:
 
     with psycopg.connect(database_url) as conn:
         after_counts = _counts(conn)
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM legal_kb.ingestion_run WHERE ingestion_run_id = %s", (synthetic_run_id,))
+            synthetic_run_exists = cur.fetchone() is not None
+            cur.execute("SELECT first_seen_run_id FROM legal_kb.law_revision WHERE law_revision_id = %s", (observed_revision_id,))
+            restored_first_seen_run_id = cur.fetchone()[0]
     result["rollback_preserved_application_state_counts"] = after_counts == before_counts
+    result["synthetic_ingestion_run_rolled_back"] = not synthetic_run_exists
+    result["revision_provenance_restored"] = restored_first_seen_run_id == original_first_seen_run_id
     if after_counts != before_counts:
         raise AssertionError("law watch smoke left application state behind")
+    if synthetic_run_exists:
+        raise AssertionError("synthetic ingestion run survived rollback")
+    if restored_first_seen_run_id != original_first_seen_run_id:
+        raise AssertionError("revision provenance was not restored by rollback")
     return result
 
 

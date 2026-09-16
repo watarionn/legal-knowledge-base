@@ -1,7 +1,7 @@
 {
   "phase": "7-6b-change-evidence",
   "validated_on": "2026-09-16",
-  "status": "offline-passed-postgres-smoke-pending",
+  "status": "passed",
   "scope": [
     "observed-change from ingestion provenance",
     "effective-change from strict temporal resolver",
@@ -17,14 +17,29 @@
     "git_diff_check": "passed"
   },
   "postgres_transactional_smoke": {
-    "status": "not-run",
-    "reason_code": "DOCKER_ENGINE_UNAVAILABLE",
-    "smoke_script": "implementation/phase7/045_law_watch_change_evidence_postgres_smoke.py",
-    "rollback_designed": true
+    "status": "passed",
+    "law_id": "129AC0000000089",
+    "evaluation_date": "2026-09-16",
+    "observed_revision_id": "129AC0000000089_20290623_508AC0000000045",
+    "observed_event_count": 1,
+    "repeat_observed_event_count": 0,
+    "effective_from_date": "2028-12-23",
+    "effective_to_date": "2029-06-23",
+    "effective_event_type": "effective-change",
+    "scheduled_law_id": "322AC0000000067",
+    "scheduled_change_count": 10,
+    "rollback_preserved_application_state_counts": true,
+    "transport": "temporary container on 127.0.0.1:45432 using existing named volume",
+    "source_port_55432_status": "windows bind blocked with WinError 10013",
+    "temporary_container_removed": true,
+    "synthetic_ingestion_run_rolled_back": true,
+    "revision_provenance_restored": true
   },
   "safety": {
     "scheduled_dates_are_legal_deadlines": false,
-    "production_changed": false,
+    "production_code_or_data_changed": false,
+    "source_db_container_runtime_changed": true,
+    "source_db_container_state_after_validation": "stopped-port-bind-blocked",
     "github_actions_used": false,
     "database_url_recorded": false
   }
