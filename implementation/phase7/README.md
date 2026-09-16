@@ -216,6 +216,10 @@ Watch eventには`navigation.history`、`navigation.compare`、`navigation.confi
 
 enabled watchの`law_id`だけをPhase 3 importerの`/law_revisions/{law_id}`経路で更新します。refreshとevaluateは別transactionで、refreshが`partial` / `failed` / `busy`ならevaluateを実行しません。`050_law_watch_local_scheduler.py`はローカル専用で、既定24時間・最低1時間間隔です。GitHub Actionsをschedulerには使用しません。Web UIは未確認event件数を表示します。
 
+### Phase 7 Completion Gate
+
+2026-09-16にPhase 7-6a〜dを統合再検証し、24 test files / 183 tests、4本の実PostgreSQL transaction smoke、Tailscale HTTPS上の一時watchによるwatched-law refreshをpassしました。本番runtimeは開発repoから独立した`phase7-runtime/app-main` worktreeへ固定し、ログオン時のローカルScheduled TaskからDB・Ollama・Web server・watch schedulerを安全に復帰できる構成にしています。GitHub Actionsは使用しません。最終証跡は`docs/validation/phase7-completion-gate-20260916.json`です。
+
 ### `GET /api/v1/evidence/{evidence_id}`
 
 現在のprocessで取得済みEvidenceの詳細を返します。Phase 7-1ではin-memory cacheのため、server再起動後の永続lookupは保証しません。
