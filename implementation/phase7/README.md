@@ -35,6 +35,9 @@ LLMを必須にせず **質問 → 対象法令 → strict temporal resolution �
 - Phase 7-6a: watch作成・一覧・削除と単体/全件の手動evaluate API
 - Phase 7-6a: initialized / no-change / effective-change / temporal blockedを決定論的に分類
 - Phase 7-6a: 初回baselineは過去revisionを新着イベント化せず確立
+- Phase 7-6b: ingestion baseline以後の新revisionをobserved-changeとして記録
+- Phase 7-6b: observed-changeとeffective-changeを分離して同時保持
+- Phase 7-6b: 将来施行予定日はPhase 3 API原値から再構築し、法的期限とは扱わない
 
 ## 構成
 
@@ -78,6 +81,8 @@ implementation/phase7/
 ├── 041_law_watch_bootstrap_test.py
 ├── 042_law_watch_http_route_test.py
 ├── 043_law_watch_postgres_smoke.py
+├── 044_law_watch_change_evidence_test.py
+├── 045_law_watch_change_evidence_postgres_smoke.py
 └── web/
     ├── index.html
     ├── styles.css
@@ -192,6 +197,12 @@ Phase 7-5の日常利用状態を返します。お気に入り、最近見た�
 - `POST /api/v1/watches/evaluate`
 
 Watch表は`040_law_watch_bootstrap.py`でPhase 7-5 application stateとは別にbootstrapします。初回evaluateは現在のstrict resolver結果をbaselineとして`initialized`を返し、過去revisionを新着イベントとして作成しません。`ambiguous` / `unresolved` / `not-found`ではbaselineを前進させません。
+
+### Phase 7-6b Change Evidence API
+
+- `GET /api/v1/watches/{watch_id}/events?limit=100`
+
+手動evaluate responseの`change_evidence`には、今回新たに観測した`observed_changes`、適用revisionが変わった場合の`effective_change`、将来施行予定日の`scheduled_changes`を分離して返します。application eventは検知記録であり、revisionと重要日付のsource truthはPhase 3です。`scheduled_changes[].legal_deadline`は常に`false`で、予定施行日を法的な対応期限へ読み替えません。
 
 ### `GET /api/v1/evidence/{evidence_id}`
 
@@ -366,3 +377,9 @@ transaction内でお気に入り、最近見た法令、検索履歴、保存テ
 offline回帰はPhase 7の19 test files / 145 testsがすべてpassし、`compileall`と`git diff --check`も通過しました。本番runtimeへのschema適用・server再起動はこの実装工程では行っていません。
 
 設計は [`../../docs/architecture/phase7-law-watch.md`](../../docs/architecture/phase7-law-watch.md)、機械可読証跡は [`../../docs/validation/phase7-6a-law-watch-validation-20260915.json`](../../docs/validation/phase7-6a-law-watch-validation-20260915.json) を参照してください。
+
+## Phase 7-6b validation
+
+2026-09-16にobserved-change / effective-change / scheduled-changeの分離、event provenance再構築、watch event HTTP routeをoffline回帰で検証しました。Phase 7全体は20 test files / 154 testsがすべてpassし、`compileall`と`git diff --check`も通過しています。
+
+実PostgreSQLでは`045_law_watch_change_evidence_postgres_smoke.py`をtransactionで実行し、observed-change 1件、再評価時の重複0件、effective-change、将来施行予定日を確認しました。ROLLBACK後はWatch/Event件数、synthetic ingestion runの消失、revision provenanceの復元を確認しています。55432はWindows側のbind拒否があるため、既存volumeを一時検証コンテナから45432へ公開して実行し、検証後に一時コンテナは削除しました。production code/dataへの変更は行っていません。検証証跡は [`../../docs/validation/phase7-6b-law-watch-change-evidence-validation-20260916.json`](../../docs/validation/phase7-6b-law-watch-change-evidence-validation-20260916.json) を参照してください。

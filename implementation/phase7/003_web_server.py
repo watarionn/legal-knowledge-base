@@ -192,6 +192,54 @@ class Handler(BaseHTTPRequestHandler):
             finally:
                 conn.close()
             return
+        watch_events_prefix = "/api/v1/watches/"
+        watch_events_suffix = "/events"
+        if path.startswith(watch_events_prefix) and path.endswith(watch_events_suffix):
+            watch_id = path[len(watch_events_prefix):-len(watch_events_suffix)].strip("/")
+            if not self.state.database_url:
+                self._send_error_json(503, "DATABASE_NOT_CONFIGURED", "LEGAL_KB_DATABASE_URL is not configured")
+                return
+            params = parse_qs(urlsplit(self.path).query)
+            try:
+                limit = int(params.get("limit", ["100"])[-1])
+            except ValueError:
+                self._send_error_json(400, "INVALID_REQUEST", "limit must be an integer")
+                return
+            try:
+                import psycopg
+                conn = psycopg.connect(self.state.database_url)
+            except ImportError:
+                self._send_error_json(503, "PSYCOPG_NOT_INSTALLED", "psycopg is required for database queries")
+                return
+            except Exception:
+                self._send_error_json(503, "DATABASE_UNAVAILABLE", "database connection failed")
+                return
+            try:
+                with conn:
+                    with conn.cursor() as cur:
+                        cur.execute("SET TRANSACTION READ ONLY")
+                    if not WATCH.watch_state_ready(conn):
+                        self._send_error_json(503, "WATCH_STATE_NOT_CONFIGURED", "Phase 7-6 law watch schema is not configured")
+                        return
+                    events = WATCH.list_watch_events(conn, watch_id, limit=limit)
+                if events is None:
+                    self._send_error_json(404, "WATCH_NOT_FOUND", "watch was not found")
+                else:
+                    self._send_json(200, {
+                        "api_version": "1",
+                        "watch_id": watch_id,
+                        "events": events,
+                        "source_truth": "phase7-application-event",
+                        "law_revision_truth": "phase3-law-revision",
+                    })
+            except ValueError as exc:
+                self._send_error_json(400, "INVALID_REQUEST", str(exc))
+            except Exception as exc:
+                self.log_error("law watch event list failed: %s", exc.__class__.__name__)
+                self._send_error_json(500, "LAW_WATCH_EVENT_LIST_FAILED", "law watch event list failed")
+            finally:
+                conn.close()
+            return
         if path == "/api/v1/daily-state":
             if not self.state.database_url:
                 self._send_error_json(503, "DATABASE_NOT_CONFIGURED", "LEGAL_KB_DATABASE_URL is not configured")

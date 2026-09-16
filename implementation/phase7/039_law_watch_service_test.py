@@ -83,7 +83,8 @@ class EvaluationTest(unittest.TestCase):
         temporal = Temporal("resolved", "rev-1")
         resolver = lambda conn, law_id, when: temporal
         with patch.object(WATCH, "get_watch", return_value=watch_row(None)), \
-             patch.object(WATCH, "_latest_successful_ingestion_run", return_value="run-1"):
+             patch.object(WATCH, "_future_scheduled_changes", return_value=[]), \
+             patch.object(WATCH, "_latest_successful_ingestion_run_info", return_value={"ingestion_run_id": "run-1"}):
             result = WATCH.evaluate_watch(
                 self.conn, "a" * 32, evaluation_date=self.today, resolver=resolver
             )
@@ -96,37 +97,48 @@ class EvaluationTest(unittest.TestCase):
     def test_blocked_temporal_does_not_write(self):
         temporal = Temporal("ambiguous")
         resolver = lambda conn, law_id, when: temporal
-        with patch.object(WATCH, "get_watch", return_value=watch_row("rev-1")):
+        with patch.object(WATCH, "get_watch", return_value=watch_row("rev-1")), \
+             patch.object(WATCH, "_future_scheduled_changes", return_value=[]):
             result = WATCH.evaluate_watch(
                 self.conn, "a" * 32, evaluation_date=self.today, resolver=resolver
             )
         self.assertEqual(result["state"], "ambiguous")
         self.assertEqual(self.conn.calls, [])
 
-    def test_no_change_updates_only_evaluation_timestamp(self):
+    def test_no_change_advances_ingestion_baseline(self):
         temporal = Temporal("resolved", "rev-1")
         resolver = lambda conn, law_id, when: temporal
-        with patch.object(WATCH, "get_watch", return_value=watch_row("rev-1")):
+        with patch.object(WATCH, "get_watch", return_value=watch_row("rev-1")), \
+             patch.object(WATCH, "_future_scheduled_changes", return_value=[]), \
+             patch.object(WATCH, "_latest_successful_ingestion_run_info", return_value={"ingestion_run_id": "run-2"}), \
+             patch.object(WATCH, "_observed_revisions_since", return_value=[]):
             result = WATCH.evaluate_watch(
                 self.conn, "a" * 32, evaluation_date=self.today, resolver=resolver
             )
         self.assertEqual(result["state"], "no-change")
+        self.assertEqual(result["baseline_ingestion_run_id"], "run-2")
         self.assertEqual(len(self.conn.calls), 1)
         self.assertIn("last_evaluated_at", self.conn.calls[0][0])
-        self.assertNotIn("baseline_ingestion_run_id =", self.conn.calls[0][0])
+        self.assertIn("baseline_ingestion_run_id =", self.conn.calls[0][0])
 
     def test_effective_change_persists_event_then_advances_revision(self):
         temporal = Temporal("resolved", "rev-2")
         resolver = lambda conn, law_id, when: temporal
+        event = {"event_id": "e" * 32, "event_type": "effective-change"}
         with patch.object(WATCH, "get_watch", return_value=watch_row("rev-1")), \
+             patch.object(WATCH, "_future_scheduled_changes", return_value=[]), \
+             patch.object(WATCH, "_latest_successful_ingestion_run_info", return_value={"ingestion_run_id": "run-2"}), \
+             patch.object(WATCH, "_observed_revisions_since", return_value=[]), \
              patch.object(WATCH, "_revision_source_run", return_value="run-2"), \
-             patch.object(WATCH, "_insert_effective_event", return_value="e" * 32) as insert_event:
+             patch.object(WATCH, "_insert_effective_event", return_value="e" * 32) as insert_event, \
+             patch.object(WATCH, "get_watch_event", return_value=event):
             result = WATCH.evaluate_watch(
                 self.conn, "a" * 32, evaluation_date=self.today, resolver=resolver
             )
         self.assertEqual(result["state"], "effective-change")
         self.assertEqual(result["baseline_revision_id"], "rev-2")
         self.assertEqual(result["event_id"], "e" * 32)
+        self.assertEqual(result["change_evidence"]["effective_change"], event)
         insert_event.assert_called_once()
         self.assertEqual(len(self.conn.calls), 1)
         self.assertIn("baseline_revision_id", self.conn.calls[0][0])
