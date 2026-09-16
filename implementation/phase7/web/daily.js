@@ -13,11 +13,17 @@ const dailyLawIdInput = document.querySelector('#law-id');
 const dailySelectedLaw = document.querySelector('#selected-law');
 const dailyAsOfDate = document.querySelector('#as-of-date');
 const dailyQueryForm = document.querySelector('#query-form');
+const dailyWatchButton = document.querySelector('#watch-current');
+const dailyWatchList = document.querySelector('#watch-list');
+const dailyWatchUnreadTotal = document.querySelector('#watch-unread-total');
+const dailyRefreshWatches = document.querySelector('#refresh-watches');
 
 let dailySnapshot = {
   favorites: [], recent_laws: [], search_history: [], saved_themes: [],
 };
 let dailyCurrentLaw = { lawId: '', lawTitle: '' };
+let dailyWatches = [];
+let dailyWatchWarning = '';
 
 function dailyClearNode(node) {
   while (node.firstChild) node.removeChild(node.firstChild);
@@ -131,15 +137,132 @@ function renderDailyThemes() {
     dailyThemeList.appendChild(row);
   }
 }
+function dailyNavigationLink(text, navigation) {
+  if (!navigation || !navigation.path) return null;
+  const link = document.createElement('a');
+  link.href = navigation.path;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.className = 'watch-nav-link';
+  link.textContent = text;
+  return link;
+}
+
+async function renderWatchEvents(watch, container) {
+  dailyClearNode(container);
+  const response = await fetch(`/api/v1/watches/${encodeURIComponent(watch.watch_id)}/events?limit=20`);
+  const data = await response.json();
+  if (!response.ok) {
+    dailyEmpty(container, data.error?.message || `HTTP ${response.status}`);
+    return;
+  }
+  if (!data.events.length) {
+    dailyEmpty(container, '変更イベントはまだありません。');
+    return;
+  }
+  for (const item of data.events) {
+    const eventRow = document.createElement('div');
+    eventRow.className = 'watch-event';
+    const title = document.createElement('p');
+    title.className = 'watch-event-title';
+    title.textContent = `${item.event_type}${item.acknowledged ? ' · 確認済み' : ' · 未確認'}`;
+    const meta = document.createElement('p');
+    meta.className = 'muted';
+    meta.textContent = [item.detected_at, item.to_revision_id].filter(Boolean).join(' · ');
+    const nav = document.createElement('div');
+    nav.className = 'watch-nav';
+    for (const [label, value] of [
+      ['改正履歴', item.navigation?.history],
+      ['条文比較', item.navigation?.compare],
+      ['関連資料', item.navigation?.confirmed_related_materials],
+    ]) {
+      const link = dailyNavigationLink(label, value);
+      if (link) nav.appendChild(link);
+    }
+    eventRow.append(title, meta, nav);
+    if (!item.acknowledged) {
+      const acknowledge = document.createElement('button');
+      acknowledge.type = 'button';
+      acknowledge.textContent = '確認済みにする';
+      acknowledge.addEventListener('click', async () => {
+        const ackResponse = await fetch(`/api/v1/watch-events/${encodeURIComponent(item.event_id)}/acknowledge`, { method: 'POST' });
+        if (!ackResponse.ok) return;
+        await loadDailyState();
+      });
+      eventRow.appendChild(acknowledge);
+    }
+    container.appendChild(eventRow);
+  }
+}
+
+function renderDailyWatches() {
+  dailyClearNode(dailyWatchList);
+  const unread = dailyWatches.reduce((sum, item) => sum + Number(item.unacknowledged_event_count || 0), 0);
+  dailyWatchUnreadTotal.textContent = unread ? `未確認 ${unread}` : '';
+  if (!dailyWatches.length) {
+    dailyEmpty(dailyWatchList, 'ウォッチ中の法令はありません。');
+    return;
+  }
+  for (const item of dailyWatches) {
+    const row = document.createElement('div');
+    row.className = 'daily-history-item watch-item';
+    const head = document.createElement('div');
+    head.className = 'daily-item';
+    head.appendChild(dailyItemButton(dailyLawLabel(item), () => dailySelectLaw(item)));
+    const events = document.createElement('button');
+    events.type = 'button';
+    events.textContent = `イベント ${item.unacknowledged_event_count || 0}`;
+    const eventList = document.createElement('div');
+    eventList.className = 'watch-event-list';
+    eventList.hidden = true;
+    events.addEventListener('click', async () => {
+      eventList.hidden = !eventList.hidden;
+      if (!eventList.hidden) await renderWatchEvents(item, eventList);
+    });
+    head.appendChild(events);
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = '解除';
+    remove.addEventListener('click', async () => {
+      await fetch(`/api/v1/watches/${encodeURIComponent(item.watch_id)}`, { method: 'DELETE' });
+      await loadDailyState();
+    });
+    head.appendChild(remove);
+    const meta = document.createElement('p');
+    meta.className = 'muted';
+    meta.textContent = item.last_evaluated_at ? `最終確認 ${item.last_evaluated_at}` : '未評価';
+    row.append(head, meta, eventList);
+    dailyWatchList.appendChild(row);
+  }
+}
+
+async function loadWatchState() {
+  dailyWatchWarning = '';
+  try {
+    const response = await fetch('/api/v1/watches');
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || `HTTP ${response.status}`);
+    dailyWatches = data.watches || [];
+  } catch (error) {
+    dailyWatches = [];
+    dailyWatchWarning = `法令ウォッチを読み込めませんでした: ${error.message}`;
+  }
+}
+
 function renderDailyState() {
   renderDailyFavorites();
   renderDailyRecent();
   renderDailyHistory();
   renderDailyThemes();
+  renderDailyWatches();
   const isFavorite = dailySnapshot.favorites.some(item => item.law_id === dailyCurrentLaw.lawId);
+  const currentWatch = dailyWatches.find(item => item.law_id === dailyCurrentLaw.lawId && !item.theme_id);
   dailyFavoriteButton.hidden = !dailyCurrentLaw.lawId;
   dailyFavoriteButton.textContent = isFavorite ? 'お気に入りを解除' : 'この法令をお気に入り';
   dailyFavoriteButton.dataset.favorite = isFavorite ? 'true' : 'false';
+  dailyWatchButton.hidden = !dailyCurrentLaw.lawId;
+  dailyWatchButton.textContent = currentWatch ? 'この法令のウォッチを解除' : 'この法令をウォッチ';
+  dailyWatchButton.dataset.watchId = currentWatch?.watch_id || '';
 }
 
 async function loadDailyState() {
@@ -147,8 +270,9 @@ async function loadDailyState() {
   const data = await response.json();
   if (!response.ok) throw new Error(data.error?.message || `HTTP ${response.status}`);
   dailySnapshot = data;
+  await loadWatchState();
   renderDailyState();
-  dailyStatus.textContent = '';
+  dailyStatus.textContent = dailyWatchWarning;
 }
 
 async function refreshDailyUse(queryData) {
@@ -163,6 +287,46 @@ async function refreshDailyUse(queryData) {
     dailyStatus.textContent = `マイリストを更新できませんでした: ${error.message}`;
   }
 }
+dailyWatchButton.addEventListener('click', async () => {
+  if (!dailyCurrentLaw.lawId) return;
+  const watchId = dailyWatchButton.dataset.watchId;
+  const response = watchId
+    ? await fetch(`/api/v1/watches/${encodeURIComponent(watchId)}`, { method: 'DELETE' })
+    : await fetch('/api/v1/watches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ law_id: dailyCurrentLaw.lawId }),
+      });
+  const data = await response.json();
+  if (!response.ok) {
+    dailyStatus.textContent = `法令ウォッチを更新できませんでした: ${data.error?.message || response.status}`;
+    return;
+  }
+  await loadDailyState();
+});
+
+dailyRefreshWatches.addEventListener('click', async () => {
+  dailyRefreshWatches.disabled = true;
+  dailyStatus.textContent = 'ウォッチ対象法令の更新を確認しています…';
+  try {
+    const response = await fetch('/api/v1/watches/refresh', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || data.refresh?.refresh_status || `HTTP ${response.status}`);
+    const status = data.refresh?.refresh_status || 'unknown';
+    const count = data.refresh?.requested_law_count || 0;
+    dailyStatus.textContent = status === 'succeeded'
+      ? `${count}法令の更新確認とウォッチ評価が完了しました。`
+      : status === 'no-watches' ? 'ウォッチ対象法令はありません。' : `更新確認結果: ${status}`;
+    await loadDailyState();
+  } catch (error) {
+    dailyStatus.textContent = `法令ウォッチの更新確認に失敗しました: ${error.message}`;
+  } finally {
+    dailyRefreshWatches.disabled = false;
+  }
+});
+
 dailyFavoriteButton.addEventListener('click', async () => {
   if (!dailyCurrentLaw.lawId) return;
   const isFavorite = dailyFavoriteButton.dataset.favorite === 'true';

@@ -19,6 +19,19 @@ class DailyUseWebContractTest(unittest.TestCase):
         self.assertIn('id="search-history-list"', INDEX)
         self.assertIn('id="saved-theme-list"', INDEX)
 
+    def test_law_watch_controls_are_in_my_list(self):
+        self.assertIn('id="watch-current"', INDEX)
+        self.assertIn('id="refresh-watches"', INDEX)
+        self.assertIn('id="watch-list"', INDEX)
+        self.assertIn('id="watch-unread-total"', INDEX)
+
+    def test_watch_ui_uses_server_navigation_and_acknowledgement(self):
+        self.assertIn("item.navigation?.compare", DAILY)
+        self.assertIn("item.navigation?.confirmed_related_materials", DAILY)
+        self.assertIn("/acknowledge", DAILY)
+        self.assertIn("unacknowledged_event_count", DAILY)
+        self.assertIn("/api/v1/watches/refresh", DAILY)
+
     def test_daily_script_is_loaded(self):
         self.assertIn('<script src="/daily.js" defer></script>', INDEX)
 

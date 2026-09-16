@@ -48,6 +48,7 @@ class RouteTest(unittest.TestCase):
         cls.old_eval = SERVER.WATCH.evaluate_watch
         cls.old_eval_all = SERVER.WATCH.evaluate_all_watches
         cls.old_delete = SERVER.WATCH.delete_watch
+        cls.old_refresh_cycle = SERVER.REFRESH.run_refresh_cycle
 
         cls.calls = []
         SERVER.WATCH.watch_state_ready = lambda conn: True
@@ -82,9 +83,15 @@ class RouteTest(unittest.TestCase):
         SERVER.WATCH.evaluate_watch = evaluate_watch
         SERVER.WATCH.evaluate_all_watches = evaluate_all
         SERVER.WATCH.delete_watch = lambda conn, watch_id: True
+        SERVER.REFRESH.run_refresh_cycle = lambda database_url, raw_dir, evaluation_date=None: {
+            "api_version": "1", "evaluation_date": evaluation_date.isoformat(),
+            "refresh": {"refresh_status": "succeeded", "requested_law_count": 1},
+            "evaluated": True, "evaluation_result_count": 1, "evaluation_results": [{"state": "no-change"}],
+        }
 
         state = SERVER.AppState()
         state.database_url = "mock://database"
+        state.watch_raw_dir = Path("mock-raw")
         cls.server = SERVER.LegalKbHttpServer(("127.0.0.1", 0), SERVER.Handler, state)
         cls.port = cls.server.server_address[1]
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
@@ -102,6 +109,7 @@ class RouteTest(unittest.TestCase):
         SERVER.WATCH.evaluate_watch = cls.old_eval
         SERVER.WATCH.evaluate_all_watches = cls.old_eval_all
         SERVER.WATCH.delete_watch = cls.old_delete
+        SERVER.REFRESH.run_refresh_cycle = cls.old_refresh_cycle
         if cls.old_psycopg is None:
             sys.modules.pop("psycopg", None)
         else:
@@ -181,6 +189,43 @@ class RouteTest(unittest.TestCase):
             SERVER.WATCH.acknowledge_watch_event = old
         self.assertEqual(status, 404)
         self.assertEqual(json.loads(body)["error"]["code"], "WATCH_EVENT_NOT_FOUND")
+
+
+    def test_refresh_watches(self):
+        status, body, _ = self.request(
+            "/api/v1/watches/refresh", method="POST",
+            payload={"evaluation_date": "2026-09-16"},
+        )
+        payload = json.loads(body)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["refresh"]["refresh_status"], "succeeded")
+        self.assertTrue(payload["evaluated"])
+
+    def test_refresh_requires_raw_dir_configuration(self):
+        old = self.server.state.watch_raw_dir
+        self.server.state.watch_raw_dir = None
+        try:
+            status, body, _ = self.request(
+                "/api/v1/watches/refresh", method="POST", payload={}
+            )
+        finally:
+            self.server.state.watch_raw_dir = old
+        self.assertEqual(status, 503)
+        self.assertEqual(json.loads(body)["error"]["code"], "WATCH_REFRESH_NOT_CONFIGURED")
+
+    def test_refresh_watch_state_preflight_is_503(self):
+        old = SERVER.REFRESH.run_refresh_cycle
+        def blocked(*args, **kwargs):
+            raise SERVER.REFRESH.WatchStateNotConfiguredError("not configured")
+        SERVER.REFRESH.run_refresh_cycle = blocked
+        try:
+            status, body, _ = self.request(
+                "/api/v1/watches/refresh", method="POST", payload={}
+            )
+        finally:
+            SERVER.REFRESH.run_refresh_cycle = old
+        self.assertEqual(status, 503)
+        self.assertEqual(json.loads(body)["error"]["code"], "WATCH_STATE_NOT_CONFIGURED")
 
     def test_create_watch(self):
         status, body, _ = self.request(
