@@ -1,0 +1,81 @@
+{
+  "phase": "8 Public Demo local validation",
+  "date": "2026-09-17",
+  "status": "passed",
+  "completed_stages": [
+    "8-1 Public Boundary",
+    "8-2 Demo Mode",
+    "8-3 Public UI",
+    "8-4 Internet Hardening application guard"
+  ],
+  "public_surface": {
+    "query": true,
+    "law_history": true,
+    "article_compare": true,
+    "confirmed_related_materials": true,
+    "sanitized_health": true,
+    "separate_static_ui": true
+  },
+  "private_surface_blocked": {
+    "favorites": true,
+    "recent_laws": true,
+    "search_history": true,
+    "saved_themes": true,
+    "law_watch": true,
+    "watch_refresh": true,
+    "source_relation_detail": true,
+    "evidence_lookup": true
+  },
+  "query_policy": {
+    "answer_provider": "disabled",
+    "evidence_only": true,
+    "activity_persistence": false,
+    "max_request_bytes": 8192,
+    "max_question_chars": 800,
+    "transaction_read_only": true
+  },
+  "hardening": {
+    "default_query_rate_per_minute": 30,
+    "default_max_concurrent_queries": 2,
+    "default_request_timeout_seconds": 15,
+    "retry_after_headers": true,
+    "cors_opened": false,
+    "server_python_version_hidden": true,
+    "csp_frame_ancestors_none": true,
+    "x_frame_options_deny": true,
+    "permissions_policy_restrictive": true
+  },
+  "regression": {
+    "test_files": 26,
+    "tests": 200,
+    "failed_files": 0,
+    "compileall": "passed",
+    "public_javascript_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "live_local_smoke": {
+    "public_port": 8878,
+    "public_health": "sanitized",
+    "query_status": "evidence-only",
+    "law_history": "passed",
+    "article_compare": "ok",
+    "related_materials_confirmed_only": true,
+    "private_routes_blocked": true,
+    "private_search_history_unchanged": true,
+    "candidate_server_stopped_after_test": true
+  },
+  "production_safety": {
+    "private_runtime_port": 8877,
+    "private_runtime_health_after_test": 200,
+    "tailscale_configuration_changed": false,
+    "internet_exposure_changed": false,
+    "github_actions_used": false
+  },
+  "pending": {
+    "phase_8_5_isolated_deployment": true,
+    "public_read_only_database_role": true,
+    "internet_facing_reverse_proxy": true,
+    "per_client_proxy_rate_limit": true,
+    "completion_gate": true
+  }
+}

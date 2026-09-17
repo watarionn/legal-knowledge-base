@@ -415,3 +415,31 @@ offline回帰はPhase 7の19 test files / 145 testsがすべてpassし、`compil
 書込みを伴うlive refreshはこの実装工程では実行していません。Phase 3/4/5への公式データ更新とRAW保存を伴うため、マージ・本番反映後の明示運用テストで初回live refreshを行います。refreshが`partial` / `failed`の場合はevaluateしない契約をoffline testで固定しています。
 
 機械可読証跡は [`../../docs/validation/phase7-6d-law-watch-refresh-validation-20260916.json`](../../docs/validation/phase7-6d-law-watch-refresh-validation-20260916.json) を参照してください。
+
+## Phase 8 Public Demo local validation
+
+2026-09-17に匿名利用者向けのread-only Public Demo surfaceを追加しました。`LEGAL_KB_PUBLIC_DEMO=1`のときだけ専用UIへ切り替わり、個人用runtimeの既定挙動は変わりません。
+
+公開対象はQuery、法令履歴、条文比較、confirmed関連資料、sanitized healthです。favorites、recent laws、search history、saved themes、law watch、refresh、acknowledge、relation detail、Evidence lookupは公開しません。公開QueryではLLM providerを無効化し、Evidence-onlyで実行し、検索履歴も保存しません。
+
+公開側ではrequest body 8 KiB、question 800文字、Query 30回/分、同時Query 2件、request timeout 15秒を既定値としています。CSP、X-Frame-Options、Permissions-Policy等も公開/非公開共通の安全ヘッダとして返します。CORSは開放しません。
+
+全回帰は26 test files / 200 testsがfailure 0で、`compileall`、Public Demo JavaScriptの`node --check`、`git diff --check`も通過しました。localhost:8878で実DB smokeを実施し、Evidence-only Query、履歴、比較、confirmed-only関連資料、private API遮断を確認しています。試験前後で個人用8877のsearch history件数は不変でした。
+
+Phase 8-5では公開専用PostgreSQL read-only roleと127.0.0.1:8878の別runtimeを構築し、DPAPIで資格情報を保護したログオン自動復帰まで検証しました。SELECTは成功しUPDATEはDB権限で拒否されます。Internet公開はまだ有効化していません。Tailscale Funnelの公開通信には利用者identity headerが無いため、per-client rate limitは送信元IPを確実に取得できる公開proxy方式をCompletion Gateで選定してから有効化します。
+
+設計は [`../../docs/architecture/phase8-public-demo.md`](../../docs/architecture/phase8-public-demo.md)、検証証跡は [`../../docs/validation/phase8-public-demo-local-validation-20260917.json`](../../docs/validation/phase8-public-demo-local-validation-20260917.json) を参照してください。
+
+Phase 8-5の機械可読証跡は [`../../docs/validation/phase8-5-isolated-deployment-20260917.json`](../../docs/validation/phase8-5-isolated-deployment-20260917.json) を参照してください。
+
+## Phase 8 Pre-public Completion Gate
+
+2026-09-17に公開候補127.0.0.1:8878で実データ匿名E2Eを再実行し、sanitized health、security headers、Evidence-only Query（Evidence 2件）、revision/RAW provenance backlink、履歴、confirmed-only関連資料、private GET/WRITE遮断を確認しました。invalid JSON、8 KiB超body、800文字超questionはfail-closedし、live query rate limitは20件受付後の次requestをHTTP 429 + Retry-Afterで拒否しました。
+
+公開DB roleは`default_transaction_read_only=on`でSELECT成功・DML拒否を再確認し、公開Query前後で個人用8877のsearch history件数は3→3で不変でした。全回帰は26 test files / 200 tests / failure 0、compileall、Public Demo JavaScript syntax、git diff checkもpassしています。Internet公開は未実施です。証跡は`../../docs/validation/phase8-prepublic-completion-gate-20260917.json`です。
+
+## Phase 8 Completion Gate / publication
+
+2026-09-17にTailscale FunnelをHTTPS 8443で公開専用8878へ接続しました。既存の443/Tailscale Serveは個人用8877をtailnet-onlyで維持しています。公開FQDN経由でroot 200、Public Demo UI、sanitized healthを確認し、Phase 8を完了扱いにしました。
+
+独立第三者ネットワークからのHTTP取得は、検証に利用できる外部Web環境が非標準HTTPS port 8443を直接開けない制約により未実施です。この制約は機械可読証跡へ明記し、公開可否そのものはTailscale Funnelの公開状態と公開FQDN経由のTLS/HTTP応答で確認しています。

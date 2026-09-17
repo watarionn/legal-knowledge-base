@@ -2,7 +2,7 @@
 
 日本の法令について、e-Gov法令API・法令XMLなどの一次情報を基盤に、**改正履歴、時点指定、XML構造、出典追跡、検索/RAG**を一貫して扱える法令知識基盤を構築するプロジェクトです。
 
-Phase 1〜6で法令ナレッジベース v1 基盤を完成し、現在はその知識基盤を日常的に使えるWebアプリへ変換する **Phase 7 Daily Legal Assistant Web App** に進んでいます。
+Phase 1〜7で個人用の法令ナレッジベースとDaily Legal Assistantを完成し、現在は第三者が安全に触れられる **Phase 8 Public Demo** を構築しています。
 
 ## 目標
 
@@ -17,7 +17,7 @@ Phase 1〜6で法令ナレッジベース v1 基盤を完成し、現在はそ�
 
 ## 現在地
 
-v1基盤の正式工程はPhase 1〜6で、すべて完了しています。Phase 7は完成済みv1の上に利用者向けapplication layerを構築するpost-v1フェーズです。
+v1基盤の正式工程Phase 1〜6と、個人用application layerのPhase 7は完了しています。Phase 8は完成済みシステムを壊さず、匿名利用者向けread-only Public Demoを追加する公開フェーズです。
 
 | Phase | 名称 | 状態 |
 | --- | --- | --- |
@@ -28,6 +28,7 @@ v1基盤の正式工程はPhase 1〜6で、すべて完了しています。Phas
 | 5 | 時点検索＋検索/RAG | **完了** |
 | 6 | 官報・議会資料連携 | **完了** |
 | 7 | Daily Legal Assistant Web App | **完了（Phase 7-6 Completion Gate passed）** |
+| 8 | Public Demo | **完了（Published / Completion Gate passed）** |
 
 Phase 7-1では、AIを法令の正本にせず、既存のstrict temporal resolver、hybrid retrieval、Evidence Bundleを薄いWeb application layerから再利用します。自然言語の質問から対象法令を安全に特定し、回答生成providerが未設定でも、根拠原文・revision・XML path・RAW SHAまで確認できるEvidence-only経路を先に完成させます。設計は [`docs/architecture/phase7-daily-legal-assistant.md`](docs/architecture/phase7-daily-legal-assistant.md)、画面構成は [`docs/architecture/phase7-webapp-screen-layout.md`](docs/architecture/phase7-webapp-screen-layout.md)、API境界は [`docs/architecture/phase7-webapp-api.md`](docs/architecture/phase7-webapp-api.md) を参照してください。
 
@@ -40,6 +41,8 @@ Phase 7-4では、Phase 6の官報・国会/帝国議会会議録・NDL external
 Phase 7-5では、お気に入り法令、最近見た法令、検索履歴、保存テーマをapplication-state層として追加します。検索履歴や保存テーマにEvidence本文や生成回答を複製せず、再利用時は現在のstrict resolver / Evidence経路で再検索します。設計は [`docs/architecture/phase7-daily-use-features.md`](docs/architecture/phase7-daily-use-features.md)、検証証跡は [`docs/validation/phase7-5-daily-use-validation-20260911.json`](docs/validation/phase7-5-daily-use-validation-20260911.json) を参照してください。
 
 Phase 7-6では、保存テーマを入口にした法令ウォッチを追加します。新revisionをDBで初観測した事実と、strict resolverで適用revisionが変わった事実を分離し、改正差分・重要日付・confirmed関連資料へ接続します。施行日を自動で法的な対応期限と断定せず、AIを変更判定のsource truthにも使用しません。設計は [`docs/architecture/phase7-law-watch.md`](docs/architecture/phase7-law-watch.md) を参照してください。 Phase 7-6aではWatch専用schema/bootstrap、CRUD、手動evaluate、deterministic state machineを実装しました。検証証跡は [`docs/validation/phase7-6a-law-watch-validation-20260915.json`](docs/validation/phase7-6a-law-watch-validation-20260915.json) を参照してください。 Phase 7-6bではingestion provenanceによる`observed-change`とstrict resolverによる`effective-change`を別イベントとして保持し、将来施行予定日はPhase 3 `law_revision`のAPI原値から再構築して表示します。予定施行日は法的な対応期限として扱いません。実PostgreSQL transaction smokeではobserved-changeの冪等性、strict resolverによるeffective-change、将来施行予定日、ROLLBACK後のapplication-state件数保持まで確認しました。 検証証跡は [`docs/validation/phase7-6b-law-watch-change-evidence-validation-20260916.json`](docs/validation/phase7-6b-law-watch-change-evidence-validation-20260916.json) を参照してください。 Phase 7-6cでは変更eventからPhase 7-3の条文比較、Phase 7-4のconfirmed関連資料、改正履歴へ遷移するnavigation metadataを再構築し、`acknowledged_at`による確認済み管理を冪等に追加しました。検証証跡は [`docs/validation/phase7-6c-law-watch-navigation-validation-20260916.json`](docs/validation/phase7-6c-law-watch-navigation-validation-20260916.json) を参照してください。 Phase 7-6dではenabled watchの法令だけをe-Gov API v2から更新するwatched-law限定refresh、成功refresh後だけ別transactionでevaluateするオーケストレーション、ローカルscheduler、未確認件数を含むWeb UIを追加しました。新しく観測したrevisionは必要な場合だけ公式`law_data`から本文を取得し、Phase 4構造化とそのdocumentのPhase 5 retrieval chunk生成まで補完します。既存本文・chunkが揃っているrevisionは再取得しません。GitHub Actionsは定期実行に使用しません。検証証跡は [`docs/validation/phase7-6d-law-watch-refresh-validation-20260916.json`](docs/validation/phase7-6d-law-watch-refresh-validation-20260916.json) を参照してください。 Completion GateではWatch Core / Change Evidence / Navigation / Refreshの実PostgreSQL smoke、Tailscale HTTPS上の一時watchによる実refresh、183件のoffline回帰を再確認し、Phase 7を完了扱いにしました。最終証跡は [`docs/validation/phase7-completion-gate-20260916.json`](docs/validation/phase7-completion-gate-20260916.json) を参照してください。
+
+Phase 8では、Phase 1〜7の個人用runtimeを直接Internetへ公開せず、匿名利用者向けのread-only Public Demoを別surfaceとして追加します。個人機能・更新操作・AI生成回答を無効化し、質問、法令履歴、条文比較、confirmed関連資料だけを公開します。設計は [`docs/architecture/phase8-public-demo.md`](docs/architecture/phase8-public-demo.md) を参照してください。 2026-09-17にCompletion Gateを通過し、Tailscale Funnel経由で公開しました。公開URL: `https://ywshtmr.tail8fd68c.ts.net:8443/`。 Pre-public Completion Gateでは匿名E2E、異常入力、live rate limit、DB DML拒否、個人用application state非干渉、200件の全回帰を再確認しました。Internet公開だけは未実施です。検証証跡は [`docs/validation/phase8-prepublic-completion-gate-20260917.json`](docs/validation/phase8-prepublic-completion-gate-20260917.json) を参照してください。
 
 Phase 5.1では、`law_id + as_of_date`からrevision候補を解決するstrict resolverを実装しました。Phase 3の実データにはsame-day複数revisionとtemporal ambiguityがあるため、**一意に確認できない候補を勝手に1 revisionへ丸めません**。時点revisionの確定とPhase 4本文のavailabilityも分離し、本文未収録時に別revisionへfallbackしません。
 

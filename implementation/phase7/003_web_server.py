@@ -7,12 +7,71 @@ import json
 import os
 from pathlib import Path
 import sys
+import threading
+import time
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 HERE = Path(__file__).resolve().parent
-WEB_DIR = HERE / "web"
+PRIVATE_WEB_DIR = HERE / "web"
+PUBLIC_WEB_DIR = HERE / "web_public"
 MAX_REQUEST_BYTES = 64 * 1024
+PUBLIC_MAX_REQUEST_BYTES = 8 * 1024
+PUBLIC_MAX_QUESTION_CHARS = 800
+PUBLIC_QUERY_RATE_PER_MINUTE = 30
+PUBLIC_MAX_CONCURRENT_QUERIES = 2
+PUBLIC_REQUEST_TIMEOUT_SECONDS = 15
+
+
+def _env_flag(name: str) -> bool:
+    return (os.environ.get(name) or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_int(name: str, default: int, *, minimum: int, maximum: int) -> int:
+    raw = (os.environ.get(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be an integer") from exc
+    if value < minimum or value > maximum:
+        raise RuntimeError(f"{name} must be in {minimum}..{maximum}")
+    return value
+
+
+class PublicQueryGuard:
+    def __init__(self, rate_per_minute: int, max_concurrent: int) -> None:
+        self.rate_per_minute = rate_per_minute
+        self._slots = threading.BoundedSemaphore(max_concurrent)
+        self._lock = threading.Lock()
+        self._window_started = time.monotonic()
+        self._window_count = 0
+
+    def try_enter(self) -> tuple[bool, str | None]:
+        if not self._slots.acquire(blocking=False):
+            return False, "busy"
+        now = time.monotonic()
+        with self._lock:
+            if now - self._window_started >= 60:
+                self._window_started = now
+                self._window_count = 0
+            if self._window_count >= self.rate_per_minute:
+                self._slots.release()
+                return False, "rate-limit"
+            self._window_count += 1
+        return True, None
+
+    def leave(self) -> None:
+        self._slots.release()
+
+
+def _public_get_allowed(path: str) -> bool:
+    if path in {"/", "/index.html", "/styles.css", "/app.js", "/compare.js", "/related.js", "/api/v1/health"}:
+        return True
+    if path.startswith("/api/v1/laws/") and path.endswith(("/history", "/compare", "/related-materials")):
+        return True
+    return False
 
 
 def _load(name: str, path: Path):
@@ -47,10 +106,19 @@ def _answer_provider_from_environment() -> Any | None:
 class AppState:
     def __init__(self) -> None:
         self.database_url = os.environ.get("LEGAL_KB_DATABASE_URL") or None
+        self.public_demo = _env_flag("LEGAL_KB_PUBLIC_DEMO")
+        self.web_dir = PUBLIC_WEB_DIR if self.public_demo else PRIVATE_WEB_DIR
         raw_dir = (os.environ.get("LEGAL_KB_WATCH_RAW_DIR") or "").strip()
         self.watch_raw_dir = Path(raw_dir) if raw_dir else None
         self.query_service = SERVICE.QueryService()
-        self.answer_provider = _answer_provider_from_environment()
+        self.answer_provider = None if self.public_demo else _answer_provider_from_environment()
+        self.public_request_timeout_seconds = _env_int(
+            "LEGAL_KB_PUBLIC_REQUEST_TIMEOUT_SECONDS", PUBLIC_REQUEST_TIMEOUT_SECONDS, minimum=1, maximum=120
+        ) if self.public_demo else None
+        self.public_query_guard = PublicQueryGuard(
+            _env_int("LEGAL_KB_PUBLIC_QUERY_RATE_PER_MINUTE", PUBLIC_QUERY_RATE_PER_MINUTE, minimum=1, maximum=600),
+            _env_int("LEGAL_KB_PUBLIC_MAX_CONCURRENT_QUERIES", PUBLIC_MAX_CONCURRENT_QUERIES, minimum=1, maximum=16),
+        ) if self.public_demo else None
         self.evidence_cache: dict[str, dict[str, Any]] = {}
 
     def remember_evidence(self, response: dict[str, Any]) -> None:
@@ -72,7 +140,13 @@ class LegalKbHttpServer(ThreadingHTTPServer):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "LegalKBPhase7/0.1"
+    server_version = "LegalKB"
+    sys_version = ""
+
+    def setup(self) -> None:
+        super().setup()
+        if self.state.public_demo and self.state.public_request_timeout_seconds is not None:
+            self.connection.settimeout(self.state.public_request_timeout_seconds)
 
     @property
     def state(self) -> AppState:
@@ -84,21 +158,30 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header(
             "Content-Security-Policy",
             "default-src 'self'; script-src 'self'; style-src 'self'; "
-            "connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'",
+            "connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; "
+            "frame-ancestors 'none'; form-action 'self'",
         )
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         self.send_header("Cache-Control", "no-store")
 
-    def _send_bytes(self, status: int, body: bytes, content_type: str) -> None:
+    def _send_bytes(
+        self, status: int, body: bytes, content_type: str, *, extra_headers: dict[str, str] | None = None
+    ) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self._security_headers()
+        for name, value in (extra_headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
-    def _send_json(self, status: int, payload: Any) -> None:
+    def _send_json(
+        self, status: int, payload: Any, *, extra_headers: dict[str, str] | None = None
+    ) -> None:
         body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-        self._send_bytes(status, body, "application/json; charset=utf-8")
+        self._send_bytes(status, body, "application/json; charset=utf-8", extra_headers=extra_headers)
 
     def _send_error_json(
         self,
@@ -106,14 +189,17 @@ class Handler(BaseHTTPRequestHandler):
         code: str,
         message: str,
         query_id: str | None = None,
+        *,
+        extra_headers: dict[str, str] | None = None,
     ) -> None:
         self._send_json(
             status,
             {"error": {"code": code, "message": message, "query_id": query_id}},
+            extra_headers=extra_headers,
         )
 
     def _serve_static(self, filename: str, content_type: str) -> None:
-        path = WEB_DIR / filename
+        path = self.state.web_dir / filename
         try:
             body = path.read_bytes()
         except FileNotFoundError:
@@ -123,6 +209,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = self.path.split("?", 1)[0]
+        if self.state.public_demo and not _public_get_allowed(path):
+            self._send_error_json(404, "PUBLIC_DEMO_NOT_AVAILABLE", "endpoint is not available in public demo mode")
+            return
         if path in ("/", "/index.html"):
             self._serve_static("index.html", "text/html; charset=utf-8")
             return
@@ -142,23 +231,30 @@ class Handler(BaseHTTPRequestHandler):
             self._serve_static("daily.js", "text/javascript; charset=utf-8")
             return
         if path == "/api/v1/health":
-            self._send_json(
-                200,
-                {
+            if self.state.public_demo:
+                self._send_json(200, {
                     "status": "ok",
-                    "database": "configured" if self.state.database_url else "not-configured",
-                    "answer_provider": (
-                        self.state.answer_provider.metadata.provider
-                        if self.state.answer_provider is not None else "not-configured"
-                    ),
-                    "answer_model": (
-                        self.state.answer_provider.metadata.model
-                        if self.state.answer_provider is not None else None
-                    ),
-                    "vector_provider": "not-configured",
-                    "app_version": "phase7-local-rag",
-                },
-            )
+                    "mode": "public-demo",
+                    "app_version": "phase8-public-demo",
+                })
+            else:
+                self._send_json(
+                    200,
+                    {
+                        "status": "ok",
+                        "database": "configured" if self.state.database_url else "not-configured",
+                        "answer_provider": (
+                            self.state.answer_provider.metadata.provider
+                            if self.state.answer_provider is not None else "not-configured"
+                        ),
+                        "answer_model": (
+                            self.state.answer_provider.metadata.model
+                            if self.state.answer_provider is not None else None
+                        ),
+                        "vector_provider": "not-configured",
+                        "app_version": "phase7-local-rag",
+                    },
+                )
             return
         if path == "/api/v1/watches":
             if not self.state.database_url:
@@ -293,7 +389,7 @@ class Handler(BaseHTTPRequestHandler):
                 raw_flag = (params.get("include_nonconfirmed", ["false"])[-1] or "false").lower()
                 if raw_flag not in {"true", "false"}:
                     raise ValueError("include_nonconfirmed must be true or false")
-                include_nonconfirmed = raw_flag == "true"
+                include_nonconfirmed = False if self.state.public_demo else raw_flag == "true"
             except ValueError as exc:
                 self._send_error_json(400, "INVALID_REQUEST", str(exc))
                 return
@@ -463,6 +559,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = self.path.split("?", 1)[0]
+        if self.state.public_demo and path != "/api/v1/query":
+            self._send_error_json(404, "PUBLIC_DEMO_NOT_AVAILABLE", "endpoint is not available in public demo mode")
+            return
         acknowledge_prefix = "/api/v1/watch-events/"
         acknowledge_suffix = "/acknowledge"
         if path.startswith(acknowledge_prefix) and path.endswith(acknowledge_suffix):
@@ -656,7 +755,8 @@ class Handler(BaseHTTPRequestHandler):
         if content_length <= 0:
             self._send_error_json(400, "INVALID_REQUEST", "request body is required")
             return
-        if content_length > MAX_REQUEST_BYTES:
+        request_limit = PUBLIC_MAX_REQUEST_BYTES if self.state.public_demo else MAX_REQUEST_BYTES
+        if content_length > request_limit:
             self._send_error_json(413, "REQUEST_TOO_LARGE", "request body is too large")
             return
         body = self.rfile.read(content_length)
@@ -670,6 +770,11 @@ class Handler(BaseHTTPRequestHandler):
             )
             return
 
+        if self.state.public_demo and isinstance(payload, dict):
+            public_question = payload.get("question")
+            if isinstance(public_question, str) and len(public_question) > PUBLIC_MAX_QUESTION_CHARS:
+                self._send_error_json(400, "INVALID_REQUEST", f"question must be at most {PUBLIC_MAX_QUESTION_CHARS} characters in public demo mode")
+                return
         if not self.state.database_url:
             self._send_error_json(
                 503,
@@ -687,14 +792,32 @@ class Handler(BaseHTTPRequestHandler):
             )
             return
 
+        public_guard_entered = False
+        if self.state.public_demo:
+            guard = self.state.public_query_guard
+            assert guard is not None
+            allowed, reason = guard.try_enter()
+            if not allowed:
+                if reason == "busy":
+                    self._send_error_json(
+                        429, "PUBLIC_DEMO_BUSY", "too many public demo queries are running",
+                        extra_headers={"Retry-After": "1"},
+                    )
+                else:
+                    self._send_error_json(
+                        429, "PUBLIC_DEMO_RATE_LIMIT", "public demo query rate limit exceeded",
+                        extra_headers={"Retry-After": "60"},
+                    )
+                return
+            public_guard_entered = True
+
         try:
             query_conn = psycopg.connect(self.state.database_url)
         except Exception:
-            self._send_error_json(
-                503,
-                "DATABASE_UNAVAILABLE",
-                "database connection failed",
-            )
+            if public_guard_entered:
+                assert self.state.public_query_guard is not None
+                self.state.public_query_guard.leave()
+            self._send_error_json(503, "DATABASE_UNAVAILABLE", "database connection failed")
             return
 
         try:
@@ -704,17 +827,18 @@ class Handler(BaseHTTPRequestHandler):
                 response = self.state.query_service.query(
                     query_conn, payload, answer_provider=self.state.answer_provider
                 )
-            self.state.remember_evidence(response)
-            try:
-                activity_conn = psycopg.connect(self.state.database_url)
+            if not self.state.public_demo:
+                self.state.remember_evidence(response)
                 try:
-                    with activity_conn:
-                        if DAILY.application_state_ready(activity_conn):
-                            DAILY.record_query_activity(activity_conn, response)
-                finally:
-                    activity_conn.close()
-            except Exception as activity_exc:
-                self.log_error("daily activity persistence failed: %s", activity_exc.__class__.__name__)
+                    activity_conn = psycopg.connect(self.state.database_url)
+                    try:
+                        with activity_conn:
+                            if DAILY.application_state_ready(activity_conn):
+                                DAILY.record_query_activity(activity_conn, response)
+                    finally:
+                        activity_conn.close()
+                except Exception as activity_exc:
+                    self.log_error("daily activity persistence failed: %s", activity_exc.__class__.__name__)
             self._send_json(200, response)
         except SERVICE.CONTRACT.RequestValidationError as exc:
             self._send_error_json(400, "INVALID_REQUEST", str(exc))
@@ -725,9 +849,15 @@ class Handler(BaseHTTPRequestHandler):
             self._send_error_json(500, "QUERY_FAILED", "query processing failed")
         finally:
             query_conn.close()
+            if public_guard_entered:
+                assert self.state.public_query_guard is not None
+                self.state.public_query_guard.leave()
 
     def do_PUT(self) -> None:
         path = self.path.split("?", 1)[0]
+        if self.state.public_demo:
+            self._send_error_json(405, "PUBLIC_DEMO_READ_ONLY", "write operations are not available in public demo mode")
+            return
         prefix = "/api/v1/favorites/"
         if not path.startswith(prefix):
             self._send_error_json(405, "METHOD_NOT_ALLOWED", "method not allowed")
@@ -759,6 +889,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         path = self.path.split("?", 1)[0]
+        if self.state.public_demo:
+            self._send_error_json(405, "PUBLIC_DEMO_READ_ONLY", "write operations are not available in public demo mode")
+            return
         if not self.state.database_url:
             self._send_error_json(503, "DATABASE_NOT_CONFIGURED", "LEGAL_KB_DATABASE_URL is not configured")
             return
@@ -817,7 +950,8 @@ def main() -> None:
         raise SystemExit("LEGAL_KB_PORT must be in 1..65535")
     state = AppState()
     server = LegalKbHttpServer((host, port), Handler, state)
-    print(f"Legal KB Phase 7 Local RAG: http://{host}:{port}")
+    mode = "Public Demo" if state.public_demo else "Phase 7 Local RAG"
+    print(f"Legal KB {mode}: http://{host}:{port}")
     print("Database:", "configured" if state.database_url else "not configured")
     try:
         server.serve_forever()
