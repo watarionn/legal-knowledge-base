@@ -1,0 +1,65 @@
+{
+  "project": "legal-knowledge-base",
+  "closeout_date": "2026-09-17",
+  "status": "complete",
+  "phase_status": {
+    "phase_1_to_6": "complete",
+    "phase_7": "complete",
+    "phase_8_public_demo": "complete_and_published"
+  },
+  "git": {
+    "repository": "watarionn/legal-knowledge-base",
+    "canonical_branch": "main",
+    "closeout_main_commit": "4acdda5aac833a30189858ff1e43c34ada23c839",
+    "phase8_merge_pr": 44
+  },
+  "public_demo": {
+    "url": "https://ywshtmr.tail8fd68c.ts.net:8443/",
+    "local_bind": "127.0.0.1:8878",
+    "transport": "tailscale-funnel-https-8443",
+    "mode": "public-demo",
+    "answer_mode": "evidence-only",
+    "confirmed_related_materials_only": true
+  },
+  "private_runtime": {
+    "worktree": "C:\\Users\\watar\\Documents\\LegalKB\\phase7-runtime\\app-main",
+    "local_bind": "127.0.0.1:8877",
+    "tailscale_serve": "https://ywshtmr.tail8fd68c.ts.net/",
+    "scope": "tailnet-only",
+    "scheduled_task": "LegalKB Phase7 Runtime"
+  },
+  "public_runtime": {
+    "worktree": "C:\\Users\\watar\\Documents\\LegalKB\\public-demo-runtime\\app-candidate",
+    "scheduled_task": "LegalKB Public Demo Runtime",
+    "db_role": "legal_kb_public_demo",
+    "db_default_transaction_read_only": true,
+    "db_statement_timeout_seconds": 15,
+    "dpapi_protected_credentials": true
+  },
+  "validation": {
+    "test_files": 26,
+    "tests_total": 200,
+    "failed_files": 0,
+    "compileall_passed": true,
+    "javascript_syntax_passed": true,
+    "git_diff_check_passed": true,
+    "secret_guard_issues": 0,
+    "external_health_http_status": 200,
+    "user_confirmed_public_reachability": true
+  },
+  "safety": {
+    "ai_is_source_truth": false,
+    "scheduled_enforcement_dates_are_legal_deadlines": false,
+    "github_actions_used": false,
+    "public_db_write_allowed": false,
+    "private_application_state_exposed_publicly": false,
+    "database_credentials_recorded_in_repo": false
+  },
+  "closeout_notes": {
+    "actual_os_reboot_executed": false,
+    "scheduled_task_manual_trigger_validated": true,
+    "next_primary_task": "Portfolio City integration",
+    "handoff_document": "docs/codex/LEGAL_KB_PROJECT_CLOSEOUT_HANDOFF.md",
+    "completion_evidence": "docs/validation/phase8-completion-gate-20260917.json"
+  }
+}
