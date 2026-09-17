@@ -426,6 +426,8 @@ offline回帰はPhase 7の19 test files / 145 testsがすべてpassし、`compil
 
 全回帰は26 test files / 200 testsがfailure 0で、`compileall`、Public Demo JavaScriptの`node --check`、`git diff --check`も通過しました。localhost:8878で実DB smokeを実施し、Evidence-only Query、履歴、比較、confirmed-only関連資料、private API遮断を確認しています。試験前後で個人用8877のsearch history件数は不変でした。
 
-この段階ではInternet公開していません。Phase 8-5で公開用read-only DB role、別runtime、Internet-facing reverse proxy、proxy側per-client rate limitを構築してからCompletion Gateへ進みます。
+Phase 8-5では公開専用PostgreSQL read-only roleと127.0.0.1:8878の別runtimeを構築し、DPAPIで資格情報を保護したログオン自動復帰まで検証しました。SELECTは成功しUPDATEはDB権限で拒否されます。Internet公開はまだ有効化していません。Tailscale Funnelの公開通信には利用者identity headerが無いため、per-client rate limitは送信元IPを確実に取得できる公開proxy方式をCompletion Gateで選定してから有効化します。
 
 設計は [`../../docs/architecture/phase8-public-demo.md`](../../docs/architecture/phase8-public-demo.md)、検証証跡は [`../../docs/validation/phase8-public-demo-local-validation-20260917.json`](../../docs/validation/phase8-public-demo-local-validation-20260917.json) を参照してください。
+
+Phase 8-5の機械可読証跡は [`../../docs/validation/phase8-5-isolated-deployment-20260917.json`](../../docs/validation/phase8-5-isolated-deployment-20260917.json) を参照してください。

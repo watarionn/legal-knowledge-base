@@ -98,8 +98,19 @@ rate limit、同時実行制御、timeout、reverse proxy境界、公開ログ�
 
 ### Phase 8-5 Isolated Deployment
 
-公開用read-only DB roleと別runtimeを構築し、Internet-facing reverse proxy経由で公開する。
+公開用read-only DB roleと別runtimeを構築する。Internet公開はCompletion Gate直前に明示的に有効化し、private runtimeを直接公開しない。
 
 ### Phase 8 Completion Gate
 
 private endpoint非露出、DML不能、全回帰、匿名E2E、異常入力、rate limit、source-truth境界、Tailscale個人環境非干渉を確認する。
+
+## Phase 8-5 実装結果（2026-09-17）
+
+- PostgreSQL role `legal_kb_public_demo` を作成し、SELECTのみ付与した。
+- `default_transaction_read_only=on`、15秒statement timeoutをrole側にも設定した。
+- 公開runtimeは `public-demo-runtime/app-candidate` のdetached worktreeへ固定し、127.0.0.1:8878のみで待受する。
+- DB passwordはWindows DPAPIで暗号化し、現在ユーザーだけが読めるACLで保存する。
+- 公開runtimeは個人用8877、Watch scheduler、Ollamaを共有・起動しない。AI回答はPublic Demo modeで無効。
+- Windows Scheduled Task `LegalKB Public Demo Runtime` はログオン時に8878を復帰し、二重起動を避ける。
+- Tailscale Serve/Funnel設定は変更せず、現時点の外部公開は0。
+- Internet公開候補はTailscale Funnel等のlocalhost reverse proxyであり、公開スイッチはCompletion Gateでのみ入れる。

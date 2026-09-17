@@ -28,7 +28,7 @@ v1基盤の正式工程Phase 1〜6と、個人用application layerのPhase 7は�
 | 5 | 時点検索＋検索/RAG | **完了** |
 | 6 | 官報・議会資料連携 | **完了** |
 | 7 | Daily Legal Assistant Web App | **完了（Phase 7-6 Completion Gate passed）** |
-| 8 | Public Demo | **Phase 8-1〜4 ローカル検証完了 / 次: Phase 8-5 Isolated Deployment** |
+| 8 | Public Demo | **Phase 8-1〜5 ローカル分離構成完了 / 次: Completion Gate・Internet公開** |
 
 Phase 7-1では、AIを法令の正本にせず、既存のstrict temporal resolver、hybrid retrieval、Evidence Bundleを薄いWeb application layerから再利用します。自然言語の質問から対象法令を安全に特定し、回答生成providerが未設定でも、根拠原文・revision・XML path・RAW SHAまで確認できるEvidence-only経路を先に完成させます。設計は [`docs/architecture/phase7-daily-legal-assistant.md`](docs/architecture/phase7-daily-legal-assistant.md)、画面構成は [`docs/architecture/phase7-webapp-screen-layout.md`](docs/architecture/phase7-webapp-screen-layout.md)、API境界は [`docs/architecture/phase7-webapp-api.md`](docs/architecture/phase7-webapp-api.md) を参照してください。
 

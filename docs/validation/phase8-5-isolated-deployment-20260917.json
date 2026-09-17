@@ -1,0 +1,60 @@
+{
+  "phase": "8-5 Isolated Deployment",
+  "date": "2026-09-17",
+  "status": "passed-local-isolation",
+  "candidate_commit": "2faa96fa30aba6537aa7c348dcd325377d813b00",
+  "database_boundary": {
+    "role": "legal_kb_public_demo",
+    "superuser": false,
+    "createdb": false,
+    "createrole": false,
+    "replication": false,
+    "bypassrls": false,
+    "default_transaction_read_only": true,
+    "select_probe": "passed",
+    "update_probe": "rejected",
+    "statement_timeout_seconds": 15
+  },
+  "credential_storage": {
+    "plaintext_file": false,
+    "windows_dpapi": true,
+    "acl_current_user_only": true,
+    "task_arguments_contain_secret": false
+  },
+  "runtime": {
+    "private_port": 8877,
+    "public_candidate_port": 8878,
+    "public_bind": "127.0.0.1",
+    "separate_worktree": true,
+    "private_runtime_restarted": false,
+    "ollama_enabled": false
+  },
+  "scheduled_task": {
+    "name": "LegalKB Public Demo Runtime",
+    "manual_start_result": 0,
+    "duplicate_process_created": false,
+    "trigger": "AtLogOn"
+  },
+  "live_smoke": {
+    "public_health": "sanitized",
+    "query_status": "evidence-only",
+    "history": "passed",
+    "compare_status": "ok",
+    "related_materials": "confirmed-only",
+    "private_routes_blocked": true,
+    "private_search_history_unchanged": true
+  },
+  "internet_exposure": {
+    "enabled": false,
+    "tailscale_serve_private_target": "127.0.0.1:8877",
+    "public_candidate_target": "127.0.0.1:8878",
+    "funnel_change_applied": false,
+    "next_gate": "Completion Gate and explicit Internet exposure"
+  },
+  "safety": {
+    "github_actions_used": false,
+    "private_watch_state_exposed": false,
+    "private_runtime_modified": false,
+    "database_password_recorded": false
+  }
+}
