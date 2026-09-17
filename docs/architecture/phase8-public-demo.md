@@ -114,3 +114,11 @@ private endpoint非露出、DML不能、全回帰、匿名E2E、異常入力、r
 - Windows Scheduled Task `LegalKB Public Demo Runtime` はログオン時に8878を復帰し、二重起動を避ける。
 - Tailscale Serve/Funnel設定は変更せず、現時点の外部公開は0。
 - Internet公開候補はTailscale Funnel等のlocalhost reverse proxyであり、公開スイッチはCompletion Gateでのみ入れる。
+
+## Pre-public Completion Gate（2026-09-17）
+
+Internet公開前の最終ローカルゲートをpassした。匿名E2E、異常入力、security headers、Evidence-only、confirmed-only、private endpoint遮断、live rate limit、DB DML拒否、個人用search history非干渉を実データで再確認した。全回帰は26 test files / 200 tests / failure 0。
+
+公開経路v1はTailscale Funnelから127.0.0.1:8878へ接続し、アプリ側の全体20 query/minute・同時2 queryを安全上限とする。FunnelのPROXY protocol v2による送信元IP伝播は将来のper-client rate limit強化に利用可能だが、v1では新しいreverse proxy依存を追加しない。private 8877の既存Tailscale Serveは変更しないため、公開時は別HTTPS port 8443を候補とする。
+
+Internet公開スイッチ、外部ネットワークからの実アクセス確認、Portfolio Cityからのリンク追加は、明示的な公開承認後に実施する。

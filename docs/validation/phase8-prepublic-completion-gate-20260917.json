@@ -1,0 +1,76 @@
+{
+  "phase": "8 Public Demo Pre-public Completion Gate",
+  "date": "2026-09-17",
+  "status": "passed-prepublic",
+  "internet_published": false,
+  "branch": "phase8/public-demo-surface",
+  "code_commit": "2faa96fa30aba6537aa7c348dcd325377d813b00",
+  "phase85_evidence_commit": "d48aef4f7a2e53f7eb720510967fb999520549af",
+  "runtime": {
+    "private_port": 8877,
+    "public_candidate_port": 8878,
+    "public_bind": "127.0.0.1",
+    "private_runtime_untouched": true,
+    "public_mode": "public-demo",
+    "scheduled_task_last_result": 0
+  },
+  "anonymous_live_e2e": {
+    "health_sanitized": true,
+    "security_headers": true,
+    "query_status": "evidence-only",
+    "evidence_count": 2,
+    "source_truth_backlink": true,
+    "history": true,
+    "confirmed_only_related_materials": true,
+    "private_gets_blocked": true,
+    "write_routes_blocked": true
+  },
+  "abuse_and_input_controls": {
+    "invalid_json": "HTTP 400",
+    "question_over_800_chars": "HTTP 400",
+    "body_over_8_kib": "HTTP 413",
+    "live_rate_limit": "HTTP 429",
+    "retry_after_seconds": 60,
+    "configured_query_rate_per_minute": 20,
+    "configured_max_concurrent_queries": 2,
+    "request_timeout_seconds": 15
+  },
+  "database_boundary": {
+    "role": "legal_kb_public_demo",
+    "default_transaction_read_only": "on",
+    "select_succeeded": true,
+    "dml_blocked": true,
+    "credential_printed": false,
+    "credential_storage": "Windows DPAPI"
+  },
+  "private_state_noninterference": {
+    "search_history_before": 3,
+    "search_history_after": 3,
+    "unchanged": true
+  },
+  "offline_regression": {
+    "test_files": 26,
+    "tests": 200,
+    "failed": 0,
+    "compileall": "passed",
+    "javascript_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "publication_strategy": {
+    "candidate": "Tailscale Funnel",
+    "public_target": "127.0.0.1:8878",
+    "private_serve_target_preserved": "127.0.0.1:8877",
+    "candidate_https_port": 8443,
+    "candidate_port_free": true,
+    "global_rate_limit_used_for_v1": true,
+    "per_client_rate_limit": "future hardening via PROXY protocol v2 or dedicated proxy",
+    "funnel_enabled": false
+  },
+  "remaining_gate": [
+    "explicit Internet publication approval",
+    "enable public Funnel endpoint",
+    "verify from an external network",
+    "add Portfolio City link",
+    "push / PR / merge / production synchronization"
+  ]
+}
