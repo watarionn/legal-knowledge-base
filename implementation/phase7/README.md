@@ -437,3 +437,9 @@ Phase 8-5の機械可読証跡は [`../../docs/validation/phase8-5-isolated-depl
 2026-09-17に公開候補127.0.0.1:8878で実データ匿名E2Eを再実行し、sanitized health、security headers、Evidence-only Query（Evidence 2件）、revision/RAW provenance backlink、履歴、confirmed-only関連資料、private GET/WRITE遮断を確認しました。invalid JSON、8 KiB超body、800文字超questionはfail-closedし、live query rate limitは20件受付後の次requestをHTTP 429 + Retry-Afterで拒否しました。
 
 公開DB roleは`default_transaction_read_only=on`でSELECT成功・DML拒否を再確認し、公開Query前後で個人用8877のsearch history件数は3→3で不変でした。全回帰は26 test files / 200 tests / failure 0、compileall、Public Demo JavaScript syntax、git diff checkもpassしています。Internet公開は未実施です。証跡は`../../docs/validation/phase8-prepublic-completion-gate-20260917.json`です。
+
+## Phase 8 Completion Gate / publication
+
+2026-09-17にTailscale FunnelをHTTPS 8443で公開専用8878へ接続しました。既存の443/Tailscale Serveは個人用8877をtailnet-onlyで維持しています。公開FQDN経由でroot 200、Public Demo UI、sanitized healthを確認し、Phase 8を完了扱いにしました。
+
+独立第三者ネットワークからのHTTP取得は、検証に利用できる外部Web環境が非標準HTTPS port 8443を直接開けない制約により未実施です。この制約は機械可読証跡へ明記し、公開可否そのものはTailscale Funnelの公開状態と公開FQDN経由のTLS/HTTP応答で確認しています。

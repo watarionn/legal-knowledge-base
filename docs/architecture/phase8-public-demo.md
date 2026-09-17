@@ -122,3 +122,13 @@ Internet公開前の最終ローカルゲートをpassした。匿名E2E、異�
 公開経路v1はTailscale Funnelから127.0.0.1:8878へ接続し、アプリ側の全体20 query/minute・同時2 queryを安全上限とする。FunnelのPROXY protocol v2による送信元IP伝播は将来のper-client rate limit強化に利用可能だが、v1では新しいreverse proxy依存を追加しない。private 8877の既存Tailscale Serveは変更しないため、公開時は別HTTPS port 8443を候補とする。
 
 Internet公開スイッチ、外部ネットワークからの実アクセス確認、Portfolio Cityからのリンク追加は、明示的な公開承認後に実施する。
+
+## Phase 8 公開結果（2026-09-17）
+
+- Tailscale Funnel を8443で有効化し、公開専用runtime `127.0.0.1:8878` のみをInternetへ公開した。
+- 公開URLは `https://ywshtmr.tail8fd68c.ts.net:8443/`。
+- 既存の443/Tailscale Serveは個人用8877のtailnet-only経路として維持した。
+- 公開FQDN経由でroot 200、Public Demo UI、sanitized health 200を確認した。
+- ChatGPT外部Web取得環境は非標準HTTPS port 8443を直接取得できないため、独立第三者ネットワークからのHTTP確認は未実施として証跡へ明記する。
+- Public Demo v1の保護は全体20 query/minute、同時2 query、8 KiB body、800文字question、15秒timeoutとする。
+- Phase 8 Completion Gateを通過し、Phase 8を完了扱いとする。

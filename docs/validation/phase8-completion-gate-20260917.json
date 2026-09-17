@@ -1,0 +1,50 @@
+{
+  "phase": "8 Public Demo Completion Gate / Internet Publication",
+  "date": "2026-09-17",
+  "status": "passed",
+  "public_url": "https://ywshtmr.tail8fd68c.ts.net:8443/",
+  "transport": "Tailscale Funnel HTTPS 8443 -> 127.0.0.1:8878",
+  "private_route": "HTTPS 443 Tailscale Serve -> 127.0.0.1:8877 tailnet-only",
+  "private_route_unchanged": true,
+  "publication": {
+    "funnel_enabled": true,
+    "root_status": 200,
+    "public_demo_ui_detected": true,
+    "health_status": "ok",
+    "health_mode": "public-demo"
+  },
+  "completion_gate": {
+    "offline_test_files": 26,
+    "offline_tests": 200,
+    "offline_failures": 0,
+    "evidence_only": true,
+    "confirmed_only": true,
+    "private_endpoints_blocked": true,
+    "database_dml_blocked": true,
+    "database_default_transaction_read_only": "on",
+    "private_search_history_unchanged": true,
+    "live_rate_limit_verified": true
+  },
+  "limits": {
+    "query_rate_per_minute": 20,
+    "max_concurrent_queries": 2,
+    "request_body_bytes": 8192,
+    "question_chars": 800,
+    "request_timeout_seconds": 15
+  },
+  "source_truth": {
+    "ai_is_source_truth": false,
+    "strict_temporal_fail_closed_preserved": true,
+    "raw_provenance_preserved": true
+  },
+  "external_verification_limitation": "Available external web fetch environment could not directly open non-standard HTTPS port 8443; independent third-party network HTTP fetch was not executed.",
+  "safety": {
+    "github_actions_used": false,
+    "metered_github_work_used": false,
+    "secrets_recorded": false
+  },
+  "completion": {
+    "phase8_complete": true,
+    "internet_published": true
+  }
+}
