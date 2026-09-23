@@ -123,3 +123,66 @@ Next validation should use a broader real-query corpus containing both:
 
 Only after a pre-registered benchmark should advisory integration be
 reconsidered.
+
+
+## Real-corpus validation and promotion decision
+
+A second, untouched real-data holdout was frozen before Jev scoring.
+
+Holdout source:
+- Phase 8 Public Demo query path
+- explicit Civil Code law id
+- unseen Articles 7, 10, 12, 17, 20, 21, 93
+- each article contributed one directly answerable question and one
+  evidence-gap question
+- Articles 3, 4, and 5 were separately retained as deterministic
+  no-substantive-Sentence cases
+
+The gate policy and confidence threshold were frozen before holdout scoring.
+
+Pre-registered pass criteria:
+- false `sufficient` on `needs_more_evidence`: 0
+- sufficient recall >= 0.70
+- overall semantic accuracy >= 0.85
+- at least 5 cases per semantic class
+- deterministic guard cases all pass
+
+Observed holdout result:
+- semantic cases: 14
+- correct: 13 / 14
+- overall accuracy: 0.9286
+- sufficient recall: 0.8571
+- false `sufficient` on evidence-gap cases: 0
+- deterministic guard cases: 3 / 3 pass
+- result: **PASS**
+
+The single semantic miss was conservative:
+- Article 20 direct-answer case
+- Jev raw decision: `sufficient`
+- confidence: 0.62
+- shadow normalization: `review`
+
+No evidence-gap case was incorrectly promoted to `sufficient`.
+
+### Promotion status
+
+**READY_FOR_ADVISORY_INTEGRATION_REVIEW**
+
+This status does not grant answer-control authority.
+
+Still prohibited:
+- suppressing an answer because of Jev
+- automatically triggering additional retrieval
+- changing the selected revision
+- changing citation truth
+- rewriting or filtering Evidence Bundles as source truth
+
+Permitted next step:
+- surface Jev sufficiency as optional advisory metadata or an operator-only
+  shadow report
+- continue collecting real-query observations
+- compare Jev advisory output with existing fail-closed answer generation
+  behavior
+
+Any future move from advisory metadata to output-changing authority requires a
+separate promotion gate and a new untouched evaluation.
