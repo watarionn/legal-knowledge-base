@@ -186,3 +186,54 @@ Permitted next step:
 
 Any future move from advisory metadata to output-changing authority requires a
 separate promotion gate and a new untouched evaluation.
+
+
+## Operator-only live shadow runner
+
+A Jev Lab sidecar now supports one-command operator validation:
+
+`legal_kb_rag_shadow.py`
+
+Flow:
+
+```text
+operator question
+  -> Phase 8 Public Demo /api/v1/query
+  -> Legal KB bounded shadow export
+  -> Jev RAG evidence gate
+  -> Jev Lab shadow JSONL / latest report
+```
+
+The sidecar writes only under the Jev Lab shadow directory. It does not write
+to the Legal KB repository, database, or Public Demo response.
+
+Live Article 90 smoke:
+- direct rule question: `sufficient`, confidence 0.99
+- request for concrete public-order/morals examples: `needs_more_evidence`, confidence 1.00
+- repeated direct question: cache hit
+- Legal KB writes: 0
+- database writes: 0
+- Public Demo response changes: 0
+- answer content exported: false
+- authority flags: all false
+
+Jev Lab full unit regression after adding the sidecar: **89 / 89 PASS**.
+
+## Windows PowerShell encoding incident
+
+An initial real-corpus collector was written as a UTF-8-without-BOM `.ps1`
+containing Japanese question literals. Windows PowerShell 5.1 interpreted the
+script text using a legacy code page, corrupting the Japanese query text.
+The resulting requests resolved the explicit law id but failed to identify the
+requested Article number and returned misleading `no-hits` observations.
+
+Those observations were rejected and not used for evaluation.
+
+Countermeasure:
+- use Python UTF-8 collectors for Japanese query corpora, or
+- use explicit Unicode escapes / a BOM-aware PowerShell encoding path,
+- verify the parsed `structural_filter.structural_num` against the requested
+  Article before accepting a corpus row.
+
+The replacement Python collection correctly recovered Article numbers and
+Evidence Bundles.
