@@ -4,12 +4,16 @@ on:
   push:
     branches:
       - rdc-recovery-20260928
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
   recover-rdc:
+    if: github.head_ref == 'rdc-recovery-20260928' || github.ref_name == 'rdc-recovery-20260928'
     runs-on: [self-hosted, Windows, X64, legal-kb-full-benchmark]
     timeout-minutes: 30
     steps:
