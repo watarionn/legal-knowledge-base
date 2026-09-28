@@ -1,0 +1,78 @@
+name: RDC Emergency Recovery
+
+on:
+  push:
+    branches:
+      - rdc-recovery-20260928
+
+permissions:
+  contents: read
+
+jobs:
+  recover-rdc:
+    runs-on: [self-hosted, Windows, X64, legal-kb-full-benchmark]
+    timeout-minutes: 30
+    steps:
+      - name: Recover Desktop Commander
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $root = 'C:\Users\watar\AppData\Local\RDC'
+          $oldCache = 'C:\Users\watar\AppData\Local\npm-cache\rdc-retry-20260918'
+          $runtime = Join-Path $root 'runtime-0.2.51'
+          $entry = Join-Path $runtime 'node_modules\@wonderwhy-er\desktop-commander\dist\index.js'
+          $next = Join-Path $root 'rdc-watchdog.next.ps1'
+          $watchdog = Join-Path $root 'rdc-watchdog.ps1'
+          $recoveryLog = Join-Path $root 'rdc-github-recovery.log'
+
+          function Log([string]$m) {
+            Add-Content -LiteralPath $recoveryLog -Value ("[{0}] {1}" -f (Get-Date -Format o), $m)
+            Write-Host $m
+          }
+
+          Log 'GitHub self-hosted recovery started'
+
+          $targets = Get-CimInstance Win32_Process | Where-Object {
+            $_.ProcessId -ne $PID -and $_.CommandLine -and (
+              $_.CommandLine -like '*rdc-repair-20260928.ps1*' -or
+              $_.CommandLine -like '*rdc-watchdog.ps1*' -or
+              $_.CommandLine -like '*rdc-retry-20260918*'
+            )
+          }
+          foreach ($p in $targets) {
+            Log ("Stopping conflicting tree pid=" + $p.ProcessId)
+            & "$env:SystemRoot\System32\taskkill.exe" /PID $p.ProcessId /T /F | Out-Null
+          }
+          Start-Sleep -Seconds 3
+
+          if (Test-Path -LiteralPath $oldCache) {
+            Log 'Deleting polluted npm cache'
+            $cmd = 'rmdir /s /q "' + $oldCache + '"'
+            & $env:ComSpec /d /s /c $cmd
+          }
+          if (Test-Path -LiteralPath $oldCache) {
+            throw "Polluted cache still exists: $oldCache"
+          }
+          Log 'Polluted cache removed'
+
+          if (-not (Test-Path -LiteralPath $entry)) {
+            Log 'Pinned runtime missing; installing 0.2.51'
+            New-Item -ItemType Directory -Force -Path $runtime | Out-Null
+            & 'C:\Program Files\nodejs\npm.cmd' install --prefix $runtime '@wonderwhy-er/desktop-commander@0.2.51' --omit=dev --no-audit --no-fund
+            if ($LASTEXITCODE -ne 0) { throw 'Pinned runtime install failed' }
+          }
+
+          if (-not (Test-Path -LiteralPath $next)) {
+            throw "Staged watchdog missing: $next"
+          }
+          Copy-Item -LiteralPath $next -Destination $watchdog -Force
+          New-Item -ItemType Directory -Force -Path (Join-Path $root 'workdir') | Out-Null
+
+          Remove-Item Env:RUNNER_TRACKING_ID -ErrorAction SilentlyContinue
+          $ps = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+          $proc = Start-Process -FilePath $ps -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File',$watchdog) -WorkingDirectory $root -WindowStyle Hidden -PassThru
+          Start-Sleep -Seconds 8
+          $proc.Refresh()
+          if ($proc.HasExited) { throw "New watchdog exited early with code $($proc.ExitCode)" }
+          Log ("New watchdog alive pid=" + $proc.Id)
+          Log 'GitHub self-hosted recovery complete'
