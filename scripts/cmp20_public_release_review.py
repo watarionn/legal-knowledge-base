@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -163,15 +164,37 @@ def _safe_dir(path: Path) -> None:
             "OWNER_SIGNED_DIRECTORY_MISSING_OR_REPARSE")
 
 
-def _json_file(path: Path, size: int = 32768) -> dict:
+
+def strict_json(raw: bytes) -> dict:
+    """Fail closed on repeated JSON keys, NaN/Infinity and exponent overflow."""
+    def unique_keys(pairs: list[tuple[str, object]]) -> dict:
+        value = {}
+        for key, item in pairs:
+            require(key not in value, "OWNER_JSON_DUPLICATE_KEY")
+            value[key] = item
+        return value
+
+    def reject_constant(_value: str):
+        raise ReviewHold("OWNER_JSON_NONSTANDARD_NUMBER")
+
+    def finite_float(raw_number: str) -> float:
+        value = float(raw_number)
+        require(math.isfinite(value), "OWNER_JSON_NONFINITE_NUMBER")
+        return value
+
     try:
-        data = json.loads(_safe_file(path, size))
-        require(isinstance(data, dict), "OWNER_JSON_OBJECT_REQUIRED")
-        return data
-    except (ValueError, UnicodeError) as exc:
-        if isinstance(exc, ReviewHold):
-            raise
-        raise ReviewHold("OWNER_SIGNED_JSON_INVALID") from None
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=unique_keys,
+                           parse_constant=reject_constant,
+                           parse_float=finite_float)
+    except (UnicodeError, json.JSONDecodeError):
+        raise ReviewHold("OWNER_JSON_INVALID") from None
+    except RecursionError:
+        raise ReviewHold("OWNER_JSON_TOO_DEEP") from None
+    require(isinstance(value, dict), "OWNER_JSON_OBJECT_REQUIRED")
+    return value
+
+def _json_file(path: Path, size: int = 32768) -> dict:
+    return strict_json(_safe_file(path, size))
 
 
 def verify_staged_source(root: Path = STAGED) -> dict:
@@ -181,7 +204,7 @@ def verify_staged_source(root: Path = STAGED) -> dict:
             {"manifest.json", *PATCH_BLOBS}, "STAGE_EXACT_FILES_HOLD")
     raw = _safe_file(root / "manifest.json", 8192)
     require(sha(raw) == STAGE_MANIFEST_SHA256, "STAGE_MANIFEST_SHA_CHANGED")
-    manifest = json.loads(raw)
+    manifest = strict_json(raw)
     require(isinstance(manifest, dict), "STAGE_MANIFEST_OBJECT_REQUIRED")
     require(manifest.get("schema") ==
             "legal-kb.cmp20.public-demo-unsigned-source-candidate.v1"
