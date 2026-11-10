@@ -41,8 +41,8 @@ NEW_TARGET="http://127.0.0.1:8879"
 PYTHON="C:\\Python314\\pythonw.exe"
 
 # Filled from actual GitHub reviewed source blobs before executable enrollment.
-OVERLAY_BLOB="c7d0d3e9e0f1e0e2e0e1e4e5e6e7e8e9eaebeced"
-EXEC_VERIFIER_BLOB="0000000000000000000000000000000000000000"
+OVERLAY_BLOB="4e07752f60d554987c9bd30dc513ae3af569ba57"
+EXEC_VERIFIER_BLOB="253ef413c3b72f2de8b0d5df4ff68f478fca7bd8"
 REVIEW_VERIFIER_BLOB="ae7f2cbd01dab3d6dd9823ce340be34ee95bbe3b"
 REVIEW_SIGNER_BLOB="4199852e192349270096807af52d358ee89afe2b"
 
@@ -280,7 +280,6 @@ def service_health(port:int):
 
 def inspect_public(source_port:int=8879):
     service_health(8878)
-    service_health(8877) if False else None
     private=get_health("http://127.0.0.1:8877/api/v1/health")
     require(private.get("status")=="ok","PRIVATE_SERVICE_UNHEALTHY")
     service_health(source_port)
@@ -314,7 +313,11 @@ def change_route(expected:str,target:str):
     before=current_route()
     current=before["Web"][HOST_PORT]["Handlers"]["/"]["Proxy"]
     require(current==expected,"PUBLIC_FUNNEL_PREIMAGE_NOT_MATCHED")
-    inspect_public()
+    service_health(8878)
+    private=get_health("http://127.0.0.1:8877/api/v1/health")
+    require(private.get("status")=="ok","PRIVATE_SERVICE_UNHEALTHY")
+    if target==NEW_TARGET:
+        service_health(8879)
     changed=copy.deepcopy(before)
     changed["Web"][HOST_PORT]["Handlers"]["/"]["Proxy"]=target
     try:
@@ -327,7 +330,11 @@ def change_route(expected:str,target:str):
                 exposed.get("mode")=="public-demo" and
                 exposed.get("app_version")=="phase8-public-demo",
                 "PUBLIC_NEW_FUNNEL_IDENTITY_HOLD")
-        inspect_public()
+        service_health(8878)
+        private=get_health("http://127.0.0.1:8877/api/v1/health")
+        require(private.get("status")=="ok","PRIVATE_SERVICE_UNHEALTHY")
+        if target==NEW_TARGET:
+            service_health(8879)
     except Exception:
         # Fail closed: restore the exact original preimage; never reset Serve.
         try:
