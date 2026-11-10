@@ -278,7 +278,47 @@ def service_health(port:int):
             "PUBLIC_SERVICE_IDENTITY_CHANGED")
 
 
+def owner_listener(port:int)->dict:
+    """Read real Windows owning PID and command identity; no process mutation."""
+    require(port in (8878,8879),"UNKNOWN_OWNER_LISTENER_PORT")
+    script=(
+      "$ErrorActionPreference='Stop';"
+      "$l=@(Get-NetTCPConnection -LocalPort "+str(port)+
+      " -State Listen -ErrorAction SilentlyContinue);"
+      "if($l.Count -ne 1){throw 'EXPECTED_SINGLE_OWNER_LISTENER'};"
+      "$p=Get-CimInstance Win32_Process -Filter "
+      "('ProcessId='+$l[0].OwningProcess) -ErrorAction Stop;"
+      "[pscustomobject]@{ip=[string]$l[0].LocalAddress;"
+      "pid=[int]$l[0].OwningProcess;name=[string]$p.Name;"
+      "command=[string]$p.CommandLine}|ConvertTo-Json -Compress"
+    )
+    value=json.loads(checked(["powershell.exe","-NoProfile","-NonInteractive",
+                              "-Command",script],timeout=18))
+    require(type(value) is dict and
+            set(value)=={"ip","pid","name","command"} and
+            value["ip"]=="127.0.0.1" and
+            type(value["pid"]) is int and value["pid"]>0 and
+            value["name"].lower()=="pythonw.exe" and
+            type(value["command"]) is str,
+            "OWNER_PUBLIC_LISTENER_IDENTITY_HOLD")
+    cmd=value["command"].replace("/","\\").lower()
+    if port==8878:
+        expected=str(ORIGINAL_SERVER).replace("/","\\").lower()
+    else:
+        expected=str(RELEASE/"cmp20_public_parallel_overlay.py").replace("/","\\").lower()
+    require(cmd.count(expected)==1,"OWNER_PUBLIC_LISTENER_BINARY_MISMATCH")
+    if port==8879:
+        pidfile=RELEASE/"public-demo.pid"
+        require(pidfile.is_file() and not pidfile.is_symlink() and
+                0<pidfile.stat().st_size<=24,
+                "SIGNED_PARALLEL_PID_RECEIPT_MISSING")
+        require(pidfile.read_text(encoding="ascii").strip()==str(value["pid"]),
+                "SIGNED_PARALLEL_PID_RECEIPT_MISMATCH")
+    return {"port":port,"owner_pid":value["pid"],"identity":"PINNED_PYTHONW"}
+
+
 def inspect_public(source_port:int=8879):
+    original_owner=owner_listener(8878)
     service_health(8878)
     private=get_health("http://127.0.0.1:8877/api/v1/health")
     require(private.get("status")=="ok","PRIVATE_SERVICE_UNHEALTHY")
@@ -301,6 +341,8 @@ def start_parallel():
              "-ExecutionPolicy","Bypass","-File",
              str(RELEASE/"launch-public-parallel.ps1")],timeout=90)
     inspect_public()
+    require(owner_listener(8878)["owner_pid"]==original_owner["owner_pid"],
+            "ORIGINAL_PUBLIC_PROCESS_CHANGED_DURING_STAGE")
     require(current_route()["Web"][HOST_PORT]["Handlers"]["/"]["Proxy"]==
             OLD_TARGET,"PUBLIC_FUNNEL_CHANGED_DURING_STAGE")
     return {"status":"SIGNED_PARALLEL_STARTED_AND_VERIFIED",
@@ -313,11 +355,13 @@ def change_route(expected:str,target:str):
     before=current_route()
     current=before["Web"][HOST_PORT]["Handlers"]["/"]["Proxy"]
     require(current==expected,"PUBLIC_FUNNEL_PREIMAGE_NOT_MATCHED")
+    old_pid=owner_listener(8878)["owner_pid"]
     service_health(8878)
     private=get_health("http://127.0.0.1:8877/api/v1/health")
     require(private.get("status")=="ok","PRIVATE_SERVICE_UNHEALTHY")
     if target==NEW_TARGET:
         service_health(8879)
+        owner_listener(8879)
     changed=copy.deepcopy(before)
     changed["Web"][HOST_PORT]["Handlers"]["/"]["Proxy"]=target
     try:
@@ -331,10 +375,13 @@ def change_route(expected:str,target:str):
                 exposed.get("app_version")=="phase8-public-demo",
                 "PUBLIC_NEW_FUNNEL_IDENTITY_HOLD")
         service_health(8878)
+        require(owner_listener(8878)["owner_pid"]==old_pid,
+                "ORIGINAL_PUBLIC_PROCESS_REPLACED_ON_ROUTE_SWITCH")
         private=get_health("http://127.0.0.1:8877/api/v1/health")
         require(private.get("status")=="ok","PRIVATE_SERVICE_UNHEALTHY")
         if target==NEW_TARGET:
             service_health(8879)
+            owner_listener(8879)
     except Exception:
         # Fail closed: restore the exact original preimage; never reset Serve.
         try:
