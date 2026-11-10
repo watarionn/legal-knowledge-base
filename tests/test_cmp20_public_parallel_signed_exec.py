@@ -205,6 +205,55 @@ $h = Invoke-RestMethod -Uri 'http://127.0.0.1:8878/api/v1/health'
         with self.assertRaises(v.ExecutionHold):
             v.strict_json(b'{"a":NaN}')
 
+    def test_public_https_security_boundary_checks_private_route(self):
+        from email.message import Message
+        from unittest.mock import MagicMock
+        from urllib.error import HTTPError
+        h=Message()
+        h["Content-Security-Policy"]="default-src 'self'"
+        h["X-Content-Type-Options"]="nosniff"
+        h["X-Frame-Options"]="DENY"
+        root=MagicMock()
+        root.status=200
+        root.headers=h
+        root.__enter__.return_value=root
+        private=HTTPError("https://x/api/v1/favorites",404,"Not Found",{},None)
+        with patch.object(a,"urlopen",side_effect=[root,private]) as called:
+            a.check_public_https_security_boundary()
+            self.assertEqual(called.call_count,2)
+
+    def test_public_https_security_boundary_rejects_missing_csp(self):
+        from email.message import Message
+        from unittest.mock import MagicMock
+        h=Message()
+        h["X-Content-Type-Options"]="nosniff"
+        h["X-Frame-Options"]="DENY"
+        root=MagicMock()
+        root.status=200
+        root.headers=h
+        root.__enter__.return_value=root
+        with patch.object(a,"urlopen",return_value=root),\
+             self.assertRaises(a.CutoverHold):
+            a.check_public_https_security_boundary()
+
+    def test_public_https_security_boundary_rejects_exposed_private_route(self):
+        from email.message import Message
+        from unittest.mock import MagicMock
+        h=Message()
+        h["Content-Security-Policy"]="default-src 'self'"
+        h["X-Content-Type-Options"]="nosniff"
+        h["X-Frame-Options"]="DENY"
+        root=MagicMock()
+        root.status=200
+        root.headers=h
+        root.__enter__.return_value=root
+        private=MagicMock()
+        private.status=200
+        private.__enter__.return_value=private
+        with patch.object(a,"urlopen",side_effect=[root,private]),\
+             self.assertRaises(a.CutoverHold):
+            a.check_public_https_security_boundary()
+
     def test_owner_stage_manifest_scope_fixed(self):
         x=a.output_manifest(b"a",b"b",b"c")
         self.assertTrue(x["no_task_registration_or_reboot"])
