@@ -126,6 +126,37 @@ class OwnerReviewVerifierTests(unittest.TestCase):
             with self.assertRaises(m.ReviewHold):
                 m.verify_staged_source(d)
 
+
+    def test_strict_owner_json_rejects_duplicate_and_nonfinite_values(self):
+        invalid = (
+            b'{"schema":"ok","schema":"ok"}',
+            b'{"outer":{"purpose":"a","purpose":"a"}}',
+            b'{"value":NaN}',
+            b'{"value":Infinity}',
+            b'{"value":-Infinity}',
+            b'{"value":1e309}',
+            b'{"value":null,"nested":{"count":2,"count":2}}',
+        )
+        with tempfile.TemporaryDirectory() as root:
+            target = Path(root) / "trust.json"
+            for raw in invalid:
+                with self.subTest(raw=raw):
+                    target.write_bytes(raw)
+                    with self.assertRaises(m.ReviewHold):
+                        m._json_file(target)
+
+    def test_strict_owner_json_accepts_valid_nested_json(self):
+        wire = b'{"outer":{"a":1,"b":2},"float":2.5,"enabled":false}'
+        self.assertEqual(
+            m.strict_json(wire),
+            {"outer": {"a": 1, "b": 2}, "float": 2.5, "enabled": False}
+        )
+
+    def test_strict_owner_json_rejects_invalid_utf8_and_root_arrays(self):
+        for raw in (b'\\xff', b'[]', b'null'):
+            with self.subTest(raw=raw), self.assertRaises(m.ReviewHold):
+                m.strict_json(raw)
+
     def test_unapproved_cli_does_not_inspect(self):
         with patch.object(m.sys, "argv", ["verifier", "--activate"]), \
              patch.object(m, "inspect") as fn:
