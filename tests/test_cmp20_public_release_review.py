@@ -153,9 +153,14 @@ class OwnerReviewVerifierTests(unittest.TestCase):
         )
 
     def test_strict_owner_json_rejects_invalid_utf8_and_root_arrays(self):
-        for raw in (b'\\xff', b'[]', b'null'):
+        for raw in (bytes([0xff]), b'[]', b'null'):
             with self.subTest(raw=raw), self.assertRaises(m.ReviewHold):
                 m.strict_json(raw)
+
+    def test_deeply_nested_owner_json_fails_closed(self):
+        raw = b'[' * 1500 + b'0' + b']' * 1500
+        with self.assertRaises(m.ReviewHold):
+            m.strict_json(raw)
 
     def test_unapproved_cli_does_not_inspect(self):
         with patch.object(m.sys, "argv", ["verifier", "--activate"]), \
