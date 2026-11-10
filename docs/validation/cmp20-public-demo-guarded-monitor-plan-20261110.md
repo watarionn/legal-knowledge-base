@@ -24,7 +24,7 @@ CLIは`--recover`、`--start`、`--stop`を明示的に拒否。OSコマンド�
 
 1. **Source候補**: 既存Taskを固定targetとして再実行するrecover-once runnerを別途設計・source QA。独立owner署名で`CMP20_PUBLIC_DEMO_RESTART_ONLY`、owner release pin、Task action SHA、1起動/時間・排他・発火期限・signed rollback/receiptを束縛する。新規実行プランをTask登録する場合は別途固定のTask-specific owner認可が必要。
 2. **Taskライフサイクル**: 後継監視Taskは最初`Disabled`・IgnoreNew・非管理者必要最小権限、固定5分検査、合意した保守期間の前に旧Taskと競合しない。read-only inspect PASSでもTask自動起動を勝手に許可しない。
-3. **実機切替**: 真正な署名・同一owner identity・source hash・起動パス・stop/rollback・現行8827 (private8877) 非干渉、実端末のreadbackを通した後に限り変更可能。
+3. **実機切替**: 真正な署名・同一owner identity・source hash・起動パス・stop/rollback・既存private8877の非干渉、実端末のreadbackを通した後に限り変更可能。
 4. **OS再起動**: CMP-08等との**共同メンテナンスまで保留**。共有再起動後に公開Taskの自動復帰とCMP-08 watchdogの非重複を同時に検証。現時点のログオン時Taskの存在から再起動テストPASSを推定しない。
 5. **残余**: ソケット`WinError 10055`の根因分析、数日間の稼働継続、外部第三者ネットワーク到達、全文検索/RAG回答品質は今回のread-only診断の受入外。Phase8歴史完成・CMP-20候補台帳の非canonical境界を維持する。
 
