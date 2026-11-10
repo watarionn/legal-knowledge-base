@@ -188,6 +188,8 @@ def strict_json(raw: bytes) -> dict:
                            parse_float=finite_float)
     except (UnicodeError, json.JSONDecodeError):
         raise ReviewHold("OWNER_JSON_INVALID") from None
+    except RecursionError:
+        raise ReviewHold("OWNER_JSON_TOO_DEEP") from None
     require(isinstance(value, dict), "OWNER_JSON_OBJECT_REQUIRED")
     return value
 
