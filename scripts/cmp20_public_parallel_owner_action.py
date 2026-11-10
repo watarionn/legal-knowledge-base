@@ -270,6 +270,28 @@ def get_health(url:str)->dict:
         raise CutoverHold("PUBLIC_RUNTIME_HTTP_HOLD") from e
 
 
+def check_public_https_security_boundary():
+    """Require exact publicly visible response and private route denial."""
+    from urllib.request import Request
+    base="https://ywshtmr.tail8fd68c.ts.net:8443"
+    try:
+        with urlopen(Request(base+"/",method="GET"),timeout=8) as root:
+            require(root.status==200 and
+                    bool(root.headers.get("Content-Security-Policy")) and
+                    root.headers.get("X-Content-Type-Options","").lower()=="nosniff" and
+                    root.headers.get("X-Frame-Options","").upper()=="DENY",
+                    "PUBLIC_SECURITY_HEADER_GATE_HOLD")
+            root.read(128)
+        try:
+            with urlopen(Request(base+"/api/v1/favorites",method="GET"),
+                         timeout=8) as hidden:
+                require(hidden.status==404,"PRIVATE_PUBLIC_ROUTE_EXPOSED")
+        except HTTPError as err:
+            require(err.code==404,"PRIVATE_PUBLIC_ROUTE_BAD_STATUS")
+    except (URLError,OSError) as err:
+        raise CutoverHold("PUBLIC_HTTPS_SECURITY_READ_HOLD") from err
+
+
 def service_health(port:int):
     health=get_health(f"http://127.0.0.1:{port}/api/v1/health")
     require(type(health) is dict and health.get("status")=="ok"
@@ -374,6 +396,7 @@ def change_route(expected:str,target:str):
                 exposed.get("mode")=="public-demo" and
                 exposed.get("app_version")=="phase8-public-demo",
                 "PUBLIC_NEW_FUNNEL_IDENTITY_HOLD")
+        check_public_https_security_boundary()
         service_health(8878)
         require(owner_listener(8878)["owner_pid"]==old_pid,
                 "ORIGINAL_PUBLIC_PROCESS_REPLACED_ON_ROUTE_SWITCH")
