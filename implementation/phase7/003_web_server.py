@@ -939,6 +939,42 @@ class Handler(BaseHTTPRequestHandler):
             if conn is not None: conn.close()
 
 
+
+def _serve_with_bounded_public_win10055_retry(
+    server: LegalKbHttpServer,
+    *,
+    public_demo: bool,
+    pause=None,
+) -> None:
+    """Retry transient Windows select WSAENOBUFS on the public demo only.
+
+    This is a bounded, same-server retry, never a new listening process or
+    a fallback to the private runtime. Persistent resource pressure still
+    fails visibly instead of consuming resources in an unbounded loop.
+    """
+    if pause is None:
+        pause = time.sleep
+    retries = 0
+    while True:
+        try:
+            server.serve_forever()
+            return
+        except OSError as exc:
+            winerror = getattr(exc, "winerror", None)
+            if not (public_demo and os.name == "nt"
+                    and winerror == 10055 and retries < 3):
+                raise
+            delay = 2 ** retries
+            retries += 1
+            print(
+                "Legal KB Public Demo: transient WinError 10055 "
+                f"accept loop; bounded retry {retries}/3 in {delay}s",
+                file=sys.stderr,
+            )
+            pause(delay)
+
+
+
 def main() -> None:
     host = os.environ.get("LEGAL_KB_HOST", "127.0.0.1")
     raw_port = os.environ.get("LEGAL_KB_PORT", "8765")
@@ -954,7 +990,7 @@ def main() -> None:
     print(f"Legal KB {mode}: http://{host}:{port}")
     print("Database:", "configured" if state.database_url else "not configured")
     try:
-        server.serve_forever()
+        _serve_with_bounded_public_win10055_retry(server, public_demo=state.public_demo)
     except KeyboardInterrupt:
         pass
     finally:
