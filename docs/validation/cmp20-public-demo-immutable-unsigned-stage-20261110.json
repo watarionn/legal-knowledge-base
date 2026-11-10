@@ -1,0 +1,55 @@
+{
+  "schema": "legal-kb.cmp20.public-demo-unsigned-source-stage-receipt.v1",
+  "observed_date": "2026-11-10",
+  "owner_device": "YWSHTMR",
+  "release_candidate": "cmp20-public-demo-unsigned-source-candidate-v1",
+  "stage_scope": "ISOLATED_OWNER_QA_ONLY",
+  "owner_current_public_worktree_head": "4acdda5aac833a30189858ff1e43c34ada23c839",
+  "owner_launcher_sha256": "fa806751be935fd93c4650a56171c9615c2ce3550acb222e233b038e0e32a77f",
+  "original_server_git_blob": "a394f509b51fe598eb0f1852339ba7f21e2be9b4",
+  "reviewed_source_main_commit": "14d5d6dae5ca1b238a78860b0e473ebbd795415d",
+  "stage_script_git_blob": "83d73bb0c97698261a741860e1cec1d2111ff88f",
+  "stage_test_git_blob": "c7f37c0a0e83f51d006b77ffc3392441419bc9cb",
+  "bundled_files": {
+    "003_web_server.py": "511f5070c8c3fac8e733b35cb897868dca77369c",
+    "082_public_demo_socket_retry_test.py": "ab157e90a4725d1b8923bc0a68cacdd95b82d5c5"
+  },
+  "actual_owner_stage": {
+    "path": "%LOCALAPPDATA%/RinkaMissionControl/cmp20-server-retry-qa-20261110/cmp20-public-demo-unsigned-source-candidate-v1",
+    "status": "STAGED_UNSIGNED_NONEXECUTABLE",
+    "file_count": 3,
+    "patch_count": 2,
+    "manifest_sha256": "9b8730abdfe399b9f8d9bf86e95fac0b9063236f214c306c439da4588b80374f",
+    "manifest_file_size": 1265,
+    "readback_manifest_digest_equal": true,
+    "readback_2_source_files": true
+  },
+  "verified_owner_qa": {
+    "source_offline_test_files": 27,
+    "source_offline_tests_passed": 207,
+    "source_offline_tests_failed": 0,
+    "stage_guard_unit_tests_passed": 9,
+    "stage_guard_unit_tests_failed": 0,
+    "owner_inspect_status": "READY_UNSIGNED_SOURCE_ONLY"
+  },
+  "scope_limits": {
+    "owner_signatures_issued": false,
+    "executable_release_authorized": false,
+    "task_registered": false,
+    "task_enabled": false,
+    "running_public_source_modified": false,
+    "public_process_stopped": false,
+    "private_8877_modified": false,
+    "tailscale_funnel_modified": false,
+    "database_or_credentials_read": false,
+    "shared_os_reboot_performed": false,
+    "current_owner_https_health_200_from_prior_readback": true
+  },
+  "next": [
+    "Independent reviewed CMP20-purpose owner signing authority for immutable release and rollback",
+    "Do not alter live public worktree in-place; stage a new fixed runnable release and verify Task action preimage",
+    "Owner-approved cutover via safe lifecycle, production signed receipt and HTTPS/private readback",
+    "Post-shared-reboot task/startup acceptance with CMP08; no independent reboot now",
+    "Separate owner-approved crash monitor/Task authorization before enabling recovery automation"
+  ]
+}
