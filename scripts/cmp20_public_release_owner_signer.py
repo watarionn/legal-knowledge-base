@@ -24,7 +24,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 SOURCE_ROOT = Path(__file__).resolve().parent
 REVIEW_VERIFIER = "cmp20_public_release_review.py"
-REVIEW_VERIFIER_BLOB = "080668d7e42275b0125ca9e0ee03329332e59c52"
+REVIEW_VERIFIER_BLOB = "b6366bb2a31c85d93dd1faff5b8cf3397342450f"
 APPROVALS = Path(os.environ.get("LOCALAPPDATA", "")) / "RinkaMissionControl" / "owner_approvals"
 KEY_ROOT = APPROVALS / "cmp20-public-demo-release-review"
 CONSENT = {
@@ -222,10 +222,8 @@ def enroll(verifier) -> dict:
     }
 
 
-def _read_json(path: Path) -> dict:
-    data = json.loads(path.read_bytes())
-    require(isinstance(data, dict), "OWNER_SIGNER_JSON_OBJECT_REQUIRED")
-    return data
+def _read_json(raw: bytes, verifier) -> dict:
+    return verifier.strict_json(raw)
 
 
 def issue(verifier, independent_trust_pin: str) -> dict:
@@ -234,9 +232,14 @@ def issue(verifier, independent_trust_pin: str) -> dict:
             "INDEPENDENT_OWNER_TRUST_PIN_REQUIRED")
     safe_dir(KEY_ROOT)
     safe_dir(KEY_ROOT / "keys")
-    trust_raw = (KEY_ROOT / "trust.json").read_bytes()
+    trust_path = KEY_ROOT / "trust.json"
+    require(trust_path.is_file() and not trust_path.is_symlink()
+            and not (hasattr(trust_path, "is_junction") and trust_path.is_junction()),
+            "OWNER_SIGNER_TRUST_FILE_UNSAFE")
+    trust_raw = trust_path.read_bytes()
+    require(0 < len(trust_raw) <= 8192, "OWNER_SIGNER_TRUST_SIZE_HOLD")
     require(sha(trust_raw) == independent_trust_pin, "OWNER_TRUST_PIN_CHANGED")
-    trust = _read_json(KEY_ROOT / "trust.json")
+    trust = _read_json(trust_raw, verifier)
     require(trust.get("schema") == verifier.TRUST_SCHEMA
             and trust.get("purpose") == verifier.PURPOSE,
             "OWNER_REVIEW_TRUST_PURPOSE_CHANGED")
