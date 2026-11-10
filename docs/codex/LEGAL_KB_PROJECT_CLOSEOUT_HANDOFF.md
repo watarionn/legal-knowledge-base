@@ -139,3 +139,10 @@ Windowsの実OS再起動を通した完全な再起動耐性テストはcloseout
 - `docs/validation/phase8-completion-gate-20260917.json`
 
 このハンドオフと最終状態JSONを、プロジェクト再開時の最初の参照点とすること。
+
+
+## 2026-11-10 運用追記: CMP-20 公開デモの停止・復旧
+
+2026-09-17のPhase 1〜8完成記録は遡及変更しない。2026-11-10現在のowner実機で、公開Funnel `:8443` は有効だが、公開用 `:8878` プロセス不在によるHTTP502を観測。既存Task `LegalKB Public Demo Runtime` を既存の署名未改変launcher/SHAとGit headで照合して1回起動し、Funnel root/health HTTP200、公開用 `public-demo`、private 8877 HTTP200、公開からprivate API 404、実PID一致を確認した。過去stderrには `OSError [WinError 10055]` があり、再発原因・ログオン後の自動復旧は別の運用課題として未完了。
+
+詳細な今時点の一次実機受入・負例と未実施範囲は [CMP20 2026-11-10復旧記録](../validation/cmp20-public-demo-operational-recovery-20261110.md) と [同構造化receipt](../validation/cmp20-public-demo-operational-recovery-20261110.json) に残す。外部第三者の独立アクセス確認や新規キャンペーン実行権限を暗黙に認可しない。
