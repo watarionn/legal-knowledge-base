@@ -24,7 +24,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 SOURCE_ROOT = Path(__file__).resolve().parent
 REVIEW_VERIFIER = "cmp20_public_release_review.py"
-REVIEW_VERIFIER_BLOB = "b6366bb2a31c85d93dd1faff5b8cf3397342450f"
+REVIEW_VERIFIER_BLOB = "ae7f2cbd01dab3d6dd9823ce340be34ee95bbe3b"
 APPROVALS = Path(os.environ.get("LOCALAPPDATA", "")) / "RinkaMissionControl" / "owner_approvals"
 KEY_ROOT = APPROVALS / "cmp20-public-demo-release-review"
 CONSENT = {
