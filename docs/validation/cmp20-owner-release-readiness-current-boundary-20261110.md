@@ -28,3 +28,13 @@ New `scripts/cmp20_public_release_readiness_readonly.py --inspect` combines the 
 5. CMP-20 in RLO's planning index remains `PROJECT_SOURCE_VERIFIED_CAMPAIGN_OPEN`, `creation_authorized=false`, `canonical_campaign_registered=false`. Owner authorization for formal campaign enrollment, and separate actual production/survival acceptance, must not be inferred from this source-only integration.
 
 This is the current, truthful completion boundary. A successful command exit for tests/source merge is **not** owner signing, production upgrade, or canonical CMP20 closure. No new background task created.
+
+## Verified owner Windows source-only release readiness QA (2026-11-10 23:31 JST)
+
+The final review candidate `cmp20_public_release_readiness_readonly.py`, Git blob `1003df0b21ecc9c2ad59eb076ee8d22e7be3a848`, its tests Git blob `4e3c24cd457165cb4b74e1fbe3d7c1fa92ecd31a`, the original runtime inspector blob `33f0e3549f881bb5f9f5267b7ae5d6aca5d95ea8` and independent owner verifier blob `ae7f2cbd01dab3d6dd9823ce340be34ee95bbe3b` were copied into a new isolated owner Windows QA directory. Independent `git hash-object --no-filters` **4/4 exact source pins PASS**, Python3.14 `py_compile` PASS, **20/20 new tests PASS** including false review grant, wrong source, stage SHA, private route exposure and CSP/nosniff negative paths.
+
+Real owner `--inspect` result, **exit code 2 deliberately meaning release not authorized**:
+
+`status=HOLD_FOR_PRODUCTION_CUTOVER; owner_public_runtime=HEALTHY; immutable_patch_stage=PASS; review_key_or_packet_state=OWNER_REVIEW_KEY_ENROLLMENT_AND_PACKET_PENDING; public_https_root=200; public_https_health=200; private_public_exposure=404; public_security_headers_verified=true; review_signed=false; owner_execution_authority=false; public_new_patch_deployed=false; cmp20_canonical_campaign_completed=false`.
+
+This bounded output was obtained by actual runtime inspection, SHA-pinned stage review and owner self-HTTPS, **not** by simulating a signature or running the new patch in production. The 20 test cases are source-boundary tests, not a substitute for the original Phase8 full regression or an owner executable release action. No new Task, scheduled job, service, file in production, credentials or database was modified.
