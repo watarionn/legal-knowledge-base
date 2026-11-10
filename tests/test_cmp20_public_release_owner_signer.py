@@ -68,6 +68,13 @@ class OwnerSignerTests(unittest.TestCase):
                 sign.create_new(path, b"replacement")
             self.assertEqual(path.read_bytes(), b"existing")
 
+
+    def test_signer_rejects_duplicate_or_nonfinite_trust_json(self):
+        for raw in (b'{"schema":"x","schema":"x"}', b'{"value":NaN}',
+                    b'{"value":1e309}'):
+            with self.subTest(raw=raw), self.assertRaises(review.ReviewHold):
+                sign._read_json(raw, review)
+
     def test_no_owner_approval_is_execution_authority(self):
         keys = sign.make_trust(self.keys, review)
         self.assertEqual(keys["purpose"], review.PURPOSE)
