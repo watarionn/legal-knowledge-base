@@ -182,6 +182,7 @@ def verify_staged_source(root: Path = STAGED) -> dict:
     raw = _safe_file(root / "manifest.json", 8192)
     require(sha(raw) == STAGE_MANIFEST_SHA256, "STAGE_MANIFEST_SHA_CHANGED")
     manifest = json.loads(raw)
+    require(isinstance(manifest, dict), "STAGE_MANIFEST_OBJECT_REQUIRED")
     require(manifest.get("schema") ==
             "legal-kb.cmp20.public-demo-unsigned-source-candidate.v1"
             and manifest.get("operation") ==
