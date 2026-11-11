@@ -54,6 +54,9 @@ foreach($port in @(8877,8878,8879)){
   action=[string]$t.Actions[0].Execute
   arguments=[string]$t.Actions[0].Arguments
   logon_type=[string]$t.Principal.LogonType
+  principal_user=[string]$t.Principal.UserId
+  action_count=@($t.Actions).Count
+  trigger_types=@($t.Triggers | ForEach-Object { $_.CimClass.CimClassName })
   multiple_instances=[string]$t.Settings.MultipleInstances
   allow_hard_terminate=[bool]$t.Settings.AllowHardTerminate
   logon_trigger=$xml.Contains('<LogonTrigger>')
@@ -169,6 +172,11 @@ def validate(task: dict, receipt: dict, signed: dict, serve: dict,
     require(os.path.normcase(task.get("action", "")) == os.path.normcase(OWNER_PYTHON)
             and os.path.normcase(task.get("arguments", "")) ==
             os.path.normcase(expected_args), "TASK_ACTION_CHANGED")
+    require(task.get("principal_user") == "watar"
+            and task.get("action_count") == 1
+            and sorted(task.get("trigger_types", [])) ==
+            ["MSFT_TaskDailyTrigger", "MSFT_TaskLogonTrigger"],
+            "TASK_OWNER_ACTION_OR_TRIGGER_COUNT_HOLD")
     require(task.get("logon_type") == "Interactive"
             and task.get("multiple_instances") == "IgnoreNew"
             and task.get("allow_hard_terminate") is False
