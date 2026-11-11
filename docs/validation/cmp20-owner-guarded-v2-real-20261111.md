@@ -27,3 +27,7 @@
 残るゲートは、(a) 真正な自然周期を継続して検証、(b) 24時間経過時の実機署名/PID/HTTPS/Queue/Private境界検査、(c) 共有PC調整済みの**物理再起動・実ログイン後**のTaskとHTTPS自動復帰、(d) iPhone/PWAと外部第三者による別受入、(e) CMP20キャンペーン正本への適切な正式登録と最終終了判定。過去のPhase1〜8製品完成は別に完了済みで、計画台帳の `PROJECT_SOURCE_VERIFIED_CAMPAIGN_OPEN` を推測で正式DONEへ変えない。
 
 本番の秘密鍵は所有者PCの保護領域に残し、GitHubへアップロードしない。原版8878のGit・Taskと個人用8877/PostgreSQLを破壊せず、V2発行済みの署名・固定実行アクションに限定して継続する。
+
+## 自然5分周期の追加受入: 12:30:01 JST
+
+故障注入後の再開に続いて、既存Task Schedulerの**自然な時刻トリガー**による 2026-11-11 **12:30:01 JST** の実行を独立読戻しした。Task `Ready`、`LastTaskResult=0`、`NumberOfMissedRuns=0`、次回12:35 JST。保護領域の最新 `last-guarded-once.json` は **12:30:05.943 JST** の `status=PASS`、`candidate_recovered=false`、`candidate_pid=8976`、`old_public_pid=15900`、`public_route=http://127.0.0.1:8879`。SHA256 は **`c718bab8e833f2f24c9c6f4233c03ad1bb6ae6ca0f16b9442aae278b10ad3f3c`**。署名付きTaskが実際に新旧の実PID・公開先8879を確認し、不要な再起動をしないことまで証明できた。これは一回の自然周期の受入で、24時間耐久や全実行回のアーカイブではない。
