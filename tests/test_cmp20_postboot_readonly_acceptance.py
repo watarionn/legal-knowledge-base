@@ -31,6 +31,8 @@ class ReadonlyPostbootGateTests(unittest.TestCase):
         self.task = {
             "boot_utc": CURRENT_BOOT, "name": m.TASK, "state": "Ready",
             "action": m.OWNER_PYTHON, "arguments": action,
+            "principal_user": "watar", "action_count": 1,
+            "trigger_types": ["MSFT_TaskDailyTrigger", "MSFT_TaskLogonTrigger"],
             "logon_type": "Interactive", "multiple_instances": "IgnoreNew",
             "allow_hard_terminate": False,
             "logon_trigger": True, "calendar_trigger": True,
@@ -101,6 +103,14 @@ class ReadonlyPostbootGateTests(unittest.TestCase):
     def test_missing_trigger_holds(self):
         self.task["interval_pt5m"] = False
         self.assert_hold("TASK_TRIGGERS_OR_POLICY_CHANGED")
+
+    def test_unexpected_extra_action_holds(self):
+        self.task["action_count"] = 2
+        self.assert_hold("TASK_OWNER_ACTION_OR_TRIGGER_COUNT_HOLD")
+
+    def test_wrong_owner_holds(self):
+        self.task["principal_user"] = "SYSTEM"
+        self.assert_hold("TASK_OWNER_ACTION_OR_TRIGGER_COUNT_HOLD")
 
     def test_native_failure_holds(self):
         self.task["last_result"] = 2
