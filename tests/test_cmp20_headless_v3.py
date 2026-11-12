@@ -282,6 +282,15 @@ class V3NoPopupContract(unittest.TestCase):
                 guardian.subprocess.SW_HIDE)
         self.assertIs(guardian.subprocess.Popen, original)
 
+    def test_signer_loads_protected_helper_from_reviewed_qa_not_v2_release(self):
+        fake = object()
+        with patch.object(owner.runtime, "source_pinned", return_value=fake) as pinned:
+            self.assertIs(owner.helper(), fake)
+        self.assertEqual(pinned.call_args.args[0],
+                         owner.QA / "cmp20_public_release_owner_signer.py")
+        self.assertEqual(pinned.call_args.args[1],
+                         "4199852e192349270096807af52d358ee89afe2b")
+
     def test_exact_source_set_cannot_be_expanded(self):
         source = {name: "a" * 40 for name in verifier.SOURCES}
         source["unexpected_task.py"] = "f" * 40
