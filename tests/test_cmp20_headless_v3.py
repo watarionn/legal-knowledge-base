@@ -250,5 +250,43 @@ class V3GuardIntegrationMock(unittest.TestCase):
                 guardian.one_tick()
         fake.stop_candidate_only.assert_not_called()
 
+class V3NoPopupContract(unittest.TestCase):
+    def test_wrong_task_name_refused_before_windows_shell(self):
+        with self.assertRaises(guardian.HeadlessHold):
+            guardian.task_info(MagicMock(), "RinkaCommanderGithubQueue")
+
+    def test_no_signature_no_recovery(self):
+        with patch.object(guardian.grant, "verify",
+                          side_effect=verifier.V3Hold("NOT_SIGNED")), \
+             patch.object(guardian, "source_pinned") as load:
+            with self.assertRaises(verifier.V3Hold):
+                guardian.one_tick()
+        load.assert_not_called()
+
+    @unittest.skipUnless(sys.platform == "win32", "owner Windows only")
+    def test_all_subprocess_windows_hidden_even_if_v2_uses_powershell(self):
+        original = guardian.subprocess.Popen
+        with patch.object(guardian.subprocess, "Popen") as pop:
+            with guardian.invisible_children():
+                guardian.subprocess.Popen(
+                    ["powershell.exe", "-NoProfile"], shell=False)
+            kwargs = pop.call_args.kwargs
+            self.assertTrue(
+                kwargs["creationflags"] &
+                guardian.subprocess.CREATE_NO_WINDOW)
+            self.assertTrue(
+                kwargs["startupinfo"].dwFlags &
+                guardian.subprocess.STARTF_USESHOWWINDOW)
+            self.assertEqual(
+                kwargs["startupinfo"].wShowWindow,
+                guardian.subprocess.SW_HIDE)
+        self.assertIs(guardian.subprocess.Popen, original)
+
+    def test_exact_source_set_cannot_be_expanded(self):
+        source = {name: "a" * 40 for name in verifier.SOURCES}
+        source["unexpected_task.py"] = "f" * 40
+        with self.assertRaises(verifier.V3Hold):
+            verifier.manifest_fields(source)
+
 if __name__ == "__main__":
     unittest.main()
