@@ -47,7 +47,12 @@ def old_signed():
     return prior
 
 def helper():
-    return old_signed().helper()
+    # V2's signed runtime release intentionally contains no signing helper.
+    # Source-only V3 issuer must load the EXACT reviewed standalone helper
+    # from its isolated owner QA directory; never mutate the sealed V2 set.
+    source = QA / "cmp20_public_release_owner_signer.py"
+    return runtime.source_pinned(
+        source, "4199852e192349270096807af52d358ee89afe2b")
 
 def reviewed_qa_sources(manifest=None):
     sources = {}
