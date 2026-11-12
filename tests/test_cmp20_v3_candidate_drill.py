@@ -175,4 +175,33 @@ class NaturalRecovery(unittest.TestCase):
         self.assertIn("modify_any_windows_task",v.FORBIDDEN)
         self.assertNotIn("modify_any_windows_task",v.ALLOWED)
 
+class SignedV3ImportContract(unittest.TestCase):
+    def test_isolated_qa_explicitly_binds_verified_v3_release_path(self):
+        original=list(sys.path)
+        with patch.object(ops.signed,"owner"), \
+             patch.object(ops.signed,"safe",return_value=b"reviewed"), \
+             patch.object(ops.signed,"blob",return_value=ops.V3_VERIFY_BLOB), \
+             patch.object(ops.signed,"sha",return_value=ops.signed.V3_PACKET_SHA), \
+             patch.object(ops,"module") as imported:
+            signature=MagicMock()
+            signature.verify.return_value={"status":"PASS"}
+            guardian=MagicMock()
+            imported.side_effect=[signature,guardian]
+            try:
+                ops.v3_runtime()
+                self.assertIn(str(ops.V3),sys.path)
+                self.assertEqual(imported.call_args_list[0].args[1],
+                                 ops.V3_VERIFY_BLOB)
+            finally:
+                sys.path[:]=original
+
+    def test_mismatched_verifier_bytes_fail_before_any_import(self):
+        with patch.object(ops.signed,"owner"), \
+             patch.object(ops.signed,"safe",return_value=b"tampered"), \
+             patch.object(ops.signed,"blob",return_value="f"*40), \
+             patch.object(ops,"module") as imported:
+            with self.assertRaises(ops.Stop):
+                ops.v3_runtime()
+            imported.assert_not_called()
+
 if __name__=="__main__":unittest.main()
