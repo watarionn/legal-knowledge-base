@@ -15,11 +15,11 @@ The signer uses **new owner-private** keys in `%LOCALAPPDATA%\RinkaMissionContro
 
 Isolated existing owner QA root `RinkaMissionControl\cmp20-headless-v3-qa-20261112\drill-20261112` actually received exact branch blobs:
 - `cmp20_v3_candidate_drill_verify.py`: `4d09991e9d8e624eb67ca4f7d96962fb843228f9`
-- `cmp20_v3_candidate_drill_owner.py`: `90ef30b19f4da6315c761ba333f1a11ffd3c0694`
-- `test_cmp20_v3_candidate_drill.py`: `88d445afc4023f3af90e2382fdedcdcf788453d4`
+- `cmp20_v3_candidate_drill_owner.py`: `0935d5bee16e6c445b1dbcc4ef1739c45e075c35`
+- `test_cmp20_v3_candidate_drill.py`: `6d80ada7de097963c5cd1c89ea54c211080ec52f`
 - Existing standalone ACL signer helper: `4199852e192349270096807af52d358ee89afe2b`
 
-`C:\Python314\python.exe -B -m unittest discover ...`: **23/23 PASS**, including independently different keys, signature mismatch, code/hash/port/Task alteration rejection, original PID preservation and no false recovery from an unrelated/stale Task. Exact source blobs matched GitHub. `--inspect` returned `READ_ONLY_DRILL_SOURCE` with `trust_created=false`, `release_staged=false`, `drill_started=false`, `drill_completed=false`. This is a **source implementation and tests**, not proof that any actual live candidate has been stopped or restarted.
+`C:\Python314\python.exe -B -m unittest discover ...`: **25/25 PASS**, including independently different keys, signature mismatch, code/hash/port/Task alteration rejection, original PID preservation and no false recovery from an unrelated/stale Task. Exact source blobs matched GitHub. `--inspect` returned `READ_ONLY_DRILL_SOURCE` with `trust_created=false`, `release_staged=false`, `drill_started=false`, `drill_completed=false`. This is a **source implementation and tests**, not proof that any actual live candidate has been stopped or restarted.
 
 ## Required bounded runtime gate
 
@@ -28,3 +28,7 @@ After reviewed code reaches main, owner verifies exact main Git blobs and expres
 Allow existing V3 periodic Task to run; **verify native LastRun later than drill start with result0 and signed new `candidate_recovered=true` receipt** and changed candidate PID. Run separately signed `--finish` before its special recovered receipt can be overwritten by another 5-minute natural tick, restoring public :8443→candidate without interruption to preserved original/private. Read back both protected receipt files, original/new/private health, private API404 and CSP/nosniff. On any gate failure leave service safely served by original and report precise HOLD; do not pretend the drill succeeded or kill an unrelated process.
 
 CMP-20 complete campaign still separately requires owner iPhone + cellular and no visible CMD UX reports, 24h V3 soak if required, owner-authorized RLO campaign registration and legal Issue #54 closeout/readback. Those are distinct from the drill.
+
+## Signed V3 isolated import-path correction (owner preflight)
+
+Before enrolling any extra keys, genuine owner isolated QA performed the release dependency probe. It initially returned `HOLD/ModuleNotFoundError` while reading the original signed V3 guard by file path, because that guard imports its matching signed verifier via standard module name but the isolated QA does not automatically include the sealed V3 release directory on `sys.path`. No keys, Task, PID or Serve routing were mutated. The separate drill source now **first verifies the exact independent signed V3 verifier Git blob** and then adds only the existing sealed V3 release path to `sys.path` (no file copy, no PYTHONPATH global changes or sealed V3 edits). Two tests reject mismatched V3 bytes and check the exact import path. Re-run the same owner preflight gate once; if PASS continue to source-bound signing, otherwise HOLD with exact failure.
