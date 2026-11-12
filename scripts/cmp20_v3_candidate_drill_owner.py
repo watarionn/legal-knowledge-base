@@ -50,6 +50,14 @@ def module(path,blob):
 
 def v3_runtime():
     signed.owner()
+    # The sealed V3 guard imports its matching signed verifier by module name.
+    # Isolated drill QA has no implicit access to that release directory.
+    # Pin actual verifier bytes first and make that exact release importable,
+    # never copy or modify V3 sealed files or depend on a global PYTHONPATH.
+    need(signed.blob(signed.safe(V3/"cmp20_headless_v3_verify.py"))==V3_VERIFY_BLOB,
+         "PRIOR_V3_VERIFIER_SOURCE_DRIFT")
+    if str(V3) not in sys.path:
+        sys.path.insert(0,str(V3))
     s=module(V3/"cmp20_headless_v3_verify.py",V3_VERIFY_BLOB)
     need(s.verify()["status"]=="PASS","PRIOR_V3_SIGNED_VERIFICATION_FAILED")
     g=module(V3/"cmp20_headless_v3_guard.py",V3_GUARD_BLOB)
