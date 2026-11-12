@@ -20,10 +20,10 @@ Exact branch Git blobs were copied into the existing owner-private QA root `%LOC
 | --- | --- |
 | `cmp20_headless_v3_verify.py` | `8caff01ddb6f8d3f8619ed5d628f04b51de84eb1` |
 | `cmp20_headless_v3_guard.py` | `44d7ac23e5d30c80e9287e3e27ab443f326efd5b` |
-| `cmp20_headless_v3_owner.py` | `b30ee0ffe175c4c4179dd32be32ec428da6e6e51` |
-| `test_cmp20_headless_v3.py` | `6c4d144d1ca2cc2a3496971d7b7287f30cb0835c` |
+| `cmp20_headless_v3_owner.py` | `ceaa4b42bd3413fe038ba5eef59fce6e2bf6571d` |
+| `test_cmp20_headless_v3.py` | `0973c64969c646fb046b480981bcac3a1e41c2fa` |
 
-Owner `C:\Python314\python.exe -B -m unittest discover ... -v`: **26/26 PASS**, including distinct Ed25519 roles, signature rejection, privilege expansion rejection, exact Tasks/trigger/owner/executable, lock scope, unknown Task denial, no signature no runtime, no stop of occupied unhealthy candidate, and the actual Win32 `CREATE_NO_WINDOW/SW_HIDE` subprocess adapter. Existing **V2 independent signature** and actual owner immutable V2 source were read/verified `PASS`; owner V3 `--inspect` returned read-only `READ_ONLY_V3_SOURCES` with V3 Task/trust/release all absent. These tests do **not** prove a real scheduled `pythonw` V3 tick, absence of visible windows perceived by the owner, or a new V3 signature packet.
+Owner `C:\Python314\python.exe -B -m unittest discover ... -v`: **27/27 PASS**, including distinct Ed25519 roles, signature rejection, privilege expansion rejection, exact Tasks/trigger/owner/executable, lock scope, unknown Task denial, no signature no runtime, no stop of occupied unhealthy candidate, and the actual Win32 `CREATE_NO_WINDOW/SW_HIDE` subprocess adapter. Existing **V2 independent signature** and actual owner immutable V2 source were read/verified `PASS`; owner V3 `--inspect` returned read-only `READ_ONLY_V3_SOURCES` with V3 Task/trust/release all absent. These tests do **not** prove a real scheduled `pythonw` V3 tick, absence of visible windows perceived by the owner, or a new V3 signature packet.
 
 ## Rollout gates (owner protected, no project permission widening)
 
@@ -36,3 +36,7 @@ Owner `C:\Python314\python.exe -B -m unittest discover ... -v`: **26/26 PASS**, 
 7. Rollback disables only V3 and re-enables the original action-exact V2 Task; the V2 is **already HOLD** under its existing `pythonw` drift, so rollback is **non-destructive to HTTP**, not a guaranteed monitoring PASS. Keep signed V1/V2 historical assets intact, record and escalate that degraded rollback state rather than claiming otherwise.
 
 **Final CMP20 closeout is still separate** from V3 installation: user iPhone/outside-network acceptance, reviewed RLO canonical `creation_authorized=false` adoption decision, legal product acceptance links, formal open Issue #54 closure/readback. Source QA is not production.
+
+## Signature-issuer preflight correction (2026-11-12)
+
+First real owner `--enroll` correctly stopped with no V3 trust, keys or Task created. Cause: the new V3 owner signer imported the protected ACL helper from the immutable **V2 runtime release**, whose signed source set deliberately excludes `cmp20_public_release_owner_signer.py`. The actual standalone source exists in LegalKB main with immutable Git blob `4199852e192349270096807af52d358ee89afe2b`. Corrected only the V3 signer to import this exact reviewed helper from the existing isolated owner QA `scripts` root with its Git blob checked before any signer file creation. No V2 release byte edits. Added negative regression test asserting pinned path and SHA. Owner exact-blob 27/27 tests PASS, native owner read-only signer dependency gates (owner, prior V2 signature, three reviewed QA source blobs, approved ACL helper) all PASS. Never try to recover the first failed V3 attempt by copying the helper into sealed V2.
