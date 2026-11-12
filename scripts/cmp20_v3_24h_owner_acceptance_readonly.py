@@ -180,9 +180,11 @@ def main() -> int:
     try:
         print(json.dumps(owner_24h(), sort_keys=True))
         return 0
-    except (Hold, ValueError, OSError, TypeError, KeyError, RuntimeError, ImportError):
-        print(json.dumps({"status":"HOLD","reason":"V3_24H_OWNER_GATE_NOT_PROVEN"},
-                         sort_keys=True))
+    except (Hold, ValueError, OSError, TypeError, KeyError, RuntimeError, ImportError) as error:
+        # Only fixed, predeclared Hold labels are printable; never include
+        # arbitrary external exception messages that might contain credentials.
+        reason = str(error) if isinstance(error, Hold) else "V3_24H_OWNER_GATE_NOT_PROVEN"
+        print(json.dumps({"status":"HOLD","reason":reason}, sort_keys=True))
         return 2
 
 if __name__ == "__main__":
